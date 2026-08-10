@@ -11,6 +11,7 @@ config.json
 test-*.js
 test-*.bin
 server.js
+NuzlockeOverlay.exe
 NuzlockeOverlay.lnk
 package-lock.json
 *.zip
