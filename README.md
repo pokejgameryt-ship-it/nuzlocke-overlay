@@ -61,30 +61,40 @@ Una aplicacion de escritorio para Windows que detecta automaticamente el equipo 
 
 ## Instalacion
 
-### Opcion 1: Ejecutable portable (recomendado)
+### Opcion 1: Descargar exe precompilado (rapido)
 
-1. Descarga `NuzlockeOverlay.exe` desde [Releases](https://github.com/PokeJgamer/nuzlocke-overlay/releases)
-2. Coloca el exe en la carpeta del proyecto (junto a la carpeta `Recursos`)
-3. Ejecuta el exe
+1. Descarga `NuzlockeOverlay.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
+2. Necesitas tambien la carpeta `Recursos/Sprites/` con los sprites de Pokemon
+3. Coloca el exe junto a la carpeta `Recursos/` (misma carpeta)
+4. Ejecuta `NuzlockeOverlay.exe`
 
-### Opcion 2: Compilar desde el codigo fuente
+### Opcion 2: Instalar desde el codigo fuente (completo)
 
 ```bash
 # 1. Clona el repositorio
-git clone https://github.com/PokeJgamer/nuzlocke-overlay.git
+git clone https://github.com/pokejgameryt-ship-it/nuzlocke-overlay.git
 cd nuzlocke-overlay
 
-# 2. Instala dependencias
+# 2. Ejecuta el instalador automatico
+setup.bat
+```
+
+O manualmente:
+```bash
 npm install
-
-# 3. Ejecuta en modo desarrollo
-npm start
-
-# 4. Compila el exe portable
 npm run build:portable
 ```
 
-El exe se generara en la carpeta `dist/`.
+El exe se generara en `dist/` y se copiara a la carpeta raiz.
+
+### Opcion 3: Ejecutar sin compilar (desarrollo)
+
+```bash
+git clone https://github.com/pokejgameryt-ship-it/nuzlocke-overlay.git
+cd nuzlocke-overlay
+npm install
+npm start
+```
 
 ---
 
