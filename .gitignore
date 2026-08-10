@@ -10,5 +10,6 @@ Recursos/
 config.json
 test-*.js
 test-*.bin
+server.js
 NuzlockeOverlay.lnk
 package-lock.json
