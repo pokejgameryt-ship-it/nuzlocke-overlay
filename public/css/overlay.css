@@ -1,0 +1,91 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.overlay-container {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
+
+.pokemon-slot {
+  position: absolute;
+  display: none;
+}
+
+.pokemon-slot.active {
+  display: block;
+}
+
+.pokemon-slot .sprite-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pokemon-slot .sprite-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pokemon-slot .nickname {
+  display: none;
+}
+
+.nickname-slot {
+  position: absolute;
+  display: none;
+}
+
+.nickname-slot.active {
+  display: block;
+}
+
+.nickname-slot .nickname-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  image-rendering: auto;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nickname-slot .nickname-text.stroke-exterior {
+  paint-order: stroke fill;
+  -webkit-text-stroke: var(--stroke-width) var(--stroke-color);
+}
+
+.nickname-slot .nickname-text.stroke-center {
+  -webkit-text-stroke: var(--stroke-width) var(--stroke-color);
+}
+
+.nickname-slot .nickname-text.stroke-interior {
+  text-shadow:
+    var(--stroke-shadow);
+}

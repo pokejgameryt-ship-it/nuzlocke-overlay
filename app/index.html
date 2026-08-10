@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: http://127.0.0.1:*; media-src 'self'; connect-src 'self' http://127.0.0.1:*;">
+  <title>Nuzlocke Overlay</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1>Nuzlocke</h1>
+        <div class="sidebar-actions">
+          <button class="btn-icon btn-settings" id="settingsBtn" title="Configuracion">&#9881;</button>
+          <button class="btn-icon btn-help" id="helpBtn" title="Ayuda">?</button>
+          <button class="btn-icon" id="addProjectBtn" title="Nuevo proyecto">+</button>
+        </div>
+      </div>
+      <div class="project-list" id="projectList"></div>
+      <div class="sidebar-footer">
+        <button class="donate-btn" id="donateBtn" title="Apoya el proyecto">
+          <span class="donate-icon">&#9829;</span> Donar
+        </button>
+      </div>
+    </aside>
+
+    <main class="content" id="content">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon"> Pokemon </div>
+        <p>Crea un proyecto para empezar</p>
+      </div>
+
+      <div class="editor" id="editor" style="display:none">
+        <div class="editor-header">
+          <input type="text" id="projectName" class="title-input" placeholder="Nombre del proyecto">
+          <div class="header-actions">
+            <button class="btn-danger" id="deleteProjectBtn">Eliminar</button>
+          </div>
+        </div>
+
+        <div class="editor-body">
+          <div class="panel-left">
+            <section class="card">
+              <h3>Guardar</h3>
+              <div class="field">
+                <label>Ruta del save file</label>
+                <div class="field-row">
+                  <input type="text" id="savePath" placeholder="C:\...\pokemon.sav" readonly>
+                  <button class="btn-secondary" id="browseBtn">Examinar</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Juego / Generacion</label>
+                <select id="gameSelect"></select>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-header-row">
+                <h3>Equipo Detectado</h3>
+                <button class="btn-tiny" id="refreshTeamBtn">Refrescar</button>
+              </div>
+              <div class="team-status empty" id="teamStatus">Sin equipo detectado</div>
+            </section>
+
+            <section class="card">
+              <h3>Estilo de Sprite</h3>
+              <div class="field">
+                <select id="styleSelect"></select>
+              </div>
+              <div class="sprite-preview" id="spritePreview">
+                <p>Selecciona un estilo</p>
+              </div>
+            </section>
+
+            <section class="card">
+              <h3>Opciones</h3>
+              <label class="checkbox-label">
+                <input type="checkbox" id="showNames" checked>
+                Mostrar nombres / motes
+              </label>
+            </section>
+
+            <section class="card" id="nicknameStyleCard">
+              <h3>Estilo de Nickname</h3>
+              <div class="field">
+                <label>Fuente</label>
+                <select id="nicknameFont"></select>
+              </div>
+              <div class="field-row" style="margin-bottom:8px">
+                <label class="checkbox-label small"><input type="checkbox" id="nicknameBold"> <b>N</b></label>
+                <label class="checkbox-label small"><input type="checkbox" id="nicknameItalic"> <i>K</i></label>
+              </div>
+              <div class="field">
+                <label>Color del texto</label>
+                <select id="nicknameColorMode">
+                  <option value="solid">Solido</option>
+                  <option value="linear">Degradado lineal</option>
+                  <option value="radial">Degradado radial</option>
+                </select>
+              </div>
+              <div class="field" id="nicknameSolidColorField">
+                <label>Color</label>
+                <input type="color" id="nicknameColor" value="#ffffff" class="color-input">
+              </div>
+              <div id="nicknameGradientFields" style="display:none">
+                <div class="field-row" style="margin-bottom:8px">
+                  <div class="field" style="flex:1">
+                    <label>Color 1</label>
+                    <input type="color" id="nicknameGradColor1" value="#ffffff" class="color-input">
+                  </div>
+                  <div class="field" style="flex:1">
+                    <label>Color 2</label>
+                    <input type="color" id="nicknameGradColor2" value="#000000" class="color-input">
+                  </div>
+                </div>
+                <div class="field" id="nicknameAngleField">
+                  <label>Angulo: <span id="nicknameAngleVal">0</span>°</label>
+                  <input type="range" id="nicknameAngle" min="0" max="360" value="0" class="range-input">
+                </div>
+              </div>
+              <div class="field">
+                <label>Trazo</label>
+                <div class="field-row" style="margin-bottom:6px">
+                  <div class="field" style="flex:1">
+                    <label>Grosor</label>
+                    <input type="number" id="nicknameStrokeWidth" value="2" min="0" max="20" class="prop-input">
+                  </div>
+                  <div class="field" style="flex:1">
+                    <label>Color</label>
+                    <input type="color" id="nicknameStrokeColor" value="#000000" class="color-input">
+                  </div>
+                </div>
+                <select id="nicknameStrokePos">
+                  <option value="exterior">Exterior</option>
+                  <option value="center">Centrico</option>
+                  <option value="interior">Interior</option>
+                </select>
+              </div>
+            </section>
+
+            <section class="card">
+              <h3>URL de OBS</h3>
+              <div class="obs-url">
+                <code id="obsUrl">-</code>
+                <button class="btn-secondary" id="copyUrlBtn">Copiar</button>
+                <button class="btn-secondary" id="openUrlBtn">Abrir</button>
+              </div>
+              <p class="hint">En OBS: Fuente de navegador &rarr; Pegar URL &rarr; 1920x1080</p>
+            </section>
+          </div>
+
+          <div class="panel-right">
+            <section class="card card-canvas">
+              <div class="card-header-row">
+                <h3>Layout Editor</h3>
+                <div class="canvas-actions">
+                  <button class="btn-small" id="undoBtn" title="Ctrl+Z">Undo</button>
+                  <button class="btn-small" id="redoBtn" title="Ctrl+Shift+Z">Redo</button>
+                  <span class="separator"></span>
+                  <button class="btn-small" id="resetLayoutBtn">Reset</button>
+                  <button class="btn-small" id="equalSpacingBtn">Espaciado</button>
+                  <label class="checkbox-label small"><input type="checkbox" id="snapToggle" checked> Snap</label>
+                  <button class="btn-small btn-camera" id="cameraToggleBtn">Cam</button>
+                  <select id="cameraSelect" class="camera-select" style="display:none"></select>
+                </div>
+              </div>
+              <div class="canvas-wrapper" id="canvasWrapper">
+                <div class="layout-canvas" id="layoutCanvas">
+                  <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
+                </div>
+              </div>
+
+              <div class="canvas-footer" id="canvasFooter" style="display:none">
+                <div class="prop-group">
+                  <label>X</label><input type="number" id="propX" class="prop-input">
+                  <label>Y</label><input type="number" id="propY" class="prop-input">
+                  <label>W</label><input type="number" id="propW" class="prop-input min60">
+                  <label>H</label><input type="number" id="propH" class="prop-input min60">
+                  <label>Scale</label><input type="number" id="propScale" class="prop-input" step="0.1" min="0.1" max="5">
+                </div>
+                <div class="align-group">
+                  <button class="btn-tiny" data-align="left" title="Alinear izquierda">&#8676;</button>
+                  <button class="btn-tiny" data-align="centerH" title="Centrar horizontal">&#8596;</button>
+                  <button class="btn-tiny" data-align="right" title="Alinear derecha">&#8677;</button>
+                  <span class="separator"></span>
+                  <button class="btn-tiny" data-align="top" title="Alinear arriba">&#8673;</button>
+                  <button class="btn-tiny" data-align="centerV" title="Centrar vertical">&#8597;</button>
+                  <button class="btn-tiny" data-align="bottom" title="Alinear abajo">&#8675;</button>
+                  <span class="separator"></span>
+                  <button class="btn-tiny" data-align="distH" title="Distribuir horizontal">&#9776;</button>
+                  <button class="btn-tiny" data-align="distV" title="Distribuir vertical">&#9776;</button>
+                </div>
+                <div class="select-info" id="selectInfo"></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="presets-row">
+                <select id="presetSelect"><option value="">-- Preset --</option></select>
+                <button class="btn-small" id="savePresetBtn">Guardar</button>
+                <button class="btn-small" id="loadPresetBtn">Cargar</button>
+                <button class="btn-small btn-danger" id="deletePresetBtn">Eliminar</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-panel" id="helpPanel" style="display:none">
+        <div class="help-header">
+          <h2>Ayuda</h2>
+          <button class="btn-icon" id="closeHelpBtn">&times;</button>
+        </div>
+        <div class="help-search">
+          <input type="text" id="helpSearch" placeholder="Buscar..." class="help-search-input">
+        </div>
+        <div class="help-topics" id="helpTopics">
+          <div class="help-topic" data-keywords="obs browser source url enlace overlay">
+            <h3 class="help-topic-title">Configurar en OBS</h3>
+            <div class="help-topic-content">
+              <ol>
+                <li>En OBS, haz clic en <b>+ </b> en Fuentes</li>
+                <li>Selecciona <b>Navegador</b></li>
+                <li>Pega la <b>URL de OBS</b> que aparece en la app (seccion "URL de OBS")</li>
+                <li>Establece el ancho a <b>1920</b> y el alto a <b>1080</b></li>
+                <li>En Opciones del navegador, marca <b>"Cerrar fuente cuando no sea visible"</b> (desmarcar si necesitas que siempre este visible)</li>
+                <li>Los sprites se actualizaran automaticamente cuando cambies de Pokemon</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="proyecto save file guardado ruta crear nuevo">
+            <h3 class="help-topic-title">Crear un proyecto</h3>
+            <div class="help-topic-content">
+              <ol>
+                <li>Haz clic en el boton <b>+</b> de la barra lateral</li>
+                <li>Escribe un nombre para el proyecto</li>
+                <li>Haz clic en <b>Examinar</b> y selecciona tu archivo de guardado</li>
+                <li>La app detectara automaticamente la generacion del juego</li>
+                <li>Selecciona un <b>estilo de sprite</b></li>
+                <li>Ajusta la posicion de los sprites en el <b>Layout Editor</b></li>
+                <li>Copia la URL de OBS y pegala en un fuente de navegador en OBS</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="sprite estilo carpeta recursos imagen png gif">
+            <h3 class="help-topic-title">Estilos de sprite</h3>
+            <div class="help-topic-content">
+              <p>Los sprites se cargan automaticamente de la carpeta <b>Recursos/Sprites/</b>.</p>
+              <p>Para anadir un nuevo estilo:</p>
+              <ol>
+                <li>Crea una subcarpeta dentro de <b>Recursos/Sprites/</b> (ej: <code>MiEstilo</code>)</li>
+                <li>Pon los sprites PNG o GIF dentro, nombrados por numero de Pokedex (ej: <code>025.png</code> para Pikachu)</li>
+                <li>Puedes usar subcarpetas para formas regionales (ej: <code>shiny/</code>, <code>alola/</code>)</li>
+                <li>En la app, haz clic en <b>Actualizar estilos</b> para detectar la nueva carpeta</li>
+              </ol>
+              <p><b>Formato recomendado:</b> PNG con fondo transparente, 96x96 o 128x128 pixeles.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="nickname mote apodo nombre texto fuente color stroke trazo">
+            <h3 class="help-topic-title">Personalizar nicknames</h3>
+            <div class="help-topic-content">
+              <p>En la seccion <b>"Estilo de Nickname"</b> puedes configurar:</p>
+              <ul>
+                <li><b>Fuente:</b> Selecciona la tipografia del texto</li>
+                <li><b>Negrita / Cursiva:</b> Estilo del texto</li>
+                <li><b>Color:</b> Solido, degradado lineal o radial</li>
+                <li><b>Trazo:</b> Borde del texto (exterior, centrado o interior)</li>
+              </ul>
+              <p>Los nicknames son slots independientes en el layout. Puedes moverlos y redimensionarlos por separado de los sprites.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="layout editor canvas posicion tamano drag drop mover snap guia alinear">
+            <h3 class="help-topic-title">Layout Editor</h3>
+            <div class="help-topic-content">
+              <p>El editor de layout te permite posicionar los sprites y nicknames en un lienzo de 1920x1080.</p>
+              <ul>
+                <li><b>Arrastrar:</b> Haz clic y arrastra para mover</li>
+                <li><b>Redimensionar:</b> Arrastra las esquinas</li>
+                <li><b>Multi-seleccion:</b> Ctrl+Click para seleccionar varios, Shift+Click para rango, Ctrl+A para todos</li>
+                <li><b>Snap:</b> Las guias magneticas ayudan a alinear (puedes desactivar con el checkbox "Snap")</li>
+                <li><b>Propiedades:</b> Selecciona un slot para editar X, Y, W, H, Scale directamente</li>
+                <li><b>Des/Hacer:</b> Ctrl+Z / Ctrl+Shift+Z</li>
+                <li><b>Reset:</b> Vuelve a la disposicion por defecto</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="juego generacion soportado formato save pokemon game compatible">
+            <h3 class="help-topic-title">Juegos compatibles</h3>
+            <div class="help-topic-content">
+              <ul>
+                <li><b>Gen 1:</b> Pokemon Rojo, Azul, Amarillo (GB)</li>
+                <li><b>Gen 2:</b> Pokemon Oro, Plata, Cristal (GBC)</li>
+                <li><b>Gen 3:</b> Pokemon Rubi, Zafiro, Esmeralda, Rojo Fuego, Verde Hoja (GBA)</li>
+                <li><b>Gen 4:</b> Pokemon Diamante, Perla, Platino, HeartGold, SoulSilver (NDS)</li>
+                <li><b>Gen 5:</b> Pokemon Blanco, Negro, Blanco 2, Negro 2 (NDS)</li>
+                <li><b>Gen 6:</b> Pokemon X, Y, Rubi Omega, Zafiro Alfa (3DS)</li>
+                <li><b>Gen 7:</b> Pokemon Sol, Luna, Ultra Sol, Ultra Luna (3DS)</li>
+                <li><b>Gen 8:</b> Pokemon Espada, Escudo, Brilliant Diamond, Shining Pearl (Switch)</li>
+                <li><b>Gen 9:</b> Pokemon Escarlata, Violeta (Switch)</li>
+              </ul>
+              <p>La deteccion es automatica. Si falla, selecciona el juego manualmente en el selector.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="error problema no detecta no funciona bug troubleshoot solucionar">
+            <h3 class="help-topic-title">Solucion de problemas</h3>
+            <div class="help-topic-content">
+              <div class="help-faq">
+                <p><b>"No se detecta el equipo"</b></p>
+                <ul>
+                  <li>Verifica que la ruta del save file sea correcta</li>
+                  <li>Intenta seleccionar el juego manualmente</li>
+                  <li>Asegurate de que el save no este corrupto</li>
+                  <li>Algunos emuladores guardan en formatos diferentes - prueba con otro emulador</li>
+                </ul>
+                <p><b>"Los sprites no aparecen"</b></p>
+                <ul>
+                  <li>Verifica que la carpeta <code>Recursos/Sprites/</code> exista junto al ejecutable</li>
+                  <li>Asegurate de tener al menos un estilo de sprite instalado</li>
+                  <li>Haz clic en "Actualizar estilos" para re-escanear</li>
+                </ul>
+                <p><b>"OBS muestra pantalla negra"</b></p>
+                <ul>
+                  <li>Verifica que la URL sea correcta (debe empezar con http://127.0.0.1:)</li>
+                  <li>Asegurate de que la app este abierta</li>
+                  <li>Prueba abriendo la URL en un navegador normal primero</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="atajo teclado keyboard shortcut hotkey ctrl">
+            <h3 class="help-topic-title">Atajos de teclado</h3>
+            <div class="help-topic-content">
+              <table class="help-shortcuts">
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Deshacer</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Rehacer</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>Seleccionar todos los slots</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+Click</td><td>Multi-seleccionar</td></tr>
+                <tr><td><kbd>Shift</kbd>+Click</td><td>Seleccionar rango</td></tr>
+                <tr><td><kbd>Delete</kbd></td><td>Eliminar slots seleccionados (futuro)</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-panel" id="settingsPanel" style="display:none">
+        <div class="settings-header">
+          <h2>Configuracion</h2>
+          <button class="btn-icon" id="closeSettingsBtn">&times;</button>
+        </div>
+        <div class="settings-body">
+          <div class="settings-group">
+            <div class="settings-group-title">Idioma / Language</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Idioma de la app</div>
+                <div class="settings-desc">Cambia el idioma de la interfaz</div>
+              </div>
+              <select id="settingsLanguage" style="width:140px">
+                <option value="es">Espanol</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-group-title">Comportamiento</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Modo en segundo plano</div>
+                <div class="settings-desc">Mantener la app en la bandeja del sistema al cerrar</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="settingsBackground" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="modal-overlay" id="modalOverlay" style="display:none">
+    <div class="modal-box">
+      <h3 id="modalTitle">Nombre del preset</h3>
+      <input type="text" id="modalInput" class="modal-input" placeholder="Escribe un nombre...">
+      <div class="modal-actions">
+        <button class="btn-secondary" id="modalCancel">Cancelar</button>
+        <button class="btn-primary" id="modalOk">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirmOverlay" style="display:none">
+    <div class="modal-box">
+      <h3 id="confirmTitle">Confirmar</h3>
+      <p id="confirmMessage"></p>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="confirmCancel">Cancelar</button>
+        <button class="btn-danger" id="confirmOk">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

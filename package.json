@@ -1,0 +1,46 @@
+{
+  "name": "nuzlocke-overlay",
+  "version": "1.0.0",
+  "description": "Nuzlocke Overlay App - OBS overlay for Pokemon Nuzlocke runs with real-time team tracking",
+  "main": "main.js",
+  "author": "PokeJgamer",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable",
+    "setup": "npm install && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.nuzlocke.overlay",
+    "productName": "Nuzlocke Overlay",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings.html",
+      "src/**/*",
+      "app/**/*",
+      "public/**/*",
+      "!node_modules/.cache",
+      "!Recursos"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "logo.png"
+    },
+    "portable": {
+      "artifactName": "NuzlockeOverlay.exe"
+    }
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  }
+}

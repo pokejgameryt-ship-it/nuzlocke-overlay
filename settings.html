@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+  <title>Settings - Nuzlocke Overlay</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 24px;
+      user-select: none;
+    }
+    h2 {
+      font-size: 18px;
+      color: #e94560;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    .setting-group {
+      margin-bottom: 24px;
+    }
+    .setting-group label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .setting-group select {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0f0f1a;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 14px;
+      outline: none;
+    }
+    .setting-group select:focus {
+      border-color: #e94560;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+    .toggle-row .toggle-label {
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+    .toggle-row .toggle-desc {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #2a2a4a;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 18px;
+      height: 18px;
+      background: #888;
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: #e94560;
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+      background: #fff;
+    }
+    .section-divider {
+      border: none;
+      border-top: 1px solid #2a2a4a;
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <h2 id="settingsTitle">Settings</h2>
+
+  <div class="setting-group">
+    <label id="lblLanguage">Language / Idioma</label>
+    <select id="languageSelect">
+      <option value="es">Espanol</option>
+      <option value="en">English</option>
+    </select>
+  </div>
+
+  <hr class="section-divider">
+
+  <div class="setting-group">
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label" id="lblBackground">Background mode</div>
+        <div class="toggle-desc" id="lblBackgroundDesc">Keep the app running in the system tray when closed</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="backgroundToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    const translations = {
+      es: {
+        title: 'Configuracion',
+        language: 'Language / Idioma',
+        background: 'Modo en segundo plano',
+        backgroundDesc: 'Mantener la app abierta en la bandeja del sistema al cerrar',
+      },
+      en: {
+        title: 'Settings',
+        language: 'Language / Idioma',
+        background: 'Background mode',
+        backgroundDesc: 'Keep the app running in the system tray when closed',
+      }
+    };
+
+    let currentLang = 'es';
+
+    function applyLang(lang) {
+      currentLang = lang;
+      const t = translations[lang] || translations.en;
+      document.getElementById('settingsTitle').textContent = t.title;
+      document.getElementById('lblLanguage').textContent = t.language;
+      document.getElementById('lblBackground').textContent = t.background;
+      document.getElementById('lblBackgroundDesc').textContent = t.backgroundDesc;
+    }
+
+    ipcRenderer.on('load-settings', (event, settings) => {
+      document.getElementById('languageSelect').value = settings.language || 'es';
+      document.getElementById('backgroundToggle').checked = settings.backgroundMode !== false;
+      applyLang(settings.language || 'es');
+    });
+
+    document.getElementById('languageSelect').addEventListener('change', (e) => {
+      applyLang(e.target.value);
+      saveCurrentSettings();
+    });
+
+    document.getElementById('backgroundToggle').addEventListener('change', () => {
+      saveCurrentSettings();
+    });
+
+    function saveCurrentSettings() {
+      const settings = {
+        language: document.getElementById('languageSelect').value,
+        backgroundMode: document.getElementById('backgroundToggle').checked,
+      };
+      ipcRenderer.send('update-settings', settings);
+    }
+  </script>
+</body>
+</html>
