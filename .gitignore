@@ -13,3 +13,4 @@ test-*.bin
 server.js
 NuzlockeOverlay.lnk
 package-lock.json
+*.zip
