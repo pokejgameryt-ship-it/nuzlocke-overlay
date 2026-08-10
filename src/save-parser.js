@@ -127,9 +127,14 @@ class SaveParser {
   // ==================== GEN 2 ====================
   static parseGen2(buffer) {
     if (buffer.length < 0x100) return [];
+
+    // Gen2 (GSC) save structure: party at 0x0D0F
+    // Party count: 1 byte, species list: 6 bytes, party data: 44 bytes each
     const offsets = [
-      { partyCount: 0xA0, speciesList: 0xA1, partyData: 0xA2D, nickOffset: 0xB0, nickLen: 11 },
-      { partyCount: 0x190, speciesList: 0x191, partyData: 0x1F3, nickOffset: 0x200, nickLen: 11 },
+      { partyCount: 0x0D0F, speciesList: 0x0D10, partyData: 0x0D17, nickOffset: 0x117, nickLen: 11 },
+      { partyCount: 0x0D0F, speciesList: 0x0D10, partyData: 0x0D17, nickOffset: 0x12A, nickLen: 11 },
+      // Backup block offsets
+      { partyCount: 0x2D0F, speciesList: 0x2D10, partyData: 0x2D17, nickOffset: 0x3117, nickLen: 11 },
     ];
     for (const off of offsets) {
       const result = SaveParser.tryGen2(buffer, off);
@@ -152,13 +157,31 @@ class SaveParser {
       const speciesId = speciesIds[i];
       const nickname = SaveParser.readGen1String(buffer, off.nickOffset + (i * off.nickLen), off.nickLen);
       const level = buffer[off.partyData + (i * 44) + 0x1D] || 1;
-      pokemon.push({
-        speciesId, nickname,
-        isShiny: false,
-        isNicknamed: nickname !== '',
-        level: Math.max(1, Math.min(100, level)),
-        form: 0
-      });
+
+      // Gen2 shiny detection based on DVs (stored in party data)
+      // In Gen2, shiny requires: Attack DV = 10, Defense DV = 10, Speed DV = 10, Spc DV = 10
+      // DVs are at offset 0x01 in the party struct (4 bytes: Atk/Def/Spd/Spc)
+      const dvOffset = off.partyData + (i * 44) + 0x01;
+      if (dvOffset + 4 <= buffer.length) {
+        const atkDef = buffer[dvOffset];
+        const spc = buffer[dvOffset + 3];
+        const isShiny = (atkDef & 0x0F) === 10 && ((atkDef >> 4) & 0x0F) === 10 && (spc & 0x0F) === 10 && ((spc >> 4) & 0x0F) === 10;
+        pokemon.push({
+          speciesId, nickname,
+          isShiny,
+          isNicknamed: nickname !== '',
+          level: Math.max(1, Math.min(100, level)),
+          form: 0
+        });
+      } else {
+        pokemon.push({
+          speciesId, nickname,
+          isShiny: false,
+          isNicknamed: nickname !== '',
+          level: Math.max(1, Math.min(100, level)),
+          form: 0
+        });
+      }
     }
     return pokemon;
   }
@@ -536,6 +559,11 @@ class SaveParser {
         const curHp = data.length > 0x8F ? data.readUInt16LE(0x8E) : 0;
         const maxHp = data.length > 0x91 ? data.readUInt16LE(0x90) : 0;
 
+        const tid = pokemonData.readUInt16LE(4);
+        const sid = pokemonData.readUInt16LE(6);
+        const xorShiny = ((pid >>> 16) ^ (pid & 0xFFFF) ^ tid ^ sid) & 0xFFFF;
+        const isShiny = xorShiny < 16;
+
         if (speciesId === 0 || speciesId > 721) {
           Logger.debug('Gen5', `  PK5 #${i + 1}: invalid species ${speciesId}, skipping`);
           continue;
@@ -544,12 +572,12 @@ class SaveParser {
         const validLevel = (level >= 1 && level <= 100);
         const validHp = (curHp > 0 && maxHp > 0 && curHp <= maxHp && maxHp <= 999);
 
-        Logger.info('Gen5', `  PK5 #${i + 1}: species=${speciesId} level=${level}${validLevel ? '' : '(?)'} HP=${curHp}/${maxHp}${validHp ? '' : '(?)'} nickname="${nickname}" sv=${sv}`);
+        Logger.info('Gen5', `  PK5 #${i + 1}: species=${speciesId} level=${level}${validLevel ? '' : '(?)'} HP=${curHp}/${maxHp}${validHp ? '' : '(?)'} nickname="${nickname}" sv=${sv} shiny=${isShiny}`);
 
         pokemon.push({
           speciesId,
           nickname: nickname || '',
-          isShiny: false,
+          isShiny,
           isNicknamed: nickname !== '',
           level: validLevel ? level : 1,
           form: 0
@@ -665,8 +693,11 @@ class SaveParser {
       buffer.copy(data, 0, pokemonOffset, pokemonOffset + pokemonSize);
 
       const pid = data.readUInt32LE(0x00);
-      const level = data.readUInt16LE(0x36);
-      const nickname = SaveParser.readNdsString(data, 0x3E, 12);
+      const speciesCheck = data.readUInt16LE(0x08);
+      const nickname = SaveParser.readNdsString(data, 0x40, 12);
+      const level = data.length > 0x88 ? data.readUInt8(0x88) : (data.length > 0x36 ? data.readUInt8(0x36) : 1);
+
+      if (speciesCheck === 0 || speciesCheck > maxSpecies) continue;
 
       pokemon.push({
         speciesId,
@@ -1015,10 +1046,15 @@ class SaveParser {
         const sv = (pv >> 13) & 31;
         const speciesId = dec.readUInt16LE(0x08);
         const pid = dec.readUInt32LE(0x1C);
+        const tid = dec.readUInt16LE(0x04);
+        const sid = dec.readUInt16LE(0x06);
         const formByte = dec.readUInt8(0x24);
         const nickname = SaveParser.readPB8String(dec, 0x58, 26);
         const ot = SaveParser.readPB8String(dec, 0xF8, 26);
         const level = dec.readUInt8(SaveParser.BDSP_SIZE_8STORED + 0x00) || 1;
+
+        const xorShiny = ((pid >>> 16) ^ (pid & 0xFFFF) ^ tid ^ sid) & 0xFFFF;
+        const isShiny = xorShiny < 16;
 
         if (speciesId === 0 || speciesId > 1025) {
           Logger.warn('BDSP', `P${i + 1}: invalid species ${speciesId}, skipping`);
@@ -1026,12 +1062,12 @@ class SaveParser {
         }
 
         const formSuffix = SaveParser.getRegionalForm(speciesId, formByte);
-        Logger.info('BDSP', `P${i + 1}: species=${speciesId} pid=0x${pid.toString(16).padStart(8, '0')} sv=${sv} formByte=${formByte} form="${formSuffix}" level=${level} nick="${nickname}" ot="${ot}"`);
+        Logger.info('BDSP', `P${i + 1}: species=${speciesId} pid=0x${pid.toString(16).padStart(8, '0')} sv=${sv} formByte=${formByte} form="${formSuffix}" level=${level} nick="${nickname}" ot="${ot}" shiny=${isShiny}`);
 
         pokemon.push({
           speciesId,
           nickname: nickname || '',
-          isShiny: false,
+          isShiny,
           isNicknamed: nickname !== '',
           level: Math.max(1, Math.min(100, level)),
           form: formSuffix
