@@ -172,6 +172,20 @@ Para agregar un nuevo estilo:
 
 ---
 
+## Redes sociales
+
+Sigueme en mis redes para estar al dia del proyecto y mas contenido Pokemon:
+
+| Plataforma | Enlace |
+|------------|--------|
+| YouTube | [PokeJgamer](https://www.youtube.com/channel/UCY-yUwAx1C0ApRHWKdo8o0Q) |
+| Twitch | [pokejgamer](https://www.twitch.tv/pokejgamer) |
+| Twitter/X | [@P0keJgamer](https://x.com/P0keJgamer) |
+| TikTok | [@pokejgamer](https://www.tiktok.com/@pokejgamer) |
+| Discord | [Unirse al servidor](https://discord.gg/GSBKCBDsh5) |
+
+---
+
 ## Donar
 
 Si te gusta la app y quieres apoyar el proyecto:
