@@ -29,22 +29,31 @@ function detectType(files) {
 }
 
 function detectGenerations(region) {
+  const lower = region.toLowerCase();
   const genMap = {
-    Kanto: [1], Gen1: [1],
-    Johto: [2], Gen2: [2],
-    Hoenn: [3], Gen3: [3],
-    Sinnoh: [4], Gen4: [4],
-    Teselia: [5], Gen5: [5],
-    Kalos: [6], Gen6: [6],
-    Alola: [7], Gen7: [7],
-    Galar: [8], Gen8: [8],
-    Paldea: [9], Gen9: [9],
-    "Todas las generaciones": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    kanto: [1], gen1: [1],
+    johto: [2], gen2: [2],
+    hoenn: [3], gen3: [3],
+    sinnoh: [4], gen4: [4],
+    teselia: [5], gen5: [5],
+    kalos: [6], gen6: [6],
+    alola: [7], gen7: [7],
+    galar: [8], gen8: [8],
+    paldea: [9], gen9: [9],
+    "todas las generaciones": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "legends arceus": [8],
   };
-  return genMap[region] || [];
+  return genMap[lower] || [];
 }
 
+let _cachedStyles = null;
+let _cachedSpritesRoot = null;
+
 function scanSprites(spritesRoot) {
+  if (_cachedStyles && _cachedSpritesRoot === spritesRoot) {
+    return _cachedStyles;
+  }
+
   const results = [];
   const regionDirs = fs.readdirSync(spritesRoot, { withFileTypes: true }).filter((d) => d.isDirectory());
 
@@ -53,7 +62,62 @@ function scanSprites(spritesRoot) {
     scanDir(regionPath, regionDir.name, regionDir.name, spritesRoot, results);
   }
 
+  _cachedStyles = results;
+  _cachedSpritesRoot = spritesRoot;
+  Logger.info('Sprites', `Scanned ${results.length} styles from ${spritesRoot}`);
   return results;
+}
+
+function invalidateStyleCache() {
+  _cachedStyles = null;
+  _cachedSpritesRoot = null;
+}
+
+const GENDER_DIR_NAMES = ['male', 'female', 'macho', 'hembra'];
+
+function isGenderDir(name) {
+  return GENDER_DIR_NAMES.includes(name.toLowerCase());
+}
+
+// Detect if a directory name contains a gender word and extract the base name
+// e.g., "Male Frame 1" -> { gender: "male", base: "Frame 1" }
+// e.g., "Female Shiny" -> { gender: "female", base: "Shiny" }
+// e.g., "Back Male Sprites" -> { gender: "male", base: "Back Sprites" }
+function parseGenderDirName(name) {
+  const genderPatterns = [
+    /^(male|female|macho|hembra)\s+(.+)/i,  // "Male Frame 1"
+    /^(.+)\s+(male|female|macho|hembra)\s*(.*)/i,  // "Back Male Sprites", "Shiny Male Frame 1"
+  ];
+  for (const regex of genderPatterns) {
+    const match = name.match(regex);
+    if (match) {
+      let gender, base;
+      if (GENDER_DIR_NAMES.includes(match[1].toLowerCase())) {
+        gender = match[1].toLowerCase() === 'macho' ? 'male' : match[1].toLowerCase() === 'hembra' ? 'female' : match[1].toLowerCase();
+        base = match[2].trim();
+        if (match[3]) base += ' ' + match[3].trim();
+      } else if (match[2] && GENDER_DIR_NAMES.includes(match[2].toLowerCase())) {
+        gender = match[2].toLowerCase() === 'macho' ? 'male' : match[2].toLowerCase() === 'hembra' ? 'female' : match[2].toLowerCase();
+        base = match[1].trim();
+        if (match[3]) base += ' ' + match[3].trim();
+      } else {
+        continue;
+      }
+      // Clean up base name
+      base = base.replace(/\s+/g, ' ').trim();
+      if (base.length === 0) base = 'default';
+      return { gender: gender === 'macho' ? 'male' : gender === 'hembra' ? 'female' : gender, base };
+    }
+  }
+  return null;
+}
+
+function countSpriteFiles(dir) {
+  if (!fs.existsSync(dir)) return 0;
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter(d => d.isFile())
+    .filter(d => ['.png', '.gif', '.jpg', '.jpeg', '.webp'].includes(path.extname(d.name).toLowerCase()))
+    .length;
 }
 
 function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
@@ -63,7 +127,91 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
     return [".png", ".gif", ".jpg", ".jpeg", ".webp"].includes(ext);
   });
 
-  if (spriteFiles.length > 0) {
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  const subdirs = entries.filter(d => d.isDirectory() && !d.name.toLowerCase().includes('shiny'));
+
+  // Detect gender subdirectories - group by base name
+  // e.g., "Male Frame 1" and "Female Frame 1" -> base "Frame 1"
+  const genderGroups = {};  // base -> { male: absPath, female: absPath }
+  const nonGenderSubdirs = [];
+
+  for (const entry of subdirs) {
+    // First check exact match (e.g., "male", "female")
+    if (isGenderDir(entry.name)) {
+      const key = entry.name.toLowerCase() === 'male' || entry.name.toLowerCase() === 'macho' ? 'male' : 'female';
+      const baseKey = '_exact';  // Group exact matches together
+      if (!genderGroups[baseKey]) genderGroups[baseKey] = {};
+      genderGroups[baseKey][key] = path.join(dirPath, entry.name);
+      continue;
+    }
+
+    // Then check pattern match (e.g., "Male Frame 1", "Back Female Sprites")
+    const parsed = parseGenderDirName(entry.name);
+    if (parsed) {
+      if (!genderGroups[parsed.base]) genderGroups[parsed.base] = {};
+      genderGroups[parsed.base][parsed.gender] = path.join(dirPath, entry.name);
+      continue;
+    }
+
+    nonGenderSubdirs.push(entry);
+  }
+
+  // Process each gender group
+  let hasMergedStyle = false;
+  for (const [baseKey, genderPaths] of Object.entries(genderGroups)) {
+    const maleCount = countSpriteFiles(genderPaths.male || '');
+    const femaleCount = countSpriteFiles(genderPaths.female || '');
+    const totalCount = maleCount + femaleCount;
+
+    if (totalCount < 150 && spriteFiles.length > 0) continue;
+
+    // Build display name for this group
+    let groupDisplayName;
+    if (baseKey === '_exact') {
+      groupDisplayName = displayName;  // Use parent name for exact male/female
+    } else {
+      groupDisplayName = `${displayName} - ${baseKey}`;
+    }
+
+    const relativePath = path.relative(spritesRoot, dirPath).replace(/\\/g, "/");
+    const id = buildStyleId(regionName, groupDisplayName);
+    const allExts = new Set();
+    const allNaming = [];
+
+    for (const [, gDir] of Object.entries(genderPaths)) {
+      if (!gDir || !fs.existsSync(gDir)) continue;
+      const files = fs.readdirSync(gDir).filter(f => {
+        const ext = path.extname(f).toLowerCase();
+        return ['.png', '.gif', '.jpg', '.jpeg', '.webp'].includes(ext);
+      });
+      files.forEach(f => allExts.add(path.extname(f).toLowerCase()));
+      allNaming.push(...files);
+    }
+
+    const genderRelPaths = {};
+    for (const [key, gDir] of Object.entries(genderPaths)) {
+      if (gDir && fs.existsSync(gDir)) {
+        genderRelPaths[key] = path.relative(spritesRoot, gDir).replace(/\\/g, "/");
+      }
+    }
+
+    results.push({
+      id,
+      name: groupDisplayName,
+      region: regionName,
+      path: relativePath,
+      type: detectType([...allExts].map(e => 'file' + e)),
+      extensions: [...allExts],
+      namingPattern: detectNamingPattern(allNaming),
+      generations: detectGenerations(regionName),
+      fileCount: totalCount,
+      genderDirs: genderRelPaths,
+    });
+    hasMergedStyle = true;
+  }
+
+  // If no merged gender style was created and we have direct sprite files, create normal style
+  if (!hasMergedStyle && spriteFiles.length > 0) {
     const relativePath = path.relative(spritesRoot, dirPath).replace(/\\/g, "/");
     const id = buildStyleId(regionName, displayName);
     results.push({
@@ -79,10 +227,8 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
     });
   }
 
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    if (entry.name.toLowerCase().includes('shiny')) continue;
+  // Process non-gender subdirectories
+  for (const entry of nonGenderSubdirs) {
     const subPath = path.join(dirPath, entry.name);
     const subDirectFiles = fs.readdirSync(subPath, { withFileTypes: true }).filter(d => d.isFile()).map(d => d.name);
     const subSpriteFiles = subDirectFiles.filter((f) => {
@@ -203,24 +349,32 @@ function resolveSprite(stylePath, speciesId, options = {}) {
 
   let dir;
   let relativeBase;
+  let genderDirs = null;
+  let matchedStyle = null;
   const root = spritesRoot || path.resolve("Recursos", "Sprites");
 
   if (styleId) {
     const styles = scanSprites(root);
-    let match = styles.find(s => s.id === styleId);
-    if (!match && stylePath) {
+    matchedStyle = styles.find(s => s.id === styleId);
+    if (!matchedStyle && stylePath) {
       const lastSegment = stylePath.split('/').pop().split('\\').pop();
-      match = styles.find(s => s.name === lastSegment || s.name.startsWith(lastSegment + ' -'));
+      matchedStyle = styles.find(s => s.name === lastSegment || s.name.startsWith(lastSegment + ' -'));
     }
-    if (match) {
-      dir = path.join(root, match.path);
-      relativeBase = match.path;
+    if (matchedStyle) {
+      dir = path.join(root, matchedStyle.path);
+      relativeBase = matchedStyle.path;
+      genderDirs = matchedStyle.genderDirs || null;
     }
   }
 
   if (!dir) {
-    dir = path.isAbsolute(stylePath) ? stylePath : path.join(root, stylePath);
-    relativeBase = path.relative(root, dir).replace(/\\/g, "/");
+    if (stylePath) {
+      dir = path.isAbsolute(stylePath) ? stylePath : path.join(root, stylePath);
+      relativeBase = path.relative(root, dir).replace(/\\/g, "/");
+    } else {
+      Logger.warn('Sprites', `No stylePath or match found for styleId=${styleId}`);
+      return null;
+    }
   }
 
   Logger.debug('Sprites', `  dir=${dir}, relativeBase=${relativeBase}, exists=${fs.existsSync(dir)}`);
@@ -383,6 +537,15 @@ function resolveSprite(stylePath, speciesId, options = {}) {
     }
     c.push(idBT);
 
+    // pm prefix (BDSP: pm0004_00_00_00_L.png)
+    for (const num of allIds) {
+      c.push(`pm${num.padStart(4, '0')}_00_00_00_L`);
+    }
+    // conquest prefix (conquest-portrait__004.png)
+    for (const num of allIds) {
+      c.push(`conquest-portrait__${num.padStart(3, '0')}`);
+    }
+
     // --- BASE IDS (must come LAST so form-specific candidates are tried first) ---
     for (const num of allIds) {
       c.push(num);
@@ -417,8 +580,23 @@ function resolveSprite(stylePath, speciesId, options = {}) {
       else if (baseUpper.startsWith('BT' + numStr.padStart(3, '0'))) {
         score = 900;
       }
+      // pm prefix (BDSP style: pm0004_00_00_00_L.png)
+      else if (/^pm\d/i.test(base)) {
+        const matchNum = base.match(/^pm0*(\d+)/i);
+        if (matchNum && matchNum[1] === numStr) {
+          score = 800;
+          if (formInfo && formInfo.code && base.includes('_' + formInfo.code)) score += 50;
+        }
+      }
+      // Prefix with double-underscore ID (conquest-portrait__004.png)
+      else if (/^[a-z].+__\d+$/i.test(baseLower)) {
+        const matchNum = base.match(/__(0*\d+)$/);
+        if (matchNum && matchNum[1].replace(/^0+/, '') === numStr) {
+          score = 800;
+        }
+      }
       // Starts with padded ID followed by separator
-      else if (/^\d+[-_. ]/.test(base)) {
+      if (score === 0 && /^\d+[-_. ]/.test(base)) {
         const matchNum = base.match(/^0*(\d+)/);
         if (matchNum && matchNum[1] === numStr) {
           score = 800;
@@ -442,19 +620,33 @@ function resolveSprite(stylePath, speciesId, options = {}) {
             });
             if (matchesForm) score += 50;
           } else if (!formInfo) {
-            // No form requested: penalize files with known form keywords
+            // No form requested: penalize files with known form keywords (word boundary OR as suffix in segment)
             const formKeywords = ['alola', 'galar', 'hisui', 'paldea', 'mega', 'gmax', 'gigantamax',
               'attack', 'defense', 'speed', 'zen', 'blade', 'shield', 'east', 'west',
               'sunshine', 'overcast', 'rainy', 'snowy', 'sunny', 'school', 'solo',
               'aria', 'pirouette', 'incarnate', 'therian', 'resolute', 'ordinary',
               'black', 'white', 'dusk', 'midday', 'midnight', 'ultra', 'origin',
               'altered', 'neutral', 'hero', 'land', 'sky', 'noice', 'antique', 'phony',
-              'average', 'large', 'small', 'super', 'nosparks', 'cap'];
+              'average', 'large', 'small', 'super', 'nosparks', 'cap', 'belle'];
             const hasFormKeyword = formKeywords.some(kw => {
+              // Word-boundary match
               const wordBoundaryRegex = new RegExp('(?:^|[-_.\\s])' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:[-_.\\s]|$)', 'i');
-              return wordBoundaryRegex.test(baseLower);
+              if (wordBoundaryRegex.test(baseLower)) return true;
+              // Also match as suffix within a segment: e.g. "alolacap" contains "alola" at start
+              const segments = baseLower.split(/[-_.\s]/);
+              return segments.some(seg => seg.startsWith(kw) && seg !== kw && seg.length > kw.length);
             });
             if (hasFormKeyword) score -= 200;
+            // Penalize gender suffixes when no gender requested
+            if (!genderCode && (baseLower.endsWith('-f') || baseLower.endsWith('-m') || baseLower.endsWith('_f') || baseLower.endsWith('_m'))) {
+              score -= 100;
+            }
+            // Prefer files with fewer segments (base form over form variants)
+            const fileSegments = base.split(/[-_.]/);
+            if (fileSegments.length <= 2) score += 5;
+            // Also prefer fewer space-separated words (Sugimori: "Pikachu" > "Pikachu Hoenn")
+            const wordCount = base.split(/\s+/).length;
+            if (wordCount <= 2) score += 5;
           }
           if (formInfo && formInfo.code && base.includes(formInfo.code)) score += 50;
           // Gender bonus: check for -f, -female, _f, _female at end or before shiny suffix
@@ -467,7 +659,7 @@ function resolveSprite(stylePath, speciesId, options = {}) {
         }
       }
       // Starts with numeric ID directly (no separator, like RSE: 351fire.png)
-      else if (/^0*\d+[a-z]/.test(baseLower)) {
+      if (score === 0 && /^0*\d+[a-z]/.test(baseLower)) {
         const matchNum = baseLower.match(/^(0*\d+)/);
         if (matchNum && matchNum[1].replace(/^0+/, '') === numStr) {
           score = 700;
@@ -481,7 +673,7 @@ function resolveSprite(stylePath, speciesId, options = {}) {
         }
       }
       // Sugimori style: "0025 Pikachu Alola" (space-separated)
-      else if (/^\d+\s+[A-Z]/.test(base)) {
+      if (score === 0 && /^\d+\s+[A-Z]/.test(base)) {
         const matchNum = base.match(/^0*(\d+)/);
         if (matchNum && matchNum[1] === numStr) {
           score = 600;
@@ -490,6 +682,14 @@ function resolveSprite(stylePath, speciesId, options = {}) {
             // Word-boundary match for Sugimori style
             const words = baseLower.split(/\s+/);
             if (words.some(w => w === namedLower)) score += 80;
+          } else if (!formInfo) {
+            // No form requested: prefer files with fewer words (base form)
+            const words = base.trim().split(/\s+/);
+            if (words.length === 2) score += 10; // "0025 Pikachu" preferred over "0025 Pikachu Belle"
+            const formKeywords = ['alola', 'galar', 'hisui', 'paldea', 'mega', 'gmax', 'gigantamax',
+              'belle', 'cap', 'attack', 'defense', 'speed', 'zen', 'blade', 'shield'];
+            const hasFormKeyword = words.slice(2).some(w => formKeywords.some(kw => w.toLowerCase().includes(kw)));
+            if (hasFormKeyword) score -= 200;
           }
           if (genderCode && baseLower.includes(genderCode)) score += 30;
           if (shinyFlag && baseLower.includes('shiny')) score += 20;
@@ -550,6 +750,65 @@ function resolveSprite(stylePath, speciesId, options = {}) {
     return null;
   }
 
+  // --- Search for shiny in a specific gender directory ---
+  function findInShinyDirsForGender(gDir) {
+    const dirsToCheck = [];
+
+    // 1. Child directories of the gender dir
+    if (fs.existsSync(gDir.absPath)) {
+      const allEntries = fs.readdirSync(gDir.absPath, { withFileTypes: true });
+      const shinyDirs = allEntries.filter(e => e.isDirectory() && e.name.toLowerCase().includes('shiny'));
+      for (const entry of shinyDirs) {
+        dirsToCheck.push({
+          absPath: path.join(gDir.absPath, entry.name),
+          relBase: `${gDir.relBase}/${entry.name}`
+        });
+      }
+    }
+
+    // 2. Sibling directories at parent level (e.g., "Male Shiny" next to "Male")
+    const parentDir = path.dirname(gDir.absPath);
+    const parentRelBase = path.dirname(gDir.relBase);
+    if (fs.existsSync(parentDir)) {
+      const genderName = path.basename(gDir.absPath).toLowerCase();
+      const siblings = fs.readdirSync(parentDir, { withFileTypes: true });
+      for (const sib of siblings) {
+        if (!sib.isDirectory()) continue;
+        if (sib.name.toLowerCase().includes('shiny')) {
+          const sibLower = sib.name.toLowerCase();
+          // Word-boundary match: "Male Shiny" matches "male", "feMale Shiny" does NOT match "male"
+          const genderWordRegex = new RegExp('(?:^|[-_.\\s])' + genderName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:[-_.\\s]|$)', 'i');
+          const sibWithoutShiny = sibLower.replace('shiny', '').trim();
+          const matchesGender = genderWordRegex.test(sibLower) || genderName === sibWithoutShiny;
+          if (matchesGender) {
+            const absPath = path.join(parentDir, sib.name);
+            const relBase = `${parentRelBase}/${sib.name}`;
+            // Avoid duplicates
+            if (!dirsToCheck.some(d => d.absPath === absPath)) {
+              dirsToCheck.push({ absPath, relBase });
+            }
+          }
+        }
+      }
+    }
+
+    for (const shinyDir of dirsToCheck) {
+      if (!fs.existsSync(shinyDir.absPath)) continue;
+
+      // Try exact candidates first
+      const candidates = allBasenames(idStr, form, false, gender);
+      for (const c of candidates) {
+        const found = fileExistsInDir(shinyDir.absPath, shinyDir.relBase, c);
+        if (found) return found;
+      }
+
+      // Then fuzzy
+      const fuzzy = fuzzyFind(shinyDir.absPath, shinyDir.relBase, idStr, form, false, gender);
+      if (fuzzy) return fuzzy;
+    }
+    return null;
+  }
+
   function fileExistsInDir(absDir, relBase, basename) {
     if (!fs.existsSync(absDir)) return null;
     const files = fs.readdirSync(absDir);
@@ -565,6 +824,63 @@ function resolveSprite(stylePath, speciesId, options = {}) {
   }
 
   // --- Main resolution logic ---
+
+  // If style has genderDirs, search in the appropriate gender directory
+  if (genderDirs && (genderDirs.male || genderDirs.female)) {
+    const genderLower = gender ? gender.toLowerCase() : null;
+    // Determine search order: specified gender first, then the other
+    const searchDirs = [];
+    if (genderLower === 'male' || genderLower === 'm' || genderLower === 'macho') {
+      if (genderDirs.male) searchDirs.push({ key: 'male', absPath: path.join(root, genderDirs.male), relBase: genderDirs.male });
+      if (genderDirs.female) searchDirs.push({ key: 'female', absPath: path.join(root, genderDirs.female), relBase: genderDirs.female });
+    } else if (genderLower === 'female' || genderLower === 'f' || genderLower === 'hembra') {
+      if (genderDirs.female) searchDirs.push({ key: 'female', absPath: path.join(root, genderDirs.female), relBase: genderDirs.female });
+      if (genderDirs.male) searchDirs.push({ key: 'male', absPath: path.join(root, genderDirs.male), relBase: genderDirs.male });
+    } else {
+      // No gender specified: try male first, then female
+      if (genderDirs.male) searchDirs.push({ key: 'male', absPath: path.join(root, genderDirs.male), relBase: genderDirs.male });
+      if (genderDirs.female) searchDirs.push({ key: 'female', absPath: path.join(root, genderDirs.female), relBase: genderDirs.female });
+    }
+
+    for (const gDir of searchDirs) {
+      if (!fs.existsSync(gDir.absPath)) continue;
+
+      // 1. If shiny requested, search shiny subdirs in gender dir
+      if (shiny) {
+        const shinyResult = findInShinyDirsForGender(gDir);
+        if (shinyResult) return shinyResult;
+      }
+
+      // 2. Try exact candidates in gender dir
+      const candidates = allBasenames(idStr, form, shiny, gender);
+      for (const c of candidates) {
+        const found = fileExistsInDir(gDir.absPath, gDir.relBase, c);
+        if (found) return found;
+      }
+
+      // 3. Fuzzy match in gender dir
+      const fuzzyResult = fuzzyFind(gDir.absPath, gDir.relBase, idStr, form, shiny, gender);
+      if (fuzzyResult) return fuzzyResult;
+
+      // 4. Check subdirectories (form dirs, etc.)
+      const entries = fs.readdirSync(gDir.absPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.toLowerCase().includes('shiny')) continue;
+        const subCandidates = allBasenames(idStr, form, shiny, gender);
+        for (const c of subCandidates) {
+          const found = fileExistsInDir(path.join(gDir.absPath, entry.name), `${gDir.relBase}/${entry.name}`, c);
+          if (found) return found;
+        }
+        const subFuzzy = fuzzyFind(path.join(gDir.absPath, entry.name), `${gDir.relBase}/${entry.name}`, idStr, form, shiny, gender);
+        if (subFuzzy) return subFuzzy;
+      }
+    }
+
+    // All gender dirs tried and nothing found
+    Logger.warn('Sprites', `No sprite found for species ${speciesId} in gender dirs of ${relativeBase}`);
+    return null;
+  }
 
   // 1. If shiny requested, search shiny subdirs first
   if (shiny) {
@@ -613,4 +929,4 @@ function resolveSprite(stylePath, speciesId, options = {}) {
   return null;
 }
 
-module.exports = { scanSprites, resolveSprite, detectNamingPattern };
+module.exports = { scanSprites, resolveSprite, detectNamingPattern, invalidateStyleCache };

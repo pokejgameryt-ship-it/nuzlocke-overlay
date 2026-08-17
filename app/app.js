@@ -171,6 +171,7 @@
     $('#projectName').value = project.name;
     $('#savePath').value = project.savePath || '';
     $('#showNames').checked = project.showNames !== false;
+    $('#usePlaceholder').checked = project.usePlaceholder || false;
 
     populateGameSelect(project.game);
     populateStyleSelect(project.spriteStyle);
@@ -182,6 +183,7 @@
     renderCanvasSlots(project.slots, project.nicknameSlots);
     pushHistory();
     loadPresets();
+    loadPlaceholderSprites(project.spriteStylePath);
   }
 
   async function refreshTeam() {
@@ -402,7 +404,10 @@
         const pokemon = currentTeam && currentTeam[i];
         const textEl = document.createElement('span');
         textEl.className = 'slot-nickname-text';
-        textEl.textContent = (pokemon && pokemon.nickname) ? pokemon.nickname : `N${i + 1}`;
+        const curProject = projects.find(p => p.id === currentId);
+        const showNk = curProject && curProject.showNames !== false;
+        textEl.textContent = (showNk && pokemon && pokemon.nickname) ? pokemon.nickname : '';
+        if (!textEl.textContent) textEl.textContent = `N${i + 1}`;
         el.appendChild(textEl);
 
         const handle = document.createElement('div');
@@ -976,21 +981,10 @@
           if (detected) {
             project.game = { generation: detected.generation, saveType: detected.saveType, version: detected.version, autoDetected: true };
             populateGameSelect(project.game);
-            Logger.info('App', `Auto-detected game: ${detected.name}`);
           }
         }
         await saveProject();
-        setTimeout(() => refreshTeam().then(() => renderCanvasSlots(project.slots || getDefaultSlots(), project.nicknameSlots || getDefaultNicknameSlots(project.slots))), 1500);
       }
-    });
-
-    $('#refreshTeamBtn').addEventListener('click', async () => {
-      const project = projects.find(p => p.id === currentId);
-      if (!project) return;
-      $('#refreshTeamBtn').textContent = '...';
-      await refreshTeam();
-      renderCanvasSlots(project.slots || getDefaultSlots(), project.nicknameSlots || getDefaultNicknameSlots(project.slots));
-      $('#refreshTeamBtn').textContent = 'Refrescar';
     });
 
     $('#gameSelect').addEventListener('change', async (e) => {
@@ -1013,7 +1007,6 @@
         if (game) { project.game = { generation: game.generation, saveType: game.saveType, version: game.id }; }
       }
       await saveProject();
-      setTimeout(() => refreshTeam().then(() => renderCanvasSlots(project.slots || getDefaultSlots(), project.nicknameSlots || getDefaultNicknameSlots(project.slots))), 1500);
     });
 
     $('#styleSelect').addEventListener('change', async (e) => {
@@ -1023,12 +1016,22 @@
       project.spriteStyle = e.target.value;
       project.spriteStylePath = opt ? opt.dataset.path : '';
       await saveProject();
-      setTimeout(() => refreshTeam().then(() => renderCanvasSlots(project.slots || getDefaultSlots(), project.nicknameSlots || getDefaultNicknameSlots(project.slots))), 500);
     });
 
     $('#showNames').addEventListener('change', async (e) => {
       const project = projects.find(p => p.id === currentId);
-      if (project) { project.showNames = e.target.checked; await saveProject(); }
+      if (project) {
+        project.showNames = e.target.checked;
+        await saveProject();
+        renderCanvasSlots(project.slots || getDefaultSlots(), project.nicknameSlots || getDefaultNicknameSlots(project.slots));
+      }
+    });
+
+    $('#usePlaceholder').addEventListener('change', async (e) => {
+      const project = projects.find(p => p.id === currentId);
+      if (!project) return;
+      project.usePlaceholder = e.target.checked;
+      await saveProject();
     });
 
     $('#nicknameFont').addEventListener('change', saveNicknameStyle);

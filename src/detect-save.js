@@ -81,25 +81,58 @@ class DetectSave {
     }
 
     // === Gen 3 GBA (RSE/FRLG) ===
-    // 128KB or 256KB
-    if (size >= 0x8000 && size <= 0x40000 && size % 0x10000 === 0) {
-      // Check for Gen3 party at common offsets
-      const offsets3 = [0x0890, 0x1F80];
-      for (const off of offsets3) {
-        if (off + 0x10 > size) continue;
-        const count = buffer[off] & 0xFF;
-        if (count < 1 || count > 6) continue;
-        let valid = true;
-        const ids = [];
-        for (let i = 0; i < count; i++) {
-          const sid = buffer[off + 1 + i] & 0xFF;
-          if (sid === 0 || sid > 413) { valid = false; break; }
-          ids.push(sid);
+    // 128KB or 256KB with sector-based structure
+    if (size >= 0x8000 && size <= 0x40000) {
+      const SIZE_SECTOR = 0x1000;
+      const SIZE_MAIN = 0xE000;
+      const COUNT_MAIN = 14;
+      const GBA_MAGIC = 0x08012025;
+
+      function hasValidSectorStructure(slot) {
+        const start = slot * SIZE_MAIN;
+        if (start + SIZE_MAIN > size) return false;
+        let bitTrack = 0;
+        let sectorCount = 0;
+        for (let ofs = start; ofs < start + SIZE_MAIN; ofs += SIZE_SECTOR) {
+          if (ofs + 0xFFC > size) return false;
+          const id = buffer.readUInt16LE(ofs + 0xFF4);
+          const magic = buffer.readUInt32LE(ofs + 0xFF8);
+          if (id >= COUNT_MAIN) return false;
+          if (magic !== GBA_MAGIC) return false;
+          bitTrack |= (1 << id);
+          sectorCount++;
         }
-        if (valid && ids.length >= 2) {
-          log(`Gen3 GBA detected at offset 0x${off.toString(16)}: species=${JSON.stringify(ids)}`);
-          return { generation: 3, saveType: 'gen3', version: 'emerald', name: 'Pokemon Gen 3 (Auto)' };
+        return sectorCount === COUNT_MAIN && bitTrack === 0x3FFF;
+      }
+
+      if (hasValidSectorStructure(0) || hasValidSectorStructure(1)) {
+        // Determine RSE vs FRLG by checking team count at both offset sets
+        function findSector1(slot) {
+          const start = slot * SIZE_MAIN;
+          for (let ofs = start; ofs < start + SIZE_MAIN; ofs += SIZE_SECTOR) {
+            if (ofs + 0xFF4 > buffer.length) continue;
+            const id = buffer.readUInt16LE(ofs + 0xFF4);
+            if (id === 1) return ofs;
+          }
+          return -1;
         }
+        const sec1_0 = findSector1(0);
+        const sec1_1 = findSector1(1);
+        let detectedVersion = 'ruby';
+        for (const sec1 of [sec1_0, sec1_1]) {
+          if (sec1 < 0) continue;
+          const rseCount = buffer.readUInt32LE(sec1 + 0x0234);
+          const frlgCount = buffer[sec1 + 0x0034];
+          log(`Gen3 Sector1 at 0x${sec1.toString(16)}: RSE_teamCount=${rseCount}, FRLG_teamCount=${frlgCount}`);
+          // RSE uses 4-byte LE at 0x234, FRLG uses 1-byte at 0x34
+          const rseValid = rseCount >= 1 && rseCount <= 6;
+          const frlgValid = frlgCount >= 1 && frlgCount <= 6;
+          if (rseValid && !frlgValid) { detectedVersion = 'ruby'; break; }
+          if (frlgValid && !rseValid) { detectedVersion = 'firered'; break; }
+          if (rseValid && frlgValid) { detectedVersion = 'ruby'; break; }
+        }
+        log(`Gen3 GBA detected: valid sector structure found, version=${detectedVersion}`);
+        return { generation: 3, saveType: 'gen3', version: detectedVersion, name: 'Pokemon Gen 3 (Auto)' };
       }
     }
 
@@ -120,43 +153,112 @@ class DetectSave {
       }
     }
 
-    // === Gen 1/2 (Virtual Console or original) ===
-    // 32KB
-    if (size >= 0x7000 && size <= 0x9000) {
-      // Check for Gen1 party patterns
-      const count1 = buffer[0xA0] & 0xFF;
-      if (count1 >= 1 && count1 <= 6) {
-        let valid = true;
-        for (let i = 0; i < count1; i++) {
-          const sid = buffer[0xA1 + i] & 0xFF;
-          if (sid === 0 || sid > 151) { valid = false; break; }
-        }
-        if (valid) {
-          log('Gen1 detected');
-          return { generation: 1, saveType: 'gen1', version: 'red', name: 'Pokemon Gen 1 (Auto)' };
-        }
-      }
-      // Try Gen2
-      const count2 = buffer[0xA0] & 0xFF;
-      if (count2 >= 1 && count2 <= 6) {
+    // === Gen 2 (GSC) ===
+    // 32KB, party count at verified Bulbapedia offsets
+    // G/S primary: 0x288A, G/S backup: 0x10E8
+    // Crystal primary: 0x2865, Crystal backup: 0x1A65
+    if (size >= 0x7000) {
+      const gen2Offsets = [0x288A, 0x10E8, 0x2865, 0x1A65];
+      for (const pcOffset of gen2Offsets) {
+        if (pcOffset + 7 > size) continue;
+        const count2 = buffer[pcOffset] & 0xFF;
+        if (count2 < 1 || count2 > 6) continue;
         let valid = true;
         for (let i = 0; i < count2; i++) {
-          const sid = buffer[0xA1 + i] & 0xFF;
+          const sid = buffer[pcOffset + 1 + i] & 0xFF;
           if (sid === 0 || sid > 251) { valid = false; break; }
         }
-        if (valid) {
-          log('Gen2 detected');
+        // Verify with 0xFF terminator
+        if (valid && buffer[pcOffset + 1 + count2] === 0xFF) {
+          log(`Gen2 detected at offset 0x${pcOffset.toString(16)}, count=${count2}`);
           return { generation: 2, saveType: 'gen2', version: 'gold', name: 'Pokemon Gen 2 (Auto)' };
         }
       }
     }
 
-    // === SwishCrypto (Sw/Sh) detection ===
+    // === Gen 1 (RBY) ===
+    // 32KB, party count at Bulbapedia offset 0x2F2C or search with mon data validation
+    if (size >= 0x7000 && size <= 0x9000) {
+      // Try Bulbapedia offset first
+      const g1PartyOff = 0x2F2C;
+      if (g1PartyOff + 7 <= size) {
+        const count1 = buffer[g1PartyOff] & 0xFF;
+        if (count1 >= 1 && count1 <= 6) {
+          let valid = true;
+          for (let i = 0; i < count1; i++) {
+            const sid = buffer[g1PartyOff + 1 + i] & 0xFF;
+            if (sid === 0 || sid > 151) { valid = false; break; }
+          }
+          if (valid) {
+            log('Gen1 detected at Bulbapedia offset 0x2F2C');
+            return { generation: 1, saveType: 'gen1', version: 'red', name: 'Pokemon Gen 1 (Auto)' };
+          }
+        }
+      }
+      // Fallback: search with species + mon data validation
+      for (let i = 0; i < Math.min(size - 400, 0x8000); i++) {
+        const count1 = buffer[i] & 0xFF;
+        if (count1 < 1 || count1 > 6) continue;
+        let valid = true;
+        const spList = [];
+        for (let j = 0; j < count1; j++) {
+          const sid = buffer[i + 1 + j] & 0xFF;
+          if (sid === 0 || sid > 151) { valid = false; break; }
+          spList.push(sid);
+        }
+        if (!valid) continue;
+        // Also require 0xFF terminator after species list (Gen1 format)
+        if (buffer[i + 1 + count1] !== 0xFF) continue;
+        // Also require mon data: species at monStart must match, level must be valid
+        const monStart = i + 1 + 7 + 66; // WRAM layout: species(7) + OT(66)
+        if (monStart + 0x1E < size) {
+          const monSp = buffer[monStart];
+          const monLv = buffer[monStart + 0x21];
+          if (monSp === spList[0] && monLv >= 1 && monLv <= 100) {
+            log(`Gen1 detected via search at offset 0x${i.toString(16)}`);
+            return { generation: 1, saveType: 'gen1', version: 'red', name: 'Pokemon Gen 1 (Auto)' };
+          }
+        }
+      }
+    }
+
+    // === SwishCrypto (Sw/Sh/PLA/ZA) detection ===
     // Check SHA256 hash before entropy check
     if (size >= 0x10000) {
       try {
         const SwishCrypto = require('./swish-crypto');
         if (SwishCrypto.isValid(buffer)) {
+          // Try to determine which SwishCrypto game based on size and blocks
+          const blocks = SwishCrypto.decrypt(buffer);
+          const partyBlock = blocks.find(b => b.key === 0x2985FE5D);
+          const partyBlockZA = blocks.find(b => b.key === 0x3AA1A9AD);
+          
+          if (partyBlockZA) {
+            // Z-A uses KPartyZA key
+            log(`SwishCrypto Z-A detected: ${size} bytes, blocks=${blocks.length}`);
+            return { generation: 9, saveType: 'gen9za', version: 'legendsza', name: 'Pokemon Legends Z-A (Auto)' };
+          }
+          
+          if (partyBlock) {
+            // Check if PLA format (PA8 has larger blocks)
+            const isPA8 = partyBlock.data.length === 376 * 6 + 4; // SIZE_8APARTY * 6 + count
+            if (isPA8) {
+              log(`SwishCrypto PLA detected: ${size} bytes, blocks=${blocks.length}`);
+              return { generation: 8, saveType: 'gen8pla', version: 'legendsarceus', name: 'Pokemon Legends Arceus (Auto)' };
+            }
+            log(`SwishCrypto Sw/Sh detected: ${size} bytes, blocks=${blocks.length}`);
+            return { generation: 8, saveType: 'gen8swsh', version: 'sword', name: 'Pokemon Sw/Sh (Auto)' };
+          }
+          
+          // Fallback: use file size heuristic
+          if (size < 1500000) {
+            log(`SwishCrypto PLA detected (size heuristic): ${size} bytes`);
+            return { generation: 8, saveType: 'gen8pla', version: 'legendsarceus', name: 'Pokemon Legends Arceus (Auto)' };
+          } else if (size > 2500000) {
+            log(`SwishCrypto Z-A detected (size heuristic): ${size} bytes`);
+            return { generation: 9, saveType: 'gen9za', version: 'legendsza', name: 'Pokemon Legends Z-A (Auto)' };
+          }
+          
           log(`SwishCrypto save detected (${size} bytes)`);
           return { generation: 8, saveType: 'gen8swsh', version: 'sword', name: 'Pokemon Sw/Sh (Auto)' };
         }
@@ -206,6 +308,12 @@ class DetectSave {
 
     // === Fallback: Try each parser and see which one finds valid data ===
     log('Primary detection failed, trying fallback parsers...');
+
+    // Gen1 saves are exactly 32KB and aren't detected by other methods
+    if (size >= 0x7000 && size <= 0x9000) {
+      log('Fallback: 32KB file, assuming Gen1 RBY');
+      return { generation: 1, saveType: 'gen1', version: 'red', name: 'Pokemon Gen 1 (Auto)' };
+    }
 
     // If nothing matched, try Gen5 scan (most common for DeSmuME users)
     if (size >= 0x40000) {

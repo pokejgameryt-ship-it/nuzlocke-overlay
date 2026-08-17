@@ -59,7 +59,6 @@
             <section class="card">
               <div class="card-header-row">
                 <h3>Equipo Detectado</h3>
-                <button class="btn-tiny" id="refreshTeamBtn">Refrescar</button>
               </div>
               <div class="team-status empty" id="teamStatus">Sin equipo detectado</div>
             </section>
@@ -79,6 +78,10 @@
               <label class="checkbox-label">
                 <input type="checkbox" id="showNames" checked>
                 Mostrar nombres / motes
+              </label>
+              <label class="checkbox-label" style="margin-top:8px">
+                <input type="checkbox" id="usePlaceholder">
+                Rellenar slots vacios
               </label>
             </section>
 
@@ -221,12 +224,12 @@
             <h3 class="help-topic-title">Configurar en OBS</h3>
             <div class="help-topic-content">
               <ol>
-                <li>En OBS, haz clic en <b>+ </b> en Fuentes</li>
+                <li>En OBS, haz clic en <b>+</b> en Fuentes</li>
                 <li>Selecciona <b>Navegador</b></li>
                 <li>Pega la <b>URL de OBS</b> que aparece en la app (seccion "URL de OBS")</li>
                 <li>Establece el ancho a <b>1920</b> y el alto a <b>1080</b></li>
                 <li>En Opciones del navegador, marca <b>"Cerrar fuente cuando no sea visible"</b> (desmarcar si necesitas que siempre este visible)</li>
-                <li>Los sprites se actualizaran automaticamente cuando cambies de Pokemon</li>
+                <li>Los sprites se actualizan <b>automaticamente</b> cada 500ms cuando cambias de Pokemon</li>
               </ol>
             </div>
           </div>
@@ -238,11 +241,32 @@
                 <li>Haz clic en el boton <b>+</b> de la barra lateral</li>
                 <li>Escribe un nombre para el proyecto</li>
                 <li>Haz clic en <b>Examinar</b> y selecciona tu archivo de guardado</li>
-                <li>La app detectara automaticamente la generacion del juego</li>
+                <li>La app detecta automaticamente la generacion y version del juego</li>
                 <li>Selecciona un <b>estilo de sprite</b></li>
                 <li>Ajusta la posicion de los sprites en el <b>Layout Editor</b></li>
                 <li>Copia la URL de OBS y pegala en un fuente de navegador en OBS</li>
               </ol>
+              <p><b>Tip:</b> La deteccion es automatica pero puedes forzar el juego manualmente si falla.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="parser pkhex save lectura decrypt desencriptar generacion gen1 gen2 gen3 gen4 gen5 gen6 gen7 gen8 gen9">
+            <h3 class="help-topic-title">Lectura de saves (PKHeX)</h3>
+            <div class="help-topic-content">
+              <p>La app usa <b>PKHeX</b> (la libreria estandar de Pokemon) para leer los saves. Esto garantiza compatibilidad con casi todos los emuladores y formatos.</p>
+              <p><b>Juegos soportados (Gen 1 - Gen 9):</b></p>
+              <ul>
+                <li><b>Gen 1:</b> Rojo, Azul, Amarillo (GB) - VisualBoyAdvance, BGB</li>
+                <li><b>Gen 2:</b> Oro, Plata, Cristal (GBC) - VisualBoyAdvance, SameBoy</li>
+                <li><b>Gen 3:</b> Rubi, Zafiro, Esmeralda, Rojo Fuego, Verde Hoja (GBA) - mGBA, VBA, VisualBoyAdvance-M</li>
+                <li><b>Gen 4:</b> Diamante, Perla, Platino, HeartGold, SoulSilver (NDS) - DeSmuME, melonDS</li>
+                <li><b>Gen 5:</b> Blanco, Negro, Blanco 2, Negro 2 (NDS) - DeSmuME, melonDS</li>
+                <li><b>Gen 6:</b> X, Y, Rubi Omega, Zafiro Alfa (3DS) - Citra</li>
+                <li><b>Gen 7:</b> Sol, Luna, Ultra Sol, Ultra Luna (3DS) - Citra</li>
+                <li><b>Gen 8:</b> Espada, Escudo, Brilliant Diamond, Shining Pearl (Switch) - Yuzu, Ryujinx</li>
+                <li><b>Gen 9:</b> Escarlata, Violeta (Switch) - Yuzu, Ryujinx</li>
+              </ul>
+              <p>Si PKHeX falla, la app usa un parser nativo como respaldo.</p>
             </div>
           </div>
 
@@ -255,9 +279,29 @@
                 <li>Crea una subcarpeta dentro de <b>Recursos/Sprites/</b> (ej: <code>MiEstilo</code>)</li>
                 <li>Pon los sprites PNG o GIF dentro, nombrados por numero de Pokedex (ej: <code>025.png</code> para Pikachu)</li>
                 <li>Puedes usar subcarpetas para formas regionales (ej: <code>shiny/</code>, <code>alola/</code>)</li>
-                <li>En la app, haz clic en <b>Actualizar estilos</b> para detectar la nueva carpeta</li>
+                <li>En la app, selecciona el estilo en el selector de estilos</li>
               </ol>
+              <p><b>Formatos de nombre soportados:</b></p>
+              <ul>
+                <li><code>025.png</code> / <code>25.gif</code> (numerico)</li>
+                <li><code>025-pikachu.png</code> (numerico + nombre)</li>
+                <li><code>25-alola.png</code> (formas regionales)</li>
+                <li><code>BT025.png</code> (Battle Trozei)</li>
+              </ul>
               <p><b>Formato recomendado:</b> PNG con fondo transparente, 96x96 o 128x128 pixeles.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="placeholder rellenar vacio empty slot hueco">
+            <h3 class="help-topic-title">Rellenar slots vacios</h3>
+            <div class="help-topic-content">
+              <p>Si tu equipo tiene menos de 6 Pokemon, puedes rellenar los slots vacios con un sprite placeholder.</p>
+              <ul>
+                <li>Activa la opcion <b>"Rellenar slots vacios"</b> en la seccion Opciones</li>
+                <li>Se usara automaticamente el sprite por defecto del estilo (generalmente un huevo o interrogante)</li>
+                <li>Los placeholders se actualizan automaticamente cuando cambias de estilo</li>
+              </ul>
+              <p>Esto es util para que el overlay siempre muestre 6 slots, incluso al principio de una run.</p>
             </div>
           </div>
 
@@ -287,25 +331,34 @@
                 <li><b>Propiedades:</b> Selecciona un slot para editar X, Y, W, H, Scale directamente</li>
                 <li><b>Des/Hacer:</b> Ctrl+Z / Ctrl+Shift+Z</li>
                 <li><b>Reset:</b> Vuelve a la disposicion por defecto</li>
+                <li><b>Espaciado:</b> Distribuye los slots seleccionados uniformemente</li>
+                <li><b>Alineacion:</b> Alinea izquierda, centro, derecha, arriba, abajo</li>
+                <li><b>Camara:</b> Preview de camara web en el canvas</li>
               </ul>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="juego generacion soportado formato save pokemon game compatible">
-            <h3 class="help-topic-title">Juegos compatibles</h3>
+          <div class="help-topic" data-keywords="presets guardado cargar guardar layout template">
+            <h3 class="help-topic-title">Presets de layout</h3>
             <div class="help-topic-content">
+              <p>Los presets permiten guardar y reutilizar configuraciones de layout.</p>
               <ul>
-                <li><b>Gen 1:</b> Pokemon Rojo, Azul, Amarillo (GB)</li>
-                <li><b>Gen 2:</b> Pokemon Oro, Plata, Cristal (GBC)</li>
-                <li><b>Gen 3:</b> Pokemon Rubi, Zafiro, Esmeralda, Rojo Fuego, Verde Hoja (GBA)</li>
-                <li><b>Gen 4:</b> Pokemon Diamante, Perla, Platino, HeartGold, SoulSilver (NDS)</li>
-                <li><b>Gen 5:</b> Pokemon Blanco, Negro, Blanco 2, Negro 2 (NDS)</li>
-                <li><b>Gen 6:</b> Pokemon X, Y, Rubi Omega, Zafiro Alfa (3DS)</li>
-                <li><b>Gen 7:</b> Pokemon Sol, Luna, Ultra Sol, Ultra Luna (3DS)</li>
-                <li><b>Gen 8:</b> Pokemon Espada, Escudo, Brilliant Diamond, Shining Pearl (Switch)</li>
-                <li><b>Gen 9:</b> Pokemon Escarlata, Violeta (Switch)</li>
+                <li><b>Guardar:</b> Configura el layout y haz clic en "Guardar"</li>
+                <li><b>Cargar:</b> Selecciona un preset de la lista y haz clic en "Cargar"</li>
+                <li><b>Eliminar:</b> Selecciona un preset y haz clic en "Eliminar"</li>
               </ul>
-              <p>La deteccion es automatica. Si falla, selecciona el juego manualmente en el selector.</p>
+              <p>Util para cambiar rapidamente entre diferentes configuraciones de overlay.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="configuracion settings idioma modo segundo plano background tray">
+            <h3 class="help-topic-title">Configuracion</h3>
+            <div class="help-topic-content">
+              <p>Haz clic en el icono de engranaje para acceder a la configuracion:</p>
+              <ul>
+                <li><b>Idioma:</b> Cambia entre Espanol e English</li>
+                <li><b>Modo segundo plano:</b> La app se minimiza a la bandeja del sistema al cerrar (como Discord)</li>
+              </ul>
             </div>
           </div>
 
@@ -316,21 +369,31 @@
                 <p><b>"No se detecta el equipo"</b></p>
                 <ul>
                   <li>Verifica que la ruta del save file sea correcta</li>
-                  <li>Intenta seleccionar el juego manualmente</li>
+                  <li>Intenta seleccionar el juego manualmente en el selector</li>
                   <li>Asegurate de que el save no este corrupto</li>
                   <li>Algunos emuladores guardan en formatos diferentes - prueba con otro emulador</li>
+                  <li>Para Gen 1-2: usa BGB o SameBoy para mejores resultados</li>
+                  <li>Para Gen 3: usa mGBA (mejor compatibilidad que VBA)</li>
+                  <li>Para Gen 4-5: usa DeSmuME o melonDS</li>
                 </ul>
                 <p><b>"Los sprites no aparecen"</b></p>
                 <ul>
                   <li>Verifica que la carpeta <code>Recursos/Sprites/</code> exista junto al ejecutable</li>
                   <li>Asegurate de tener al menos un estilo de sprite instalado</li>
-                  <li>Haz clic en "Actualizar estilos" para re-escanear</li>
+                  <li>Selecciona un estilo en el selector de estilos</li>
                 </ul>
                 <p><b>"OBS muestra pantalla negra"</b></p>
                 <ul>
                   <li>Verifica que la URL sea correcta (debe empezar con http://127.0.0.1:)</li>
                   <li>Asegurate de que la app este abierta</li>
                   <li>Prueba abriendo la URL en un navegador normal primero</li>
+                  <li>En OBS, desmarca "Cerrar fuente cuando no sea visible"</li>
+                </ul>
+                <p><b>"El equipo no se actualiza"</b></p>
+                <ul>
+                  <li>La app detecta cambios cada 500ms automaticamente</li>
+                  <li>Verifica que el save file se este guardando correctamente</li>
+                  <li>Algunos emuladores necesitan que guardes manualmente (Ctrl+S)</li>
                 </ul>
               </div>
             </div>
@@ -345,8 +408,24 @@
                 <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>Seleccionar todos los slots</td></tr>
                 <tr><td><kbd>Ctrl</kbd>+Click</td><td>Multi-seleccionar</td></tr>
                 <tr><td><kbd>Shift</kbd>+Click</td><td>Seleccionar rango</td></tr>
-                <tr><td><kbd>Delete</kbd></td><td>Eliminar slots seleccionados (futuro)</td></tr>
+                <tr><td><kbd>Escape</kbd></td><td>Deseleccionar</td></tr>
               </table>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="emulador emulator mGBA VBA desmume melonDS citra yuzu ryujinx">
+            <h3 class="help-topic-title">Emuladores recomendados</h3>
+            <div class="help-topic-content">
+              <p>Para mejores resultados, usa estos emuladores:</p>
+              <table class="help-shortcuts">
+                <tr><td><b>Gen 1 (GB)</b></td><td>VisualBoyAdvance, BGB</td></tr>
+                <tr><td><b>Gen 2 (GBC)</b></td><td>VisualBoyAdvance, SameBoy</td></tr>
+                <tr><td><b>Gen 3 (GBA)</b></td><td>mGBA (recomendado), VisualBoyAdvance-M</td></tr>
+                <tr><td><b>Gen 4-5 (NDS)</b></td><td>DeSmuME, melonDS</td></tr>
+                <tr><td><b>Gen 6-7 (3DS)</b></td><td>Citra</td></tr>
+                <tr><td><b>Gen 8-9 (Switch)</b></td><td>Yuzu, Ryujinx</td></tr>
+              </table>
+              <p><b>Configuracion mGBA:</b> En Preferences ^gt; Saving, deja "Save game path" vacio para guardar en la misma carpeta que la ROM.</p>
             </div>
           </div>
         </div>

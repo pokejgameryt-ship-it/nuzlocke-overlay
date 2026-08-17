@@ -9,8 +9,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/platform-Windows-lightgrey" alt="Platform">
+  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey" alt="Platform">
+  <img src="https://img.shields.io/badge/gen-1--9-brightgreen" alt="Gen 1-9">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
@@ -20,122 +21,64 @@
 
 Una aplicacion de escritorio para Windows que detecta automaticamente el equipo de Pokemon de tu partida guardada y muestra los sprites en un overlay para OBS Browser Source. Ideal para streamers y creadores de contenido que hacen runs Nuzlocke.
 
-### Juegos compatibles (V1)
-
-| Juego | Generacion | Soporte |
-|-------|-----------|---------|
-| Pokemon Diamante Brillante | Gen 8 (BDSP) | Completo |
-| Pokemon Perla Reluciente | Gen 8 (BDSP) | Completo |
-| Pokemon Espada | Gen 8 (Sw/Sh) | Completo |
-| Pokemon Escudo | Gen 8 (Sw/Sh) | Completo |
-| Pokemon Blanco | Gen 5 | Completo |
-| Pokemon Blanco 2 | Gen 5 | Completo |
-| Pokemon Negro | Gen 5 | Completo |
-| Pokemon Negro 2 | Gen 5 | Completo |
-
-> Soporte para Gen 1, 2, 3, 4, 6, 7 y 9 disponible en el parser, pero optimizado para los juegos listados arriba.
+**Soporte completo para todas las generaciones: Gen 1 a Gen 9.**
 
 ---
 
-## Caracteristicas principales
+## Instalacion rapida (1 minuto)
 
-- **Deteccion automatica de save files** - No necesitas seleccionar el juego, la app lo detecta solo
-- **Sprites en tiempo real** - Se actualiza automaticamente cuando cambias Pokemon en el juego
-- **28 estilos de sprites** - Gen 1-9, animados (GIF) y estaticos (PNG)
-- **Layout editor** - Arrastra y redimensiona los slots en un canvas 1920x1080
-- **Nickname personalizado** - Fuente, color, degradado, contorno, tamano auto
-- **Presets globales** - Guarda y carga layouts para reutilizar
-- **Multiple proyectos** - Crea tantos projetos como necesites
-- **Modo segundo plano** - La app se queda en la bandeja del sistema al cerrar (como Discord)
-- **Idiomas** - Español e ingles
+### Opcion 1: Instalador automatico (recomendado)
 
----
+1. Descarga `setup.bat` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
+2. Ejecuta `setup.bat` (descarga el exe, .NET Runtime y dependencias automaticamente)
+3. Ejecuta `NuzlockeOverlay.exe`
 
-## Requisitos previos
-
-- **Windows 10/11** (x64)
-- **Node.js 18+** (solo para compilar desde el codigo fuente)
-- **OBS Studio** (para el overlay)
-
----
-
-## Instalacion
-
-### Opcion 1: Descargar exe precompilado (rapido)
+### Opcion 2: Descarga directa
 
 1. Descarga `NuzlockeOverlay.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
 2. Necesitas tambien la carpeta `Recursos/Sprites/` con los sprites de Pokemon
 3. Coloca el exe junto a la carpeta `Recursos/` (misma carpeta)
 4. Ejecuta `NuzlockeOverlay.exe`
 
-### Opcion 2: Instalar desde el codigo fuente (completo)
+### Requisitos
 
-```bash
-# 1. Clona el repositorio
-git clone https://github.com/pokejgameryt-ship-it/nuzlocke-overlay.git
-cd nuzlocke-overlay
-
-# 2. Ejecuta el instalador automatico
-setup.bat
-```
-
-O manualmente:
-```bash
-npm install
-npm run build:portable
-```
-
-El exe se generara en `dist/` y se copiara a la carpeta raiz.
-
-### Opcion 3: Ejecutar sin compilar (desarrollo)
-
-```bash
-git clone https://github.com/pokejgameryt-ship-it/nuzlocke-overlay.git
-cd nuzlocke-overlay
-npm install
-npm start
-```
+- **Windows 10/11** (x64)
+- **.NET 8.0 Runtime** (el instalador lo descarga automaticamente)
+- **OBS Studio** (para el overlay)
 
 ---
 
-## Estructura de carpetas
+## Juegos compatibles (Gen 1 - Gen 9)
 
-```
-NUZLOCKE APP/
-├── logo.png              # Logo de la app
-├── logo.svg              # Logo vectorial
-├── main.js               # Process principal de Electron
-├── preload.js            # Bridge IPC renderer<->main
-├── settings.html         # Ventana de configuracion
-├── config.json           # Puerto del servidor overlay (se crea automaticamente)
-├── package.json
-├── app/
-│   ├── index.html        # UI principal
-│   ├── app.js            # Logica del renderer
-│   └── app.css           # Estilos
-├── src/
-│   ├── save-parser.js    # Parser de saves Gen 1-9
-│   ├── swish-crypto.js   # Desencriptado Sw/Sh
-│   ├── detect-save.js    # Auto-deteccion de formato
-│   ├── sprite-scanner.js # Scanner y resolver de sprites
-│   ├── file-watcher.js   # Watcher con chokidar
-│   ├── project-manager.js
-│   ├── preset-manager.js
-│   ├── pokemon-data.js   # 1025 Pokemon + datos de forms
-│   └── logger.js
-├── public/
-│   ├── overlay.html      # HTML del overlay para OBS
-│   ├── js/overlay.js     # Logica del overlay
-│   └── css/overlay.css   # Estilos del overlay
-└── Recursos/
-    └── Sprites/          # Carpetas de sprites por generacion
-        ├── Gen1/
-        ├── Gen2/
-        ├── ...
-        └── Gen9/
-```
+| Generacion | Juegos | Plataforma | Emuladores |
+|------------|--------|------------|------------|
+| **Gen 1** | Rojo, Azul, Amarillo | Game Boy | VisualBoyAdvance, BGB |
+| **Gen 2** | Oro, Plata, Cristal | Game Boy Color | VisualBoyAdvance, SameBoy |
+| **Gen 3** | Rubi, Zafiro, Esmeralda, Rojo Fuego, Verde Hoja | GBA | mGBA, VisualBoyAdvance-M |
+| **Gen 4** | Diamante, Perla, Platino, HeartGold, SoulSilver | NDS | DeSmuME, melonDS |
+| **Gen 5** | Blanco, Negro, Blanco 2, Negro 2 | NDS | DeSmuME, melonDS |
+| **Gen 6** | X, Y, Rubi Omega, Zafiro Alfa | 3DS | Citra |
+| **Gen 7** | Sol, Luna, Ultra Sol, Ultra Luna | 3DS | Citra |
+| **Gen 8** | Espada, Escudo, Brilliant Diamond, Shining Pearl | Switch | Yuzu, Ryujinx |
+| **Gen 9** | Escarlata, Violeta | Switch | Yuzu, Ryujinx |
 
-> **Importante:** La carpeta `Recursos/Sprites/` debe estar junto al exe para que los sprites se carguen.
+> La deteccion del juego es automatica. Si falla, selecciona el juego manualmente en el selector.
+
+---
+
+## Caracteristicas principales
+
+- **Deteccion automatica de save files** - No necesitas seleccionar el juego, la app lo detecta solo
+- **Parser PKHeX** - Usa la libreria estandar de Pokemon para maxima compatibilidad (Gen 1-9)
+- **Sprites en tiempo real** - Se actualiza automaticamente cada 500ms cuando guardas en el juego
+- **28+ estilos de sprites** - Gen 1-9, animados (GIF) y estaticos (PNG)
+- **Layout editor** - Arrastra y redimensiona los slots en un canvas 1920x1080
+- **Nickname personalizado** - Fuente, color, degradado, contorno, tamano auto
+- **Placeholder** - Rellena slots vacios con un sprite por defecto
+- **Presets globales** - Guarda y carga layouts para reutilizar
+- **Multiple proyectos** - Crea tantos proyectos como necesites
+- **Modo segundo plano** - La app se queda en la bandeja del sistema al cerrar
+- **Idiomas** - Espanol e Ingles
 
 ---
 
@@ -152,6 +95,68 @@ NUZLOCKE APP/
 
 ---
 
+## Emuladores recomendados
+
+| Generacion | Emulador | Notas |
+|------------|----------|-------|
+| Gen 1-2 | VisualBoyAdvance / SameBoy | Formato .sav o .sgb |
+| Gen 3 | **mGBA** | Recomendado. Config: savegamePath vacio |
+| Gen 4-5 | DeSmuME / melonDS | Formato .dsv |
+| Gen 6-7 | Citra | Formato .citra |
+| Gen 8-9 | Yuzu / Ryujinx | Formato .nx |
+
+**Configuracion mGBA:** En Preferences > Saving, deja "Save game path" vacio para guardar en la misma carpeta que la ROM.
+
+---
+
+## Estructura de carpetas
+
+```
+NUZLOCKE APP/
+├── NuzlockeOverlay.exe     # Ejecutable principal
+├── setup.bat               # Instalador automatico
+├── start.bat               # Lanzador rapido
+├── logo.png                # Logo de la app
+├── main.js                 # Process principal de Electron
+├── preload.js              # Bridge IPC renderer<->main
+├── settings.html           # Ventana de configuracion
+├── config.json             # Puerto del servidor overlay
+├── package.json
+├── app/
+│   ├── index.html          # UI principal
+│   ├── app.js              # Logica del renderer
+│   └── app.css             # Estilos
+├── src/
+│   ├── save-parser.js      # Parser de saves Gen 1-9
+│   ├── pkhex-reader.js     # Wrapper de PKHeX (.NET)
+│   ├── swish-crypto.js     # Desencriptado Sw/Sh
+│   ├── detect-save.js      # Auto-deteccion de formato
+│   ├── sprite-scanner.js   # Scanner y resolver de sprites
+│   ├── file-watcher.js     # Watcher con chokidar
+│   ├── project-manager.js
+│   ├── preset-manager.js
+│   ├── pokemon-data.js     # 1025+ Pokemon + datos de forms
+│   └── logger.js
+├── PkHexReader/             # Wrapper .NET de PKHeX
+│   ├── Program.cs
+│   ├── PkHexReader.csproj
+│   └── bin/Release/net8.0/
+├── public/
+│   ├── overlay.html        # HTML del overlay para OBS
+│   ├── js/overlay.js       # Logica del overlay
+│   └── css/overlay.css     # Estilos del overlay
+└── Recursos/
+    └── Sprites/            # Carpetas de sprites por generacion
+        ├── Gen1/
+        ├── Gen2/
+        ├── ...
+        └── Gen9/
+```
+
+> **Importante:** La carpeta `Recursos/Sprites/` debe estar junto al exe para que los sprites se carguen.
+
+---
+
 ## Estilos de sprites
 
 Los sprites se organizan por generacion en `Recursos/Sprites/`. La app escanea subcarpetas automaticamente.
@@ -159,7 +164,7 @@ Los sprites se organizan por generacion en `Recursos/Sprites/`. La app escanea s
 Para agregar un nuevo estilo:
 1. Crea una carpeta en `Recursos/Sprites/GenX/`
 2. Pon los archivos PNG o GIF con el numero del Pokemon como nombre (ej: `025.png` para Pikachu)
-3. Haz click en "Refrescar" en la app
+3. Selecciona el estilo en el selector de la app
 
 **Formatos de nombre soportados:**
 - `025.png` / `25.gif` (numerico)
@@ -207,6 +212,7 @@ Si te gusta la app y quieres apoyar el proyecto:
 ## Tecnologias
 
 - **Electron 28** - Framework de escritorio
+- **PKHeX.Core** - Libreria de lectura de saves Pokemon (via .NET 8.0)
 - **Express** - Servidor HTTP para el overlay
 - **Chokidar** - File watcher para detectar cambios en saves
 - **Node.js** - Runtime

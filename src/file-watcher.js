@@ -6,23 +6,32 @@ const DetectSave = require('./detect-save');
 const { resolveSprite } = require('./sprite-scanner');
 const Logger = require('./logger');
 
+let PkHexReader = null;
+try {
+  PkHexReader = require('./pkhex-reader');
+  Logger.info('Watcher', 'PkHexReader loaded OK');
+} catch (e) {
+  Logger.warn('Watcher', `PkHexReader not available: ${e.message}. Using built-in parser.`);
+}
+
 class FileWatcher {
   constructor() {
     this.watchers = new Map();
     this.projectData = new Map();
+    this.debounceTimers = new Map();
+    this.placeholderConfigs = new Map();
+  }
+
+  updatePlaceholderConfig(projectId, config) {
+    this.placeholderConfigs.set(projectId, config);
   }
 
   startWatching(projectId, savePath, gameInfo, spriteStyle, spriteStylePath, spritesRoot, sseClients, onTeamChange) {
-    Logger.info('Watcher', `startWatching called for project ${projectId}`);
+    Logger.info('Watcher', `startWatching for project ${projectId}`);
     Logger.info('Watcher', `  savePath: ${savePath}`);
-    Logger.info('Watcher', `  gameInfo: ${JSON.stringify(gameInfo)}`);
-    Logger.info('Watcher', `  spriteStylePath: ${spriteStylePath}`);
-    Logger.info('Watcher', `  spritesRoot: ${spritesRoot}`);
+    Logger.info('Watcher', `  PKHeX available: ${!!PkHexReader}`);
 
-    if (this.watchers.has(projectId)) {
-      Logger.info('Watcher', `Stopping existing watcher for project ${projectId}`);
-      this.stopWatching(projectId);
-    }
+    this.stopWatching(projectId);
 
     if (!savePath || !fs.existsSync(savePath)) {
       Logger.error('Watcher', `Save file NOT found: ${savePath}`);
@@ -34,57 +43,75 @@ class FileWatcher {
     const watcher = chokidar.watch(savePath, {
       ignoreInitial: false,
       usePolling: true,
-      interval: 1000,
-      awaitWriteFinish: {
-        stabilityThreshold: 800,
-        pollInterval: 200
-      }
+      interval: 500,
     });
 
-    const onChange = async () => {
+    let generation = 0;
+    const DEBOUNCE_MS = 600;
+
+    const parseAndBroadcast = async (gen) => {
+      if (gen !== generation) return;
       try {
-        Logger.info('Watcher', `File change detected for project ${projectId}`);
-        const buffer = fs.readFileSync(savePath);
-        Logger.info('Watcher', `Read ${buffer.length} bytes from ${savePath}`);
+        Logger.info('Watcher', `Parsing save for project ${projectId}`);
 
-        // Auto-detect game if needed
-        let currentGameInfo = gameInfo;
-        if (gameInfo && gameInfo.version === 'auto') {
-          const detected = DetectSave.detect(buffer);
-          if (detected) {
-            currentGameInfo = detected;
-            Logger.info('Watcher', `Auto-detected: ${detected.name}`);
+        let team = [];
+
+        if (PkHexReader) {
+          try {
+            const result = await PkHexReader.parse(savePath);
+            Logger.info('Watcher', `[PKHeX] Found ${result.pokemon.length} Pokemon (${result.game} gen${result.generation})`);
+            team = result.pokemon.map(pk => ({
+              speciesId: pk.speciesId,
+              nickname: pk.nickname || '',
+              isShiny: pk.isShiny,
+              isNicknamed: false,
+              level: pk.level,
+              form: pk.form || 0,
+              gender: pk.gender,
+              heldItem: pk.heldItem,
+              ability: pk.ability,
+              nature: pk.nature,
+              pid: pk.pid,
+              tid: pk.tid,
+              sid: pk.sid,
+              currentHp: pk.currentHp,
+              maxHp: pk.maxHp,
+              move1: pk.move1,
+              move2: pk.move2,
+              move3: pk.move3,
+              move4: pk.move4,
+              otName: pk.otName || '',
+            }));
+          } catch (pkErr) {
+            Logger.error('Watcher', `[PKHeX] Failed: ${pkErr.message}, falling back to built-in parser`);
+            team = [];
           }
         }
 
-        // Handle encrypted saves
-        if (currentGameInfo && currentGameInfo.encrypted) {
-          const clients = sseClients.get(projectId) || new Set();
-          const eventData = JSON.stringify({ team: [], error: 'encrypted', message: 'Save encriptado. Ryujinx almacena los saves de Sw/Sh encriptados. Usa Checkpoint/JKSM o exporta el save desde el juego para obtener un archivo sin encriptar.' });
-          for (const client of clients) {
-            client.write(`data: ${eventData}\n\n`);
+        if (team.length === 0) {
+          Logger.info('Watcher', 'Using built-in parser');
+          const buffer = fs.readFileSync(savePath);
+          let currentGameInfo = gameInfo;
+          if (gameInfo && gameInfo.version === 'auto') {
+            const detected = DetectSave.detect(buffer);
+            if (detected) {
+              currentGameInfo = detected;
+              Logger.info('Watcher', `Auto-detected: ${detected.name}`);
+            }
           }
-          if (onTeamChange) {
-            onTeamChange(projectId, [], 'encrypted');
+          if (currentGameInfo && !currentGameInfo.encrypted) {
+            team = SaveParser.parse(buffer, currentGameInfo);
           }
-          return;
         }
 
-        const team = SaveParser.parse(buffer, currentGameInfo);
         Logger.info('Watcher', `Parsed ${team.length} Pokemon for project ${projectId}`);
 
         if (team.length === 0) {
-          Logger.warn('Watcher', `NO POKEMON FOUND in save file! Possible causes:`);
-          Logger.warn('Watcher', `  - Save file format not recognized`);
-          Logger.warn('Watcher', `  - Game generation mismatch (gen=${gameInfo.generation})`);
-          Logger.warn('Watcher', `  - File is corrupted or encrypted`);
+          Logger.warn('Watcher', `NO POKEMON FOUND in save file`);
         }
 
         const absStylePath = path.resolve(spritesRoot, spriteStylePath);
-        Logger.info('Watcher', `Resolving sprites with style: ${absStylePath}`);
-        Logger.info('Watcher', `  Style dir exists: ${fs.existsSync(absStylePath)}`);
-
-        const resolvedTeam = team.map(pokemon => {
+        let resolvedTeam = team.map(pokemon => {
           if (!pokemon || !pokemon.speciesId) return null;
           const spriteUrl = resolveSprite(absStylePath, pokemon.speciesId, {
             form: pokemon.form,
@@ -92,15 +119,34 @@ class FileWatcher {
             spritesRoot: spritesRoot,
             styleId: spriteStyle
           });
-          if (!spriteUrl) {
-            Logger.warn('Watcher', `  Sprite NOT found for species ${pokemon.speciesId} (shiny=${pokemon.isShiny}, form=${pokemon.form})`);
-          } else {
-            Logger.debug('Watcher', `  Species ${pokemon.speciesId} -> ${spriteUrl}`);
-          }
           return { ...pokemon, spriteUrl };
         }).filter(Boolean);
 
-        Logger.info('Watcher', `Resolved team: ${resolvedTeam.map(p => `${p.speciesId}(${p.spriteUrl ? 'OK' : 'NO_SPRITE'})`).join(', ')}`);
+        const phConfig = this.placeholderConfigs.get(projectId);
+        if (phConfig && phConfig.usePlaceholder && resolvedTeam.length < 6) {
+          const placeholderUrl = resolveSprite(absStylePath, 0, {
+            spritesRoot: spritesRoot,
+            styleId: spriteStyle
+          });
+
+          if (placeholderUrl) {
+            while (resolvedTeam.length < 6) {
+              resolvedTeam.push({
+                speciesId: 0,
+                nickname: '',
+                isShiny: false,
+                level: 0,
+                form: 0,
+                isPlaceholder: true,
+                spriteUrl: placeholderUrl
+              });
+            }
+          }
+        }
+
+        Logger.info('Watcher', `Resolved team: ${resolvedTeam.map(p => `${p.speciesId}(${p.nickname || '?'})`).join(', ')}`);
+
+        if (gen !== generation) return;
 
         this.projectData.set(projectId, resolvedTeam);
 
@@ -116,26 +162,42 @@ class FileWatcher {
           onTeamChange(projectId, resolvedTeam);
         }
       } catch (err) {
-        Logger.error('Watcher', `Error parsing save for project ${projectId}: ${err.message}`);
+        Logger.error('Watcher', `Error parsing save: ${err.message}`);
         Logger.error('Watcher', err.stack);
       }
     };
 
-    watcher.on('change', () => { Logger.debug('Watcher', `chokidar change event for ${projectId}`); onChange(); });
-    watcher.on('add', () => { Logger.debug('Watcher', `chokidar add event for ${projectId}`); onChange(); });
+    const debouncedParse = () => {
+      const curGen = generation;
+      if (this.debounceTimers.has(projectId)) {
+        clearTimeout(this.debounceTimers.get(projectId));
+      }
+      this.debounceTimers.set(projectId, setTimeout(() => {
+        this.debounceTimers.delete(projectId);
+        parseAndBroadcast(curGen);
+      }, DEBOUNCE_MS));
+    };
+
+    watcher.on('change', () => { Logger.debug('Watcher', `change event for ${projectId}`); debouncedParse(); });
+    watcher.on('add', () => { Logger.debug('Watcher', `add event for ${projectId}`); debouncedParse(); });
     this.watchers.set(projectId, watcher);
 
-    Logger.info('Watcher', `Initial parse for project ${projectId}...`);
-    onChange();
+    Logger.info('Watcher', `Scheduling initial parse for project ${projectId} (2s delay)...`);
+    setTimeout(() => parseAndBroadcast(generation), 2000);
   }
 
   stopWatching(projectId) {
+    if (this.debounceTimers.has(projectId)) {
+      clearTimeout(this.debounceTimers.get(projectId));
+      this.debounceTimers.delete(projectId);
+    }
     const watcher = this.watchers.get(projectId);
     if (watcher) {
       Logger.info('Watcher', `Stopping watcher for project ${projectId}`);
       watcher.close();
       this.watchers.delete(projectId);
       this.projectData.delete(projectId);
+      this.placeholderConfigs.delete(projectId);
     }
   }
 

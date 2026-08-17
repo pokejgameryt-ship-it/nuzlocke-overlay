@@ -1026,55 +1026,9 @@ const POKEMON = {
   1025: { name: "Pecharunt", gen: 9 }
 };
 
-const GAME_INFO = {
-  red: { generation: 1, name: "Pokemon Red", saveType: "gen1" },
-  blue: { generation: 1, name: "Pokemon Blue", saveType: "gen1" },
-  yellow: { generation: 1, name: "Pokemon Yellow", saveType: "gen1" },
-  gold: { generation: 2, name: "Pokemon Gold", saveType: "gen2" },
-  silver: { generation: 2, name: "Pokemon Silver", saveType: "gen2" },
-  crystal: { generation: 2, name: "Pokemon Crystal", saveType: "gen2" },
-  ruby: { generation: 3, name: "Pokemon Ruby", saveType: "gen3" },
-  sapphire: { generation: 3, name: "Pokemon Sapphire", saveType: "gen3" },
-  emerald: { generation: 3, name: "Pokemon Emerald", saveType: "gen3" },
-  firered: { generation: 3, name: "Pokemon FireRed", saveType: "gen3" },
-  leafgreen: { generation: 3, name: "Pokemon LeafGreen", saveType: "gen3" },
-  diamond: { generation: 4, name: "Pokemon Diamond", saveType: "gen4" },
-  pearl: { generation: 4, name: "Pokemon Pearl", saveType: "gen4" },
-  platinum: { generation: 4, name: "Pokemon Platinum", saveType: "gen4" },
-  heartgold: { generation: 4, name: "Pokemon HeartGold", saveType: "gen4" },
-  soulsilver: { generation: 4, name: "Pokemon SoulSilver", saveType: "gen4" },
-  black: { generation: 5, name: "Pokemon Black", saveType: "gen5" },
-  white: { generation: 5, name: "Pokemon White", saveType: "gen5" },
-  black2: { generation: 5, name: "Pokemon Black 2", saveType: "gen5" },
-  white2: { generation: 5, name: "Pokemon White 2", saveType: "gen5" },
-  x: { generation: 6, name: "Pokemon X", saveType: "gen6" },
-  y: { generation: 6, name: "Pokemon Y", saveType: "gen6" },
-  omegaruby: { generation: 6, name: "Pokemon Omega Ruby", saveType: "gen6" },
-  alphasapphire: { generation: 6, name: "Pokemon Alpha Sapphire", saveType: "gen6" },
-  sun: { generation: 7, name: "Pokemon Sun", saveType: "gen7sm" },
-  moon: { generation: 7, name: "Pokemon Moon", saveType: "gen7sm" },
-  ultrasun: { generation: 7, name: "Pokemon Ultra Sun", saveType: "gen7usum" },
-  ultramoon: { generation: 7, name: "Pokemon Ultra Moon", saveType: "gen7usum" },
-  sword: { generation: 8, name: "Pokemon Sword", saveType: "gen8swsh" },
-  shield: { generation: 8, name: "Pokemon Shield", saveType: "gen8swsh" },
-  brilliantdiamond: { generation: 8, name: "Pokemon Brilliant Diamond", saveType: "gen8bdsp" },
-  shiningshpearl: { generation: 8, name: "Pokemon Shining Pearl", saveType: "gen8bdsp" },
-  legendsarceus: { generation: 8, name: "Pokemon Legends Arceus", saveType: "gen8pla" },
-  scarlet: { generation: 9, name: "Pokemon Scarlet", saveType: "gen9sv" },
-  violet: { generation: 9, name: "Pokemon Violet", saveType: "gen9sv" }
-};
-
 function getPokemonName(id) {
   const pokemon = POKEMON[id];
   return pokemon ? pokemon.name : "Unknown";
 }
 
-function getGameList() {
-  return Object.entries(GAME_INFO).map(([id, info]) => ({
-    id,
-    name: info.name,
-    generation: info.generation
-  }));
-}
-
-module.exports = { POKEMON, GAME_INFO, getPokemonName, getGameList };
+module.exports = { getPokemonName };

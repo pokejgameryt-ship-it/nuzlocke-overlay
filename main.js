@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } = require('electron');
+
+app.commandLine.appendSwitch('js-flags', '--no-code-cache');
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
@@ -6,7 +8,6 @@ const http = require('http');
 
 const Logger = require('./src/logger');
 const { scanSprites, resolveSprite } = require('./src/sprite-scanner');
-const SaveParser = require('./src/save-parser');
 const DetectSave = require('./src/detect-save');
 const ProjectManager = require('./src/project-manager');
 const PresetManager = require('./src/preset-manager');
@@ -210,6 +211,9 @@ function startOverlayServer() {
 
 function startWatching(project) {
   if (!project || !project.savePath) return;
+  fileWatcher.updatePlaceholderConfig(project.id, {
+    usePlaceholder: project.usePlaceholder || false
+  });
   fileWatcher.startWatching(
     project.id,
     project.savePath,
@@ -239,11 +243,27 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'app', 'index.html'));
 
   try {
-    const iconPath = path.join(__dirname, 'icon.png');
+    const iconPath = path.join(resolveBaseDir(), 'icon.png');
     if (fs.existsSync(iconPath)) {
       tray = new Tray(iconPath);
     } else {
-      tray = new Tray(nativeImage.createEmpty());
+      const size = 16;
+      const buf = Buffer.alloc(size * size * 4);
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const i = (y * size + x) * 4;
+          const cx = x - size / 2, cy = y - size / 2;
+          const dist = Math.sqrt(cx * cx + cy * cy);
+          if (dist < size / 2 - 1) {
+            buf[i] = 230; buf[i + 1] = 0; buf[i + 2] = 18; buf[i + 3] = 255;
+          } else if (dist < size / 2) {
+            buf[i] = 255; buf[i + 1] = 255; buf[i + 2] = 255; buf[i + 3] = 255;
+          } else {
+            buf[i] = 0; buf[i + 1] = 0; buf[i + 2] = 0; buf[i + 3] = 0;
+          }
+        }
+      }
+      tray = new Tray(nativeImage.createFromBuffer(buf, { width: size, height: size }));
     }
     tray.setToolTip('Nuzlocke Overlay');
     updateTrayMenu();
@@ -258,11 +278,6 @@ function createWindow() {
       mainWindow.hide();
     }
   });
-}
-
-function buildProjectWithTeam(project) {
-  const team = fileWatcher.getCachedTeam(project.id);
-  return { ...project, team };
 }
 
 // === IPC HANDLERS ===
@@ -280,6 +295,9 @@ ipcMain.handle('create-project', (event, data) => {
 ipcMain.handle('update-project', (event, id, data) => {
   const updated = projectManager.update(id, data);
   if (updated) {
+    fileWatcher.updatePlaceholderConfig(id, {
+      usePlaceholder: updated.usePlaceholder || false
+    });
     fileWatcher.stopWatching(id);
     if (updated.savePath) startWatching(updated);
     const clients = sseClients.get(id) || new Set();
@@ -403,28 +421,51 @@ function migrateFromBaseDir() {
   }
 }
 
-app.whenReady().then(() => {
-  migrateFromBaseDir();
-  startOverlayServer();
-  createWindow();
+// Single instance lock
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
 
-  const projects = projectManager.listAll();
-  for (const p of projects) {
-    if (p.savePath) startWatching(p);
-  }
-});
+  app.whenReady().then(() => {
+    migrateFromBaseDir();
+    startOverlayServer();
+    createWindow();
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+    const projects = projectManager.listAll();
+    for (const p of projects) {
+      if (p.savePath) startWatching(p);
+    }
+  });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
+  app.on('window-all-closed', () => {
+    if (loadSettings().backgroundMode) {
+      // Keep running in tray
+    } else {
+      app.quit();
+    }
+  });
 
-app.on('before-quit', () => {
-  const projects = projectManager.listAll();
-  for (const p of projects) {
-    fileWatcher.stopWatching(p.id);
-  }
-});
+  app.on('activate', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createWindow();
+    }
+  });
+
+  app.on('before-quit', () => {
+    const projects = projectManager.listAll();
+    for (const p of projects) {
+      fileWatcher.stopWatching(p.id);
+    }
+  });
+}

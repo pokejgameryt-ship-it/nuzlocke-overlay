@@ -208,12 +208,15 @@ function readBlockFromOffset(data, key, offset) {
 }
 
 // ============================================================
-// PK8 Constants and Decryption
+// PK8/PA8 Constants and Decryption
 // ============================================================
 const SIZE_8BLOCK = 80;
+const SIZE_8ABLOCK = 88;
 const BlockCount = 4;
 const SIZE_8STORED = 8 + (BlockCount * SIZE_8BLOCK); // 0x148 = 328
 const SIZE_8PARTY = SIZE_8STORED + 0x10; // 0x158 = 344
+const SIZE_8ASTORED = 8 + (BlockCount * SIZE_8ABLOCK); // 0x168 = 360
+const SIZE_8APARTY = SIZE_8ASTORED + 0x10; // 0x178 = 376
 
 // BlockPosition table from PKHeX PokeCrypto.cs (32 shuffles, duplicates of 0-7 for sv 24-31)
 const BlockPosition = [
@@ -237,9 +240,8 @@ function cryptArray(data, seed) {
   }
 }
 
-function shuffle8(data, sv) {
+function shuffleBlocks(data, sv, blockSize) {
   if (sv === 0) return;
-  const blockSize = SIZE_8BLOCK;
   const perm = [0, 1, 2, 3];
   const slotOf = [0, 1, 2, 3];
   const shuffle = BlockPosition.slice(sv * BlockCount, sv * BlockCount + BlockCount);
@@ -263,6 +265,14 @@ function shuffle8(data, sv) {
   }
 }
 
+function shuffle8(data, sv) {
+  shuffleBlocks(data, sv, SIZE_8BLOCK);
+}
+
+function shuffle8A(data, sv) {
+  shuffleBlocks(data, sv, SIZE_8ABLOCK);
+}
+
 function decryptPK8(rawData) {
   const data = Buffer.from(rawData);
   const pv = data.readUInt32LE(0);
@@ -282,10 +292,30 @@ function decryptPK8(rawData) {
   return data;
 }
 
+function decryptPA8(rawData) {
+  const data = Buffer.from(rawData);
+  const pv = data.readUInt32LE(0);
+  const sv = (pv >> 13) & 31;
+
+  const storedRegion = data.subarray(8, SIZE_8ASTORED);
+  cryptArray(storedRegion, pv);
+
+  if (data.length > SIZE_8ASTORED) {
+    const partyRegion = data.subarray(SIZE_8ASTORED, SIZE_8APARTY);
+    cryptArray(partyRegion, pv);
+  }
+
+  const shuffleRegion = data.subarray(8, SIZE_8ASTORED);
+  shuffle8A(shuffleRegion, sv);
+
+  return data;
+}
+
 // ============================================================
-// Known Sw/Sh Block Keys (from SaveBlockAccessor8SWSH.cs)
+// Known Block Keys (from PKHeX source)
 // ============================================================
 const KParty = 0x2985FE5D;
+const KPartyZA = 0x3AA1A9AD;
 const KMyStatus = 0xF25C070E;
 
 // ============================================================
@@ -314,23 +344,90 @@ class SwishCrypto {
   /**
    * Get party data from SCBlocks
    * @param {Array} blocks - Array of SCBlock objects
+   * @param {string} [format='pk8'] - 'pk8' for SwSh, 'pa8' for PLA, 'pa9' for ZA
    * @returns {{ partyCount: number, pokemon: Array<Buffer> }}
    */
-  static getParty(blocks) {
-    const partyBlock = blocks.find(b => b.key === KParty);
-    if (!partyBlock || partyBlock.type !== SCTypeCode.Object) return null;
+  static getParty(blocks, format) {
+    // Try Sw/Sh key first, then ZA key
+    let partyBlock = blocks.find(b => b.key === KParty);
+    let isPA8 = false;
+    let isPA9 = false;
+    
+    if (!partyBlock || partyBlock.type !== SCTypeCode.Object) {
+      partyBlock = blocks.find(b => b.key === KPartyZA);
+      if (partyBlock && partyBlock.type === SCTypeCode.Object) {
+        isPA9 = true;
+      }
+    } else {
+      // Sw/Sh block found, but check if it's actually PLA format
+      // PLA also uses KParty key but with PA8 format
+      isPA8 = format === 'pa8' || (partyBlock.data.length === SIZE_8APARTY * 6 + 4);
+      if (isPA8) {
+        isPA9 = false;
+      }
+    }
+    
+    if (!partyBlock) return null;
 
     const data = partyBlock.data;
+    
+    if (isPA8) {
+      // PA8 (Legends Arceus): SIZE_8APARTY = 0x178 = 376 bytes per Pokemon
+      const countOffset = 6 * SIZE_8APARTY;
+      let partyCount = 0;
+      if (countOffset < data.length) {
+        partyCount = data[countOffset];
+        if (partyCount === 0 && countOffset + 4 <= data.length) {
+          partyCount = data.readUInt32LE(countOffset);
+        }
+      }
+      
+      const pokemon = [];
+      for (let i = 0; i < Math.min(partyCount, 6); i++) {
+        const offset = i * SIZE_8APARTY;
+        if (offset + SIZE_8APARTY > data.length) break;
+        const monData = data.subarray(offset, offset + SIZE_8APARTY);
+        pokemon.push(decryptPA8(monData));
+      }
+      return { partyCount: Math.min(partyCount, 6), pokemon, format: 'pa8' };
+    }
+    
+    if (isPA9) {
+      // PA9 (Z-A): 6 Pokemon at 0x1E0 intervals (480 bytes each)
+      // Total block: 6 * 0x1E0 = 2880 bytes
+      const ZA_ENTRY_SIZE = 0x1E0;
+      const partyCount = 6;
+      
+      const pokemon = [];
+      for (let i = 0; i < partyCount; i++) {
+        const offset = i * ZA_ENTRY_SIZE;
+        if (offset + SIZE_8PARTY > data.length) break;
+        const monData = data.subarray(offset, offset + SIZE_8PARTY);
+        const decrypted = decryptPK8(monData);
+        // Skip empty slots (species 0)
+        const species = decrypted.readUInt16LE(0x08);
+        if (species > 0 && species <= 1025) {
+          pokemon.push(decrypted);
+        }
+      }
+      return { partyCount: pokemon.length, pokemon, format: 'pa9' };
+    }
+    
+    // PK8 (Sw/Sh): SIZE_8PARTY = 0x158 = 344 bytes per Pokemon
     const countOffset = 6 * SIZE_8PARTY;
-    const partyCount = data[countOffset];
-
+    let partyCount = 0;
+    if (countOffset < data.length) {
+      partyCount = data[countOffset];
+    }
+    
     const pokemon = [];
     for (let i = 0; i < Math.min(partyCount, 6); i++) {
       const offset = i * SIZE_8PARTY;
-      pokemon.push(data.subarray(offset, offset + SIZE_8PARTY));
+      if (offset + SIZE_8PARTY > data.length) break;
+      const monData = data.subarray(offset, offset + SIZE_8PARTY);
+      pokemon.push(decryptPK8(monData));
     }
-
-    return { partyCount, pokemon };
+    return { partyCount: Math.min(partyCount, 6), pokemon, format: 'pk8' };
   }
 
   /**
@@ -338,32 +435,13 @@ class SwishCrypto {
    * @param {Array} blocks - Array of SCBlock objects
    * @returns {{ otName: string }}
    */
-  static getTrainerInfo(blocks) {
-    const myStatusBlock = blocks.find(b => b.key === KMyStatus);
-    if (!myStatusBlock || myStatusBlock.type !== SCTypeCode.Object) return null;
-
-    const data = myStatusBlock.data;
-    let otName = '';
-    for (let j = 0; j < data.length && j < 0x1A; j += 2) {
-      const ch = data.readUInt16LE(j);
-      if (ch === 0) break;
-      otName += String.fromCharCode(ch);
-    }
-
-    return { otName };
-  }
-
-  /**
-   * Decrypt a single PK8 Pokemon
-   * @param {Buffer} rawData - Encrypted PK8 data (SIZE_8PARTY bytes)
-   * @returns {Buffer} Decrypted PK8 data
-   */
   static decryptPK8(rawData) {
     return decryptPK8(rawData);
   }
 
-  static get SIZE_8PARTY() { return SIZE_8PARTY; }
-  static get SIZE_8STORED() { return SIZE_8STORED; }
+  static decryptPA8(rawData) {
+    return decryptPA8(rawData);
+  }
 }
 
 module.exports = SwishCrypto;

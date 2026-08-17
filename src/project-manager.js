@@ -44,6 +44,8 @@ class ProjectManager {
       spriteStyle: data.spriteStyle || '',
       spriteStylePath: data.spriteStylePath || '',
       showNames: data.showNames !== undefined ? data.showNames : true,
+      usePlaceholder: data.usePlaceholder || false,
+      placeholderSpriteId: data.placeholderSpriteId || '',
       slots: data.slots || this.getDefaultSlots(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

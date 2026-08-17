@@ -1,6 +1,6 @@
 {
   "name": "nuzlocke-overlay",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Nuzlocke Overlay App - OBS overlay for Pokemon Nuzlocke runs with real-time team tracking",
   "main": "main.js",
   "author": "PokeJgamer",
@@ -17,15 +17,35 @@
     "directories": {
       "output": "dist"
     },
+    "asar": false,
     "files": [
       "main.js",
       "preload.js",
       "settings.html",
+      "logo.png",
       "src/**/*",
       "app/**/*",
       "public/**/*",
       "!node_modules/.cache",
       "!Recursos"
+    ],
+    "extraResources": [
+      {
+        "from": "PkHexReader/bin/Release/net8.0/PkHexReader.dll",
+        "to": "PkHexReader.dll"
+      },
+      {
+        "from": "PkHexReader/bin/Release/net8.0/PKHeX.Core.dll",
+        "to": "PKHeX.Core.dll"
+      },
+      {
+        "from": "PkHexReader/bin/Release/net8.0/PkHexReader.runtimeconfig.json",
+        "to": "PkHexReader.runtimeconfig.json"
+      },
+      {
+        "from": "PkHexReader/bin/Release/net8.0/PkHexReader.deps.json",
+        "to": "PkHexReader.deps.json"
+      }
     ],
     "win": {
       "target": "portable",
