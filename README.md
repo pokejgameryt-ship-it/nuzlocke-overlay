@@ -52,15 +52,15 @@ Una aplicacion de escritorio para Windows que detecta automaticamente el equipo 
 
 | Generacion | Juegos | Plataforma | Emuladores |
 |------------|--------|------------|------------|
-| **Gen 1** | Rojo, Azul, Amarillo | Game Boy | VisualBoyAdvance, BGB |
-| **Gen 2** | Oro, Plata, Cristal | Game Boy Color | VisualBoyAdvance, SameBoy |
+| **Gen 1** | Rojo, Azul, Amarillo | Game Boy | VisualBoyAdvance, BGB, ... |
+| **Gen 2** | Oro, Plata, Cristal | Game Boy Color | VisualBoyAdvance, SameBoy, ... |
 | **Gen 3** | Rubi, Zafiro, Esmeralda, Rojo Fuego, Verde Hoja | GBA | mGBA, VisualBoyAdvance-M |
-| **Gen 4** | Diamante, Perla, Platino, HeartGold, SoulSilver | NDS | DeSmuME, melonDS |
-| **Gen 5** | Blanco, Negro, Blanco 2, Negro 2 | NDS | DeSmuME, melonDS |
+| **Gen 4** | Diamante, Perla, Platino, HeartGold, SoulSilver | NDS | DeSmuME, melonDS, ... |
+| **Gen 5** | Blanco, Negro, Blanco 2, Negro 2 | NDS | DeSmuME, melonDS, ... |
 | **Gen 6** | X, Y, Rubi Omega, Zafiro Alfa | 3DS | Citra |
 | **Gen 7** | Sol, Luna, Ultra Sol, Ultra Luna | 3DS | Citra |
-| **Gen 8** | Espada, Escudo, Brilliant Diamond, Shining Pearl | Switch | Yuzu, Ryujinx |
-| **Gen 9** | Escarlata, Violeta | Switch | Yuzu, Ryujinx |
+| **Gen 8** | Espada, Escudo, Brilliant Diamond, Shining Pearl | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
+| **Gen 9** | Escarlata, Violeta | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
 
 > La deteccion del juego es automatica. Si falla, selecciona el juego manualmente en el selector.
 
