@@ -30,8 +30,11 @@ Una aplicacion de escritorio para Windows que detecta automaticamente el equipo 
 ### Opcion 1: Instalador automatico (recomendado)
 
 1. Descarga `setup.bat` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
-2. Ejecuta `setup.bat` (descarga el exe, .NET Runtime y dependencias automaticamente)
+2. Ejecuta `setup.bat` (descarga el exe, .NET Runtime y sprites automaticamente)
 3. Ejecuta `NuzlockeOverlay.exe`
+
+> **Nota sobre los sprites (MEGA):** Los sprites ocupan ~8.5 GB y no caben en GitHub. El instalador los descarga automaticamente desde MEGA usando `megacmd`.
+> **Solo la primera vez:** Necesitas instalar megacmd (ver instrucciones abajo). Despues, `setup.bat` hace todo solo: descarga exe + .NET Runtime + sprites + crea acceso directo.
 
 ### Opcion 2: Descarga directa
 
@@ -45,6 +48,28 @@ Una aplicacion de escritorio para Windows que detecta automaticamente el equipo 
 - **Windows 10/11** (x64)
 - **.NET 8.0 Runtime** (el instalador lo descarga automaticamente)
 - **OBS Studio** (para el overlay)
+
+---
+
+### Configuracion de MEGA (solo primera vez)
+
+El instalador usa MEGA para descargar la carpeta `Recursos/Sprites/` (~8.5 GB). Necesitas `megacmd` instalado:
+
+1. **Instala megacmd:** Descarga desde <https://mega.io/cmd> (elige Windows x64)
+2. **Reinicia la terminal** (cmd/PowerShell) despues de instalar
+3. **Inicia sesion en MEGA:**
+   ```cmd
+   mega-login TU_EMAIL TU_PASSWORD
+   ```
+   (Solo se hace una vez. La sesion persiste entre reinicios)
+
+4. **Ejecuta `setup.bat`** — Ahora descargara todo automaticamente:
+   - `NuzlockeOverlay.exe` (desde GitHub Releases)
+   - `.NET 8.0 Runtime` (si no esta instalado)
+   - `Recursos/Sprites/` (desde MEGA, extrae y limpia)
+   - Acceso directo en el escritorio
+
+> **No quieres usar MEGA?** Descarga manualmente la carpeta `Recursos` desde MEGA y colocalas junto al exe. El instalador detectara que ya existe y no la descargara.
 
 ---
 
