@@ -8,9 +8,9 @@ setlocal enabledelayedexpansion
 :: CONFIGURACION
 :: ============================================
 set "GITHUB_REPO=pokejgameryt-ship-it/nuzlocke-overlay"
-set "GITHUB_API=https://api.github.com/repos/%GITHUB_REPO%/releases/latest"
 set "GITHUB_EXE_URL=https://github.com/%GITHUB_REPO%/releases/latest/download/NuzlockeOverlay.exe"
-set "RECURSOS_URL=https://www.mediafire.com/file/PEGA_TU_LINK_AQUI"
+set "MEGA_FOLDER=https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg"
+set "RECURSOS_ZIP=Recursos.zip"
 set "DOTNET_VERSION=8.0"
 set "DOTNET_INSTALLER=%TEMP%\dotnet-runtime-installer.exe"
 set "DOTNET_CHECK=%ProgramFiles%\dotnet\dotnet.exe"
@@ -25,7 +25,7 @@ echo.
 :: ============================================
 :: Paso 1: Comprobar conexion a internet
 :: ============================================
-echo  [1/6] Comprobando conexion a internet...
+echo  [1/7] Comprobando conexion a internet...
 ping -n 1 github.com >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
@@ -36,14 +36,14 @@ if %errorlevel% neq 0 (
     echo.
     pause
     exit /b 1
+)
 echo         Conexion OK.
 echo.
-)
 
 :: ============================================
 :: Paso 2: Comprobar/Instalar .NET 8.0 Runtime
 :: ============================================
-echo  [2/6] Comprobando .NET %DOTNET_VERSION% Runtime...
+echo  [2/7] Comprobando .NET %DOTNET_VERSION% Runtime...
 if exist "%DOTNET_CHECK%" (
     for /f "tokens=*" %%i in ('"%DOTNET_CHECK%" --list-runtimes 2^>nul ^| findstr "Microsoft.NETCore.App"') do (
         echo         %%i
@@ -95,7 +95,7 @@ echo.
 :: ============================================
 :: Paso 3: Descargar NuzlockeOverlay.exe
 :: ============================================
-echo  [3/6] Descargando NuzlockeOverlay.exe...
+echo  [3/7] Descargando NuzlockeOverlay.exe...
 if exist "NuzlockeOverlay.exe" (
     echo         NuzlockeOverlay.exe ya existe. OK.
 ) else (
@@ -120,33 +120,96 @@ if exist "NuzlockeOverlay.exe" (
 echo.
 
 :: ============================================
-:: Paso 4: Comprobar carpeta de sprites
+:: Paso 4: Descargar y extraer Recursos desde MEGA
 :: ============================================
-echo  [4/6] Comprobando carpeta de sprites...
+echo  [4/7] Descargando Recursos desde MEGA...
 if exist "Recursos\Sprites" (
-    echo         Carpeta Recursos\Sprites encontrada. OK.
+    echo         Carpeta Recursos\Sprites ya existe. OK.
 ) else (
+    :: Comprobar megacmd (mega-get)
+    where mega-get >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo.
+        echo  ┌────────────────────────────────────────────────────────┐
+        echo  │  MEGA CMD no encontrado.                               │
+        echo  │                                                        │
+        echo  │  Para descargar la carpeta Recursos desde MEGA,        │
+        echo  │  necesitas instalar megacmd:                           │
+        echo  │                                                        │
+        echo  │  1. Descarga: https://mega.io/cmd                      │
+        echo  │  2. Instala y reinicia la terminal                     │
+        echo  │  3. Ejecuta: mega-login TU_EMAIL TU_PASSWORD           │
+        echo  │  4. Vuelve a ejecutar setup.bat                        │
+        echo  │                                                        │
+        echo  │  O descarga manualmente la carpeta "Recursos"          │
+        echo  │  desde MEGA y colocalas junto al exe.                  │
+        echo  └────────────────────────────────────────────────────────┘
+        echo.
+        pause
+        exit /b 1
+    )
+
+    echo         Descargando carpeta Recursos desde MEGA...
+    echo         (Esto puede tardar varios minutos segun tu conexion)
     echo.
-    echo  ┌─────────────────────────────────────────────────┐
-    echo  │  AVISO: Carpeta Recursos no encontrada.         │
-    echo  │                                                 │
-    echo  │  Sin esta carpeta no se veran los sprites.      │
-    echo  │                                                 │
-    echo  │  Opciones:                                      │
-    echo  │  1. Descarga desde MediaFire y extrae aqui      │
-    echo  │  2. Copia la carpeta "Recursos" junto al exe    │
-    echo  │                                                 │
-    echo  │  Link de descarga (ponlo en setup.bat):         │
-    echo  │  %RECURSOS_URL%
-    echo  └─────────────────────────────────────────────────┘
+
+    :: Descargar con mega-get (descarga la carpeta como ZIP)
+    mega-get "%MEGA_FOLDER%" "%RECURSOS_ZIP%"
+    if %errorlevel% neq 0 (
+        echo.
+        echo  ERROR: Fallo al descargar desde MEGA.
+        echo  Verifica que:
+        echo    - Tenes megacmd instalado (mega-get)
+        echo    - Estás logueado en MEGA (mega-login)
+        echo    - El enlace de la carpeta es correcto
+        echo.
+        pause
+        exit /b 1
+    )
+
+    :: Verificar que se descargo el ZIP
+    if not exist "%RECURSOS_ZIP%" (
+        echo.
+        echo  ERROR: No se encontro el archivo descargado.
+        echo  El nombre puede variar. Busca un archivo .zip o .rar.
+        echo.
+        pause
+        exit /b 1
+    )
+
+    echo         Descarga completada. Extrayendo archivos...
     echo.
+
+    :: Extraer con PowerShell (maneja ZIP y RAR si tiene 7zip/WinRAR en PATH)
+    powershell -Command "Expand-Archive -Path '%RECURSOS_ZIP%' -DestinationPath '.' -Force"
+    if %errorlevel% neq 0 (
+        echo.
+        echo  ERROR: Fallo al extraer. Intentando con 7-Zip si esta instalado...
+        where 7z >nul 2>&1
+        if %errorlevel% equ 0 (
+            7z x "%RECURSOS_ZIP%" -o"."
+            if %errorlevel% neq 0 (
+                echo  ERROR: 7-Zip tambien fallo.
+                pause
+                exit /b 1
+            )
+        ) else (
+            echo  7-Zip no encontrado. Instalalo o extrae manualmente.
+            pause
+            exit /b 1
+        )
+    )
+
+    :: Limpiar archivo comprimido
+    del /f /q "%RECURSOS_ZIP%" >nul 2>&1
+    echo         Recursos extraidos y archivo temporal eliminado.
 )
 echo.
 
 :: ============================================
 :: Paso 5: Crear acceso directo en escritorio
 :: ============================================
-echo  [5/6] Creando acceso directo en escritorio...
+echo  [5/7] Creando acceso directo en escritorio...
 set "DESKTOP=%USERPROFILE%\Desktop"
 set "SCRIPT_DIR=%~dp0"
 (
@@ -168,9 +231,25 @@ if exist "%DESKTOP%\Nuzlocke Overlay.lnk" (
 echo.
 
 :: ============================================
-:: Paso 6: Limpiar archivos temporales
+:: Paso 6: Verificar estructura final
 :: ============================================
-echo  [6/6] Limpiando archivos temporales...
+echo  [6/7] Verificando instalacion...
+if exist "NuzlockeOverlay.exe" (
+    echo         NuzlockeOverlay.exe: OK
+) else (
+    echo         NuzlockeOverlay.exe: FALTA
+)
+if exist "Recursos\Sprites" (
+    echo         Recursos\Sprites: OK
+) else (
+    echo         Recursos\Sprites: FALTA
+)
+echo.
+
+:: ============================================
+:: Paso 7: Limpiar archivos temporales
+:: ============================================
+echo  [7/7] Limpiando archivos temporales...
 if exist "dist" rd /s /q "dist" >nul 2>&1
 echo         Limpieza completada.
 echo.
