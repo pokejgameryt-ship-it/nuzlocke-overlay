@@ -85,7 +85,7 @@ El instalador usa MEGA para descargar la carpeta `Recursos/Sprites/` (~8.5 GB). 
 | **Gen 6** | X, Y, Rubi Omega, Zafiro Alfa | 3DS | Citra |
 | **Gen 7** | Sol, Luna, Ultra Sol, Ultra Luna | 3DS | Citra |
 | **Gen 8** | Espada, Escudo, Brilliant Diamond, Shining Pearl | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
-| **Gen 9** | Escarlata, Violeta | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
+| **Gen 9** | Escarlata, Púrpura | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
 
 > La deteccion del juego es automatica. Si falla, selecciona el juego manualmente en el selector.
 
