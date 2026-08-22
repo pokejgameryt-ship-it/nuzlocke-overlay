@@ -333,7 +333,7 @@
                 <li><b>Reset:</b> Vuelve a la disposicion por defecto</li>
                 <li><b>Espaciado:</b> Distribuye los slots seleccionados uniformemente</li>
                 <li><b>Alineacion:</b> Alinea izquierda, centro, derecha, arriba, abajo</li>
-                <li><b>Camara:</b> Preview de camara web en el canvas</li>
+                <li><b>Camara virtual:</b> Previsualiza tu webcam encima del Layout Editor para saber donde quedara tu cara en OBS/Discord. Sirve para <b>posicionar los sprites</b> sin que tapen tu camara. Selecciona tu camara real en el selector; los sprites se veran por encima.</li>
               </ul>
             </div>
           </div>
@@ -503,6 +503,7 @@
   </div>
 
   <div class="tour-overlay" id="tourOverlay" style="display:none">
+    <div class="tour-backdrop" id="tourBackdrop"></div>
     <div class="tour-spotlight" id="tourSpotlight"></div>
     <div class="tour-popover" id="tourPopover">
       <div class="tour-popover-header">

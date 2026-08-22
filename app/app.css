@@ -975,7 +975,7 @@ kbd {
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: transparent;
   z-index: 10000;
   display: flex;
   pointer-events: none;
@@ -1000,10 +1000,24 @@ kbd {
   pointer-events: none;
 }
 
+/* Subtle dark backdrop behind popover only */
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tour-overlay.active .tour-backdrop {
+  opacity: 1;
+}
+
 .tour-spotlight {
   position: absolute;
   border-radius: 8px;
-  /* Simple ring indicator - no dark overlay since target is above */
   box-shadow: 0 0 0 2px #e94560, 0 0 20px rgba(233, 69, 96, 0.4);
   pointer-events: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

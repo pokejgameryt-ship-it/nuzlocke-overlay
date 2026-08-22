@@ -1535,8 +1535,8 @@
     },
     {
       id: 'camera-setup',
-      title: '6. Camara virtual para videollamadas',
-      content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para usar tu overlay en Discord, Zoom, Meet, etc.<br>Selecciona tu camara real para mezclarla con los sprites del overlay.',
+      title: '6. Camara virtual - Previsualizar layout',
+      content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para ver tu webcam encima del Layout Editor.<br>Sirve para <span class="tour-highlight">posicionar los sprites</span> sabiendo donde quedara tu cara en OBS/Discord.<br>Selecciona tu camara real y ajustala; los sprites se veran por encima.',
       target: '#cameraToggleBtn',
       position: 'right',
       action: 'click',
@@ -1556,6 +1556,7 @@
   let tourStep = 0;
   let tourActive = false;
   const tourOverlay = document.getElementById('tourOverlay');
+  const tourBackdrop = document.getElementById('tourBackdrop');
   const tourSpotlight = document.getElementById('tourSpotlight');
   const tourPopover = document.getElementById('tourPopover');
   const tourTitle = document.getElementById('tourTitle');
@@ -1579,6 +1580,10 @@
     tourStep = 0;
     showTourStep();
     tourOverlay.style.display = 'flex';
+    // Force reflow then activate backdrop
+    requestAnimationFrame(() => {
+      tourOverlay.classList.add('active');
+    });
     document.body.style.overflow = 'hidden';
   }
 
@@ -1818,10 +1823,15 @@
 
   function closeTour() {
     clearTargetHighlight();
-    tourOverlay.style.display = 'none';
-    tourSpotlight.style.opacity = '0';
-    tourActive = false;
-    document.body.style.overflow = '';
+    tourOverlay.classList.remove('active');
+    // Wait for backdrop fade out
+    setTimeout(() => {
+      if (!tourActive) return; // Don't hide if tour was restarted
+      tourOverlay.style.display = 'none';
+      tourSpotlight.style.opacity = '0';
+      tourActive = false;
+      document.body.style.overflow = '';
+    }, 200);
   }
 
   function skipTourStep() {
