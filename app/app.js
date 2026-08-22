@@ -1529,7 +1529,7 @@
       title: '5. Configurar en OBS',
       content: 'Copia la <span class="tour-highlight">URL de OBS</span> (boton Copiar).<br>En OBS Studio: Fuente de Navegador → Pega URL → 1920x1080.<br>Los sprites se actualizan solos cada 500ms al guardar.',
       target: '#copyUrlBtn',
-      position: 'left',
+      position: 'bottom',
       action: 'click',
       progress: 75
     },
@@ -1538,7 +1538,7 @@
       title: '6. Camara virtual - Previsualizar layout',
       content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para ver tu webcam encima del Layout Editor.<br>Sirve para <span class="tour-highlight">posicionar los sprites</span> sabiendo donde quedara tu cara en OBS/Discord.<br>Selecciona tu camara real y ajustala; los sprites se veran por encima.',
       target: '#cameraToggleBtn',
-      position: 'right',
+      position: 'bottom',
       action: 'click',
       progress: 88
     },
@@ -1625,7 +1625,7 @@
     tourPopover.style.visibility = '';
     tourPopover.style.display = '';
 
-    const gap = 18;
+    const gap = 32;
     const safeMargin = 16;
     const tLeft = rect.left - pad;
     const tTop = rect.top - pad;
