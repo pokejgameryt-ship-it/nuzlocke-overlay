@@ -1468,79 +1468,290 @@
     if (presetSel && presetSel.options[0]) presetSel.options[0].text = t.preset;
   }
 
-  // ===== TUTORIAL SYSTEM =====
-  const TUTORIAL_STEPS = [
+  // ===== GUIDED TOUR SYSTEM =====
+  const TOUR_STEPS = [
     {
+      id: 'welcome',
       title: 'Bienvenido a Nuzlocke Overlay',
-      content: 'Esta guia te ayudara a configurar tu overlay para OBS en 5 pasos.<br>Haz clic en "Siguiente" para continuar.',
+      content: 'Esta guia interactiva te ayudara a configurar tu overlay en 6 pasos.<br>En cada paso, el area relevante se iluminara. Haz la accion indicada y pulsa "Siguiente".',
+      target: null,
+      position: 'center',
+      action: 'none',
       progress: 0
     },
     {
-      title: '1. Crear un proyecto',
-      content: 'Haz clic en el boton <span class="tutorial-highlight">+</span> en la barra lateral izquierda para crear un nuevo proyecto.<br>Dale un nombre (ej: "Mi Nuzlocke Espada").',
+      id: 'create-project',
+      title: '1. Crear tu primer proyecto',
+      content: 'Haz clic en el boton <span class="tour-highlight">+</span> para crear un nuevo proyecto Nuzlocke.',
+      target: '#addProjectBtn',
+      position: 'right',
+      action: 'click',
       progress: 16
     },
     {
-      title: '2. Seleccionar tu save file',
-      content: 'En la seccion <span class="tutorial-highlight">Guardar</span>, haz clic en <span class="tutorial-highlight">Examinar</span> y selecciona tu archivo de guardado (.sav, .dsv, etc.).<br>La app detectara automaticamente la generacion y el juego.',
-      progress: 33
+      id: 'project-name',
+      title: 'Nombre del proyecto',
+      content: 'Escribe un nombre para tu run (ej: "Mi Nuzlocke Espada") y pulsa Enter.',
+      target: '#projectName',
+      position: 'bottom',
+      action: 'type',
+      progress: 25
     },
     {
-      title: '3. Elegir estilo de sprite',
-      content: 'En <span class="tutorial-highlight">Estilo de Sprite</span>, selecciona el estilo visual que prefieras (Gen 1-9, animados o estaticos).<br>Puedes previsualizar los sprites en la caja de abajo.',
-      progress: 50
+      id: 'select-save',
+      title: '2. Seleccionar save file',
+      content: 'Haz clic en <span class="tour-highlight">Examinar</span> y busca tu archivo de guardado (.sav, .dsv, etc.).<br>La app detectara la generacion y juego automaticamente.',
+      target: '#browseBtn',
+      position: 'right',
+      action: 'click',
+      progress: 40
     },
     {
-      title: '4. Ajustar el Layout',
-      content: 'En el <span class="tutorial-highlight">Layout Editor</span> (lienzo 1920x1080):<br>• Arrastra los sprites para posicionarlos<br>• Redimensiona con las esquinas<br>• Usa los botones de alineacion y espaciado',
-      progress: 66
+      id: 'select-style',
+      title: '3. Elegir estilo de sprites',
+      content: 'Despliega el selector <span class="tour-highlight">Estilo de Sprite</span> y elige tu estilo favorito (Gen 1-9, animados o estaticos).',
+      target: '#styleSelect',
+      position: 'bottom',
+      action: 'select',
+      progress: 55
     },
     {
+      id: 'layout-editor',
+      title: '4. Ajustar el Layout Editor',
+      content: 'Arrastra los sprites para posicionarlos.<br>• <span class="tour-action-hint">Clic + arrastrar</span> = Mover<br>• <span class="tour-action-hint">Esquinas</span> = Redimensionar<br>• Usa los botones de alineacion y espaciado arriba',
+      target: '#layoutCanvas',
+      position: 'top',
+      action: 'drag',
+      progress: 70
+    },
+    {
+      id: 'obs-setup',
       title: '5. Configurar en OBS',
-      content: 'Copia la <span class="tutorial-highlight">URL de OBS</span> que aparece arriba.<br>En OBS Studio: Fuente de Navegador → Pega la URL → 1920x1080.<br>Los sprites se actualizaran solos cada 500ms cuando guardes en el juego.',
-      progress: 83
+      content: 'Copia la <span class="tour-highlight">URL de OBS</span> (boton Copiar).<br>En OBS Studio: Fuente de Navegador → Pega URL → 1920x1080.<br>Los sprites se actualizan solos cada 500ms al guardar.',
+      target: '#copyUrlBtn',
+      position: 'left',
+      action: 'click',
+      progress: 85
     },
     {
-      title: '¡Listo!',
-      content: 'Ya tienes tu overlay funcionando.<br>• Cambia opciones como <span class="tutorial-highlight">Mostrar nombres</span> o <span class="tutorial-highlight">Rellenar slots vacios</span><br>• Guarda presets para cambiar layouts rapido<br>• Usa el boton <span class="tutorial-highlight">?</span> para ver la ayuda completa',
+      id: 'finished',
+      title: '¡Listo! Tu overlay esta listo',
+      content: 'Ya puedes empezar tu run Nuzlocke.<br>• Opciones: <span class="tour-highlight">Mostrar nombres</span>, <span class="tour-highlight">Rellenar slots vacios</span><br>• Presets: Guarda/carga layouts rapido<br>• Ayuda: Boton <span class="tour-highlight">?</span> para guia completa',
+      target: null,
+      position: 'center',
+      action: 'none',
       progress: 100
     }
   ];
 
-  let tutorialStep = 0;
-  const tutorialOverlay = document.getElementById('tutorialOverlay');
-  const tutorialTitle = document.getElementById('tutorialTitle');
-  const tutorialContent = document.getElementById('tutorialContent');
-  const tutorialStepEl = document.getElementById('tutorialStep');
-  const tutorialProgressBar = document.getElementById('tutorialProgressBar');
-  const tutorialSkip = document.getElementById('tutorialSkip');
-  const tutorialPrev = document.getElementById('tutorialPrev');
-  const tutorialNext = document.getElementById('tutorialNext');
+  let tourStep = 0;
+  let tourActive = false;
+  const tourOverlay = document.getElementById('tourOverlay');
+  const tourSpotlight = document.getElementById('tourSpotlight');
+  const tourPopover = document.getElementById('tourPopover');
+  const tourTitle = document.getElementById('tourTitle');
+  const tourContent = document.getElementById('tourContent');
+  const tourStepEl = document.getElementById('tourStep');
+  const tourProgressBar = document.getElementById('tourProgressBar');
+  const tourSkip = document.getElementById('tourSkipStep');
+  const tourPrev = document.getElementById('tourPrev');
+  const tourNext = document.getElementById('tourNext');
+  const tourClose = document.getElementById('tourClose');
 
-  function startTutorial() {
-    tutorialStep = 0;
-    showTutorialStep();
-    tutorialOverlay.style.display = 'flex';
+  function startTour() {
+    if (tourActive) return;
+    tourActive = true;
+    tourStep = 0;
+    showTourStep();
+    tourOverlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
   }
 
-  function showTutorialStep() {
-    const step = TUTORIAL_STEPS[tutorialStep];
-    tutorialTitle.textContent = step.title;
-    tutorialContent.innerHTML = step.content;
-    tutorialStepEl.textContent = `${tutorialStep + 1} / ${TUTORIAL_STEPS.length}`;
-    tutorialProgressBar.style.width = step.progress + '%';
-
-    tutorialPrev.style.display = tutorialStep === 0 ? 'none' : 'inline-block';
-    tutorialNext.textContent = tutorialStep === TUTORIAL_STEPS.length - 1 ? 'Finalizar' : 'Siguiente';
+  function getTargetElement(selector) {
+    if (!selector) return null;
+    const el = document.querySelector(selector);
+    if (!el) return null;
+    // Check if element is visible
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    return el;
   }
 
-  function nextTutorialStep() {
-    if (tutorialStep < TUTORIAL_STEPS.length - 1) {
-      tutorialStep++;
-      showTutorialStep();
+  function positionSpotlightAndPopover(targetEl, position) {
+    if (!targetEl) {
+      // Center screen for welcome/finish steps
+      tourSpotlight.style.opacity = '0';
+      tourPopover.style.left = '50%';
+      tourPopover.style.top = '50%';
+      tourPopover.style.transform = 'translate(-50%, -50%)';
+      tourPopover.dataset.position = 'center';
+      return;
+    }
+
+    const rect = targetEl.getBoundingClientRect();
+    const padding = 8;
+
+    // Position spotlight
+    tourSpotlight.style.opacity = '1';
+    tourSpotlight.style.left = (rect.left - padding) + 'px';
+    tourSpotlight.style.top = (rect.top - padding) + 'px';
+    tourSpotlight.style.width = (rect.width + padding * 2) + 'px';
+    tourSpotlight.style.height = (rect.height + padding * 2) + 'px';
+
+    // Position popover
+    const popoverWidth = 360;
+    const popoverHeight = tourPopover.offsetHeight || 280;
+    const gap = 16;
+    let left, top, popoverPos;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    switch (position) {
+      case 'right':
+        left = rect.right + gap;
+        top = rect.top + rect.height / 2 - popoverHeight / 2;
+        popoverPos = 'left';
+        if (left + popoverWidth > viewportWidth - 20) {
+          left = rect.left - popoverWidth - gap;
+          popoverPos = 'right';
+        }
+        if (top < 20) top = 20;
+        if (top + popoverHeight > viewportHeight - 20) top = viewportHeight - popoverHeight - 20;
+        break;
+      case 'left':
+        left = rect.left - popoverWidth - gap;
+        top = rect.top + rect.height / 2 - popoverHeight / 2;
+        popoverPos = 'right';
+        if (left < 20) {
+          left = rect.right + gap;
+          popoverPos = 'left';
+        }
+        if (top < 20) top = 20;
+        if (top + popoverHeight > viewportHeight - 20) top = viewportHeight - popoverHeight - 20;
+        break;
+      case 'bottom':
+        left = rect.left + rect.width / 2 - popoverWidth / 2;
+        top = rect.bottom + gap;
+        popoverPos = 'top';
+        if (left < 20) left = 20;
+        if (left + popoverWidth > viewportWidth - 20) left = viewportWidth - popoverWidth - 20;
+        if (top + popoverHeight > viewportHeight - 20) {
+          top = rect.top - popoverHeight - gap;
+          popoverPos = 'bottom';
+        }
+        break;
+      case 'top':
+        left = rect.left + rect.width / 2 - popoverWidth / 2;
+        top = rect.top - popoverHeight - gap;
+        popoverPos = 'bottom';
+        if (left < 20) left = 20;
+        if (left + popoverWidth > viewportWidth - 20) left = viewportWidth - popoverWidth - 20;
+        if (top < 20) {
+          top = rect.bottom + gap;
+          popoverPos = 'top';
+        }
+        break;
+      default:
+        left = '50%';
+        top = '50%';
+        popoverPos = 'center';
+    }
+
+    tourPopover.style.left = left + 'px';
+    tourPopover.style.top = top + 'px';
+    tourPopover.style.transform = 'none';
+    tourPopover.dataset.position = popoverPos;
+  }
+
+  function showTourStep() {
+    const step = TOUR_STEPS[tourStep];
+    tourTitle.textContent = step.title;
+    tourContent.innerHTML = step.content;
+    tourStepEl.textContent = `${tourStep + 1} / ${TOUR_STEPS.length}`;
+    tourProgressBar.style.width = step.progress + '%';
+
+    const targetEl = getTargetElement(step.target);
+    positionSpotlightAndPopover(targetEl, step.position);
+
+    tourPrev.style.display = tourStep === 0 ? 'none' : 'inline-block';
+    tourNext.textContent = tourStep === TOUR_STEPS.length - 1 ? 'Finalizar' : 'Siguiente';
+
+    // Handle action
+    if (step.action !== 'none' && targetEl) {
+      handleTourAction(step.action, targetEl, step.target);
+    }
+  }
+
+  function handleTourAction(action, targetEl, selector) {
+    // Remove previous listeners
+    targetEl.dataset.tourListener = 'true';
+
+    switch (action) {
+      case 'click':
+        // Highlight that it's clickable
+        targetEl.style.transition = 'box-shadow 0.2s';
+        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.6)';
+        const clickHandler = () => {
+          targetEl.style.boxShadow = '';
+          targetEl.removeEventListener('click', clickHandler);
+          nextTourStep();
+        };
+        targetEl.addEventListener('click', clickHandler, { once: true });
+        break;
+
+      case 'type':
+        targetEl.style.transition = 'box-shadow 0.2s, border-color 0.2s';
+        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.6)';
+        targetEl.style.borderColor = '#e94560';
+        targetEl.focus();
+        const inputHandler = (e) => {
+          if (e.key === 'Enter' && e.target.value.trim()) {
+            targetEl.style.boxShadow = '';
+            targetEl.style.borderColor = '';
+            targetEl.removeEventListener('keydown', inputHandler);
+            nextTourStep();
+          }
+        };
+        targetEl.addEventListener('keydown', inputHandler);
+        break;
+
+      case 'select':
+        targetEl.style.transition = 'box-shadow 0.2s, border-color 0.2s';
+        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.6)';
+        targetEl.style.borderColor = '#e94560';
+        const changeHandler = () => {
+          targetEl.style.boxShadow = '';
+          targetEl.style.borderColor = '';
+          targetEl.removeEventListener('change', changeHandler);
+          nextTourStep();
+        };
+        targetEl.addEventListener('change', changeHandler, { once: true });
+        break;
+
+      case 'drag':
+        // For canvas, just wait for any interaction
+        targetEl.style.transition = 'box-shadow 0.2s';
+        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.4)';
+        const dragHandler = () => {
+          targetEl.style.boxShadow = '';
+          targetEl.removeEventListener('mousedown', dragHandler);
+          targetEl.removeEventListener('touchstart', dragHandler);
+          nextTourStep();
+        };
+        targetEl.addEventListener('mousedown', dragHandler, { once: true });
+        targetEl.addEventListener('touchstart', dragHandler, { once: true });
+        break;
+    }
+  }
+
+  function nextTourStep() {
+    if (tourStep < TOUR_STEPS.length - 1) {
+      tourStep++;
+      showTourStep();
     } else {
-      closeTutorial();
-      // Disable tutorial for next runs
+      closeTour();
+      // Disable tour for next runs
       window.api.saveSettings({
         language: currentLang,
         backgroundMode: $('#settingsBackground').checked,
@@ -1552,21 +1763,37 @@
     }
   }
 
-  function prevTutorialStep() {
-    if (tutorialStep > 0) {
-      tutorialStep--;
-      showTutorialStep();
+  function prevTourStep() {
+    if (tourStep > 0) {
+      tourStep--;
+      showTourStep();
     }
   }
 
-  function closeTutorial() {
-    tutorialOverlay.style.display = 'none';
+  function closeTour() {
+    tourOverlay.style.display = 'none';
+    tourSpotlight.style.opacity = '0';
+    tourActive = false;
+    document.body.style.overflow = '';
   }
 
-  // Tutorial event listeners
-  tutorialSkip.addEventListener('click', () => {
-    closeTutorial();
-    // Save preference
+  function skipTourStep() {
+    // Skip current step without completing action
+    if (tourStep < TOUR_STEPS.length - 1) {
+      tourStep++;
+      showTourStep();
+    } else {
+      closeTour();
+    }
+  }
+
+  // Tour event listeners
+  tourSkip.addEventListener('click', skipTourStep);
+  tourPrev.addEventListener('click', prevTourStep);
+  tourNext.addEventListener('click', nextTourStep);
+  tourClose.addEventListener('click', () => {
+    closeTour();
+    // Save preference to not show again
     window.api.saveSettings({
       language: currentLang,
       backgroundMode: $('#settingsBackground').checked,
@@ -1577,8 +1804,19 @@
     });
   });
 
-  tutorialPrev.addEventListener('click', prevTutorialStep);
-  tutorialNext.addEventListener('click', nextTutorialStep);
+  // Close on overlay click (outside popover)
+  tourOverlay.addEventListener('click', (e) => {
+    if (e.target === tourOverlay) {
+      closeTour();
+    }
+  });
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    if (tourActive) {
+      showTourStep(); // Reposition
+    }
+  });
 
   init();
 })();

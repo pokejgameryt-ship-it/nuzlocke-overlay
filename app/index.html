@@ -502,23 +502,23 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="tutorialOverlay" style="display:none">
-    <div class="tutorial-box">
-      <div class="tutorial-header">
-        <h3 id="tutorialTitle">Bienvenido a Nuzlocke Overlay</h3>
-        <span class="tutorial-step" id="tutorialStep">1 / 6</span>
+  <div class="tour-overlay" id="tourOverlay" style="display:none">
+    <div class="tour-spotlight" id="tourSpotlight"></div>
+    <div class="tour-popover" id="tourPopover">
+      <div class="tour-popover-header">
+        <h4 class="tour-popover-title" id="tourTitle"></h4>
+        <span class="tour-popover-step" id="tourStep">1 / 7</span>
       </div>
-      <div class="tutorial-content" id="tutorialContent">
-        <p>Esta guia te ayudara a configurar tu overlay en pocos minutos.</p>
+      <div class="tour-popover-content" id="tourContent"></div>
+      <div class="tour-popover-progress">
+        <div class="tour-popover-progress-bar" id="tourProgressBar"></div>
       </div>
-      <div class="tutorial-progress">
-        <div class="tutorial-progress-bar" id="tutorialProgressBar"></div>
+      <div class="tour-popover-actions">
+        <button class="btn-secondary tour-skip-btn" id="tourSkipStep">Saltar este paso</button>
+        <button class="btn-secondary tour-prev-btn" id="tourPrev" style="display:none">Anterior</button>
+        <button class="btn-primary tour-next-btn" id="tourNext">Siguiente</button>
       </div>
-      <div class="tutorial-actions">
-        <button class="btn-secondary" id="tutorialSkip">Omitir</button>
-        <button class="btn-secondary" id="tutorialPrev" style="display:none">Anterior</button>
-        <button class="btn-primary" id="tutorialNext">Siguiente</button>
-      </div>
+      <button class="tour-close-btn" id="tourClose" aria-label="Cerrar tutorial">&times;</button>
     </div>
   </div>
 

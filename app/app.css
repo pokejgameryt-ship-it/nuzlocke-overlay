@@ -971,93 +971,202 @@ kbd {
   color: #e0e0e0;
 }
 
-/* ===== TUTORIAL ===== */
-.tutorial-box {
+/* ===== TOUR / GUIDED TOUR ===== */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 10000;
+  display: flex;
+  pointer-events: none;
+}
+
+.tour-spotlight {
+  position: absolute;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75), 0 0 0 2px #e94560, 0 0 20px rgba(233, 69, 96, 0.4);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.tour-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(233, 69, 96, 0.6);
+  animation: tourPulse 2s ease-in-out infinite;
+}
+
+@keyframes tourPulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(233, 69, 96, 0.4); }
+  50% { box-shadow: 0 0 40px rgba(233, 69, 96, 0.8); }
+}
+
+.tour-popover {
+  position: absolute;
   background: #1a1a2e;
   border: 1px solid #2a2a40;
   border-radius: 12px;
   padding: 0;
-  min-width: 420px;
-  max-width: 480px;
-  overflow: hidden;
+  min-width: 320px;
+  max-width: 380px;
+  pointer-events: auto;
+  z-index: 2;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(233, 69, 96, 0.2);
+  animation: tourPopoverIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tutorial-header {
+@keyframes tourPopoverIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tour-popover-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid #2a2a40;
   background: linear-gradient(135deg, #1e1e35 0%, #1a1a2e 100%);
+  border-radius: 12px 12px 0 0;
 }
 
-.tutorial-header h3 {
+.tour-popover-title {
   margin: 0;
   color: #e94560;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
 }
 
-.tutorial-step {
+.tour-popover-step {
   background: #e94560;
   color: #fff;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
-.tutorial-content {
-  padding: 24px 20px;
-  min-height: 160px;
+.tour-popover-content {
+  padding: 18px;
+  min-height: 100px;
 }
 
-.tutorial-content p {
-  margin: 0;
+.tour-popover-content p {
+  margin: 0 0 10px;
   color: #c0c0d0;
   line-height: 1.6;
   font-size: 13px;
 }
 
-.tutorial-content ul {
-  margin: 12px 0 0 20px;
+.tour-popover-content p:last-child { margin-bottom: 0; }
+
+.tour-popover-content ul {
+  margin: 10px 0 0 18px;
   color: #a0a0b0;
   font-size: 12px;
   line-height: 1.8;
 }
 
-.tutorial-content li {
-  margin-bottom: 6px;
-}
+.tour-popover-content li { margin-bottom: 5px; }
 
-.tutorial-content .tutorial-highlight {
+.tour-popover-content .tour-highlight {
   color: #4ecca3;
   font-weight: 600;
 }
 
-.tutorial-progress {
+.tour-popover-content .tour-action-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(233, 69, 96, 0.15);
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 6px;
+  color: #e94560;
+  font-size: 11px;
+  font-weight: 500;
+  margin: 8px 0;
+}
+
+.tour-popover-progress {
   height: 3px;
   background: #2a2a40;
   border-radius: 0 0 3px 3px;
   overflow: hidden;
 }
 
-.tutorial-progress-bar {
+.tour-popover-progress-bar {
   height: 100%;
   background: linear-gradient(90deg, #e94560, #4ecca3);
   border-radius: 0 0 3px 3px;
   transition: width 0.3s ease;
 }
 
-.tutorial-actions {
+.tour-popover-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-top: 1px solid #2a2a40;
 }
 
-.tutorial-actions .btn-secondary,
-.tutorial-actions .btn-primary {
-  min-width: 80px;
+.tour-popover-actions .btn-secondary,
+.tour-popover-actions .btn-primary {
+  min-width: 90px;
 }
+
+.tour-skip-btn {
+  color: #888;
+  border-color: #3a3a55;
+}
+.tour-skip-btn:hover {
+  color: #e94560;
+  border-color: #e94560;
+}
+
+.tour-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.tour-close-btn:hover {
+  background: #2a2a40;
+  color: #e94560;
+}
+
+.tour-popover[data-position="top"] { transform-origin: center bottom; }
+.tour-popover[data-position="bottom"] { transform-origin: center top; }
+.tour-popover[data-position="left"] { transform-origin: right center; }
+.tour-popover[data-position="right"] { transform-origin: left center; }
+
+.tour-popover::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  transform: rotate(45deg);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.tour-popover[data-position="top"]::after { bottom: -9px; left: 50%; margin-left: -8px; border-top: none; border-left: none; }
+.tour-popover[data-position="bottom"]::after { top: -9px; left: 50%; margin-left: -8px; border-bottom: none; border-right: none; }
+.tour-popover[data-position="left"]::after { right: -9px; top: 50%; margin-top: -8px; border-top: none; border-right: none; }
+.tour-popover[data-position="right"]::after { left: -9px; top: 50%; margin-top: -8px; border-bottom: none; border-left: none; }
