@@ -1,5 +1,5 @@
 @echo off
-title Nuzlocke Overlay - Instalador v2.0
+title Nuzlocke Overlay - Instalador v2.1
 color 0F
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
@@ -13,19 +13,23 @@ set "MEGA_FOLDER=https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg"
 set "RECURSOS_ZIP=Recursos.zip"
 set "DOTNET_VERSION=8.0"
 set "DOTNET_INSTALLER=%TEMP%\dotnet-runtime-installer.exe"
-set "DOTNET_CHECK=%ProgramFiles%\dotnet\dotnet.exe"
+
+:: Carpeta de instalacion por defecto
+set "INSTALL_DIR=%LOCALAPPDATA%\NuzlockeOverlay"
 
 echo.
 echo  ╔═══════════════════════════════════════════╗
-echo  ║   Nuzlocke Overlay - Instalador v2.0     ║
+echo  ║   Nuzlocke Overlay - Instalador v2.1     ║
 echo  ║   Soporte: Gen 1 a Gen 9                 ║
 echo  ╚═══════════════════════════════════════════╝
+echo.
+echo  Se instalara en: %INSTALL_DIR%
 echo.
 
 :: ============================================
 :: Paso 1: Comprobar conexion a internet
 :: ============================================
-echo  [1/7] Comprobando conexion a internet...
+echo  [1/6] Comprobando conexion a internet...
 ping -n 1 github.com >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
@@ -41,14 +45,50 @@ echo         Conexion OK.
 echo.
 
 :: ============================================
-:: Paso 2: Comprobar/Instalar .NET 8.0 Runtime
+:: Paso 2: Crear carpeta de instalacion
 :: ============================================
-echo  [2/7] Comprobando .NET %DOTNET_VERSION% Runtime...
-if exist "%DOTNET_CHECK%" (
-    for /f "tokens=*" %%i in ('"%DOTNET_CHECK%" --list-runtimes 2^>nul ^| findstr "Microsoft.NETCore.App"') do (
-        echo         %%i
+echo  [2/6] Preparando carpeta de instalacion...
+if not exist "%INSTALL_DIR%" (
+    mkdir "%INSTALL_DIR%"
+    echo         Carpeta creada: %INSTALL_DIR%
+) else (
+    echo         Carpeta ya existe: %INSTALL_DIR%
+)
+echo.
+
+:: ============================================
+:: Paso 3: Comprobar/Instalar .NET 8.0 Runtime
+:: ============================================
+echo  [3/6] Comprobando .NET %DOTNET_VERSION% Runtime...
+set "DOTNET_FOUND=0"
+
+:: Buscar en ubicaciones comunes
+for %%p in (
+    "%ProgramFiles%\dotnet\dotnet.exe"
+    "%ProgramFiles(x86)%\dotnet\dotnet.exe"
+    "%USERPROFILE%\.dotnet\dotnet.exe"
+    "%LOCALAPPDATA%\.dotnet\dotnet.exe"
+) do (
+    if exist "%%~p" (
+        set "DOTNET_FOUND=1"
+        set "DOTNET_PATH=%%~p"
+        goto :dotnet_found
     )
-    echo         .NET Runtime encontrado.
+)
+
+:: Buscar en PATH
+where dotnet >nul 2>&1
+if %errorlevel% equ 0 (
+    set "DOTNET_FOUND=1"
+    for /f "tokens=*" %%i in ('where dotnet') do (
+        set "DOTNET_PATH=%%i"
+        goto :dotnet_found
+    )
+)
+
+:dotnet_found
+if "%DOTNET_FOUND%"=="1" (
+    echo         .NET Runtime encontrado en: %DOTNET_PATH%
 ) else (
     echo         .NET Runtime no encontrado. Instalando...
     echo         Esto puede tardar 1-3 minutos.
@@ -86,24 +126,23 @@ if exist "%DOTNET_CHECK%" (
         exit /b 1
     )
 
-    :: Limpiar instalador
     del /f /q "%DOTNET_INSTALLER%" >nul 2>&1
     echo         .NET Runtime instalado correctamente.
 )
 echo.
 
 :: ============================================
-:: Paso 3: Descargar NuzlockeOverlay.exe
+:: Paso 4: Descargar NuzlockeOverlay.exe
 :: ============================================
-echo  [3/7] Descargando NuzlockeOverlay.exe...
-if exist "NuzlockeOverlay.exe" (
+echo  [4/6] Descargando NuzlockeOverlay.exe...
+if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
     echo         NuzlockeOverlay.exe ya existe. OK.
 ) else (
     where curl >nul 2>&1
     if %errorlevel% equ 0 (
-        curl -L -o "NuzlockeOverlay.exe" "%GITHUB_EXE_URL%" --progress-bar
+        curl -L -o "%INSTALL_DIR%\NuzlockeOverlay.exe" "%GITHUB_EXE_URL%" --progress-bar
     ) else (
-        powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%GITHUB_EXE_URL%' -OutFile 'NuzlockeOverlay.exe'"
+        powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%GITHUB_EXE_URL%' -OutFile '%INSTALL_DIR%\NuzlockeOverlay.exe'"
     )
 
     if %errorlevel% neq 0 (
@@ -120,10 +159,10 @@ if exist "NuzlockeOverlay.exe" (
 echo.
 
 :: ============================================
-:: Paso 4: Descargar y extraer Recursos desde MEGA
+:: Paso 5: Descargar y extraer Recursos desde MEGA
 :: ============================================
-echo  [4/7] Descargando Recursos desde MEGA...
-if exist "Recursos\Sprites" (
+echo  [5/6] Descargando Sprites/Recursos desde MEGA...
+if exist "%INSTALL_DIR%\Recursos\Sprites" (
     echo         Carpeta Recursos\Sprites ya existe. OK.
 ) else (
     :: Comprobar megacmd (mega-get)
@@ -133,8 +172,7 @@ if exist "Recursos\Sprites" (
         echo  ┌────────────────────────────────────────────────────────┐
         echo  │  MEGA CMD no encontrado.                               │
         echo  │                                                        │
-        echo  │  Para descargar la carpeta Recursos desde MEGA,        │
-        echo  │  necesitas instalar megacmd:                           │
+        echo  │  Para descargar Recursos necesitas megacmd:            │
         echo  │                                                        │
         echo  │  1. Descarga: https://mega.io/cmd                      │
         echo  │  2. Instala y reinicia la terminal                     │
@@ -142,7 +180,8 @@ if exist "Recursos\Sprites" (
         echo  │  4. Vuelve a ejecutar setup.bat                        │
         echo  │                                                        │
         echo  │  O descarga manualmente la carpeta "Recursos"          │
-        echo  │  desde MEGA y colocalas junto al exe.                  │
+        echo  │  desde MEGA y colocala en:                             │
+        echo  │  %INSTALL_DIR%\Recursos                                │
         echo  └────────────────────────────────────────────────────────┘
         echo.
         pause
@@ -153,25 +192,19 @@ if exist "Recursos\Sprites" (
     echo         (Esto puede tardar varios minutos segun tu conexion)
     echo.
 
-    :: Descargar con mega-get (descarga la carpeta como ZIP)
-    mega-get "%MEGA_FOLDER%" "%RECURSOS_ZIP%"
+    mega-get "%MEGA_FOLDER%" "%INSTALL_DIR%\%RECURSOS_ZIP%"
     if %errorlevel% neq 0 (
         echo.
         echo  ERROR: Fallo al descargar desde MEGA.
-        echo  Verifica que:
-        echo    - Tenes megacmd instalado (mega-get)
-        echo    - Estás logueado en MEGA (mega-login)
-        echo    - El enlace de la carpeta es correcto
+        echo  Verifica que megacmd esta instalado y logueado.
         echo.
         pause
         exit /b 1
     )
 
-    :: Verificar que se descargo el ZIP
-    if not exist "%RECURSOS_ZIP%" (
+    if not exist "%INSTALL_DIR%\%RECURSOS_ZIP%" (
         echo.
         echo  ERROR: No se encontro el archivo descargado.
-        echo  El nombre puede variar. Busca un archivo .zip o .rar.
         echo.
         pause
         exit /b 1
@@ -180,14 +213,12 @@ if exist "Recursos\Sprites" (
     echo         Descarga completada. Extrayendo archivos...
     echo.
 
-    :: Extraer con PowerShell (maneja ZIP y RAR si tiene 7zip/WinRAR en PATH)
-    powershell -Command "Expand-Archive -Path '%RECURSOS_ZIP%' -DestinationPath '.' -Force"
+    powershell -Command "Expand-Archive -Path '%INSTALL_DIR%\%RECURSOS_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force"
     if %errorlevel% neq 0 (
-        echo.
-        echo  ERROR: Fallo al extraer. Intentando con 7-Zip si esta instalado...
+        echo  ERROR: Fallo al extraer. Intentando con 7-Zip...
         where 7z >nul 2>&1
         if %errorlevel% equ 0 (
-            7z x "%RECURSOS_ZIP%" -o"."
+            7z x "%INSTALL_DIR%\%RECURSOS_ZIP%" -o"%INSTALL_DIR%"
             if %errorlevel% neq 0 (
                 echo  ERROR: 7-Zip tambien fallo.
                 pause
@@ -200,24 +231,22 @@ if exist "Recursos\Sprites" (
         )
     )
 
-    :: Limpiar archivo comprimido
-    del /f /q "%RECURSOS_ZIP%" >nul 2>&1
-    echo         Recursos extraidos y archivo temporal eliminado.
+    del /f /q "%INSTALL_DIR%\%RECURSOS_ZIP%" >nul 2>&1
+    echo         Recursos extraidos correctamente.
 )
 echo.
 
 :: ============================================
-:: Paso 5: Crear acceso directo en escritorio
+:: Paso 6: Crear acceso directo en escritorio
 :: ============================================
-echo  [5/7] Creando acceso directo en escritorio...
+echo  [6/6] Creando acceso directo en escritorio...
 set "DESKTOP=%USERPROFILE%\Desktop"
-set "SCRIPT_DIR=%~dp0"
 (
     echo Set oWS = WScript.CreateObject^("WScript.Shell"^)
     echo sLinkFile = "%DESKTOP%\Nuzlocke Overlay.lnk"
     echo Set oLink = oWS.CreateShortcut^(sLinkFile^)
-    echo oLink.TargetPath = "%SCRIPT_DIR%NuzlockeOverlay.exe"
-    echo oLink.WorkingDirectory = "%SCRIPT_DIR%"
+    echo oLink.TargetPath = "%INSTALL_DIR%\NuzlockeOverlay.exe"
+    echo oLink.WorkingDirectory = "%INSTALL_DIR%"
     echo oLink.Description = "Nuzlocke Overlay - OBS overlay para Pokemon"
     echo oLink.Save
 ) > "%TEMP%\create_shortcut.vbs"
@@ -231,39 +260,28 @@ if exist "%DESKTOP%\Nuzlocke Overlay.lnk" (
 echo.
 
 :: ============================================
-:: Paso 6: Verificar estructura final
-:: ============================================
-echo  [6/7] Verificando instalacion...
-if exist "NuzlockeOverlay.exe" (
-    echo         NuzlockeOverlay.exe: OK
-) else (
-    echo         NuzlockeOverlay.exe: FALTA
-)
-if exist "Recursos\Sprites" (
-    echo         Recursos\Sprites: OK
-) else (
-    echo         Recursos\Sprites: FALTA
-)
-echo.
-
-:: ============================================
-:: Paso 7: Limpiar archivos temporales
-:: ============================================
-echo  [7/7] Limpiando archivos temporales...
-if exist "dist" rd /s /q "dist" >nul 2>&1
-echo         Limpieza completada.
-echo.
-
-:: ============================================
-:: Completado
+:: Verificar instalacion final
 :: ============================================
 echo  ╔═══════════════════════════════════════════════════════╗
 echo  ║              INSTALACION COMPLETADA                   ║
 echo  ╠═══════════════════════════════════════════════════════╣
 echo  ║                                                       ║
-echo  ║  Para ejecutar la app:                                ║
-echo  ║    - Doble clic en NuzlockeOverlay.exe                ║
-echo  ║    - O desde el acceso directo del escritorio         ║
+echo  ║  Carpeta: %INSTALL_DIR%
+echo  ║                                                       ║
+if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
+echo  ║  [OK] NuzlockeOverlay.exe                             ║
+) else (
+echo  ║  [!!] NuzlockeOverlay.exe - FALTA                     ║
+)
+if exist "%INSTALL_DIR%\Recursos\Sprites" (
+echo  ║  [OK] Recursos\Sprites                                ║
+) else (
+echo  ║  [!!] Recursos\Sprites - FALTA (necesita megacmd)     ║
+)
+echo  ║                                                       ║
+echo  ║  Para ejecutar:                                       ║
+echo  ║    - Doble clic en el acceso directo del escritorio   ║
+echo  ║    - O ejecuta: %INSTALL_DIR%\NuzlockeOverlay.exe     ║
 echo  ║                                                       ║
 echo  ║  Para configurar en OBS:                              ║
 echo  ║    1. Abre la app                                     ║
