@@ -970,3 +970,94 @@ kbd {
   border-radius: 4px;
   color: #e0e0e0;
 }
+
+/* ===== TUTORIAL ===== */
+.tutorial-box {
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 12px;
+  padding: 0;
+  min-width: 420px;
+  max-width: 480px;
+  overflow: hidden;
+}
+
+.tutorial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #2a2a40;
+  background: linear-gradient(135deg, #1e1e35 0%, #1a1a2e 100%);
+}
+
+.tutorial-header h3 {
+  margin: 0;
+  color: #e94560;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tutorial-step {
+  background: #e94560;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tutorial-content {
+  padding: 24px 20px;
+  min-height: 160px;
+}
+
+.tutorial-content p {
+  margin: 0;
+  color: #c0c0d0;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.tutorial-content ul {
+  margin: 12px 0 0 20px;
+  color: #a0a0b0;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.tutorial-content li {
+  margin-bottom: 6px;
+}
+
+.tutorial-content .tutorial-highlight {
+  color: #4ecca3;
+  font-weight: 600;
+}
+
+.tutorial-progress {
+  height: 3px;
+  background: #2a2a40;
+  border-radius: 0 0 3px 3px;
+  overflow: hidden;
+}
+
+.tutorial-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #e94560, #4ecca3);
+  border-radius: 0 0 3px 3px;
+  transition: width 0.3s ease;
+}
+
+.tutorial-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid #2a2a40;
+}
+
+.tutorial-actions .btn-secondary,
+.tutorial-actions .btn-primary {
+  min-width: 80px;
+}

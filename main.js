@@ -190,7 +190,7 @@ function startOverlayServer() {
   });
 
   const server = http.createServer(expressApp);
-  server.listen(overlayPort, '0.0.0.0', () => {
+  server.listen(overlayPort, '127.0.0.1', () => {
     Logger.info('Server', `Overlay server running on port ${overlayPort}`);
   });
 
@@ -200,7 +200,7 @@ function startOverlayServer() {
       overlayPort++;
       config.port = overlayPort;
       saveConfigToFile(config);
-      server.listen(overlayPort, '0.0.0.0');
+      server.listen(overlayPort, '127.0.0.1');
     } else {
       Logger.error('Server', `Overlay server error: ${err.message}`);
     }
@@ -364,10 +364,12 @@ ipcMain.handle('detect-game', (event, savePath) => {
   }
 });
 
-// Open external URL
-ipcMain.handle('open-external', (event, url) => {
-  shell.openExternal(url);
-});
+// Open external URL (only HTTPS for security)
+  ipcMain.handle('open-external', (event, url) => {
+    if (typeof url === 'string' && url.startsWith('https://')) {
+      shell.openExternal(url);
+    }
+  });
 
 // Config (overlay port)
 ipcMain.handle('get-config', () => loadConfig());

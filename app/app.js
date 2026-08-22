@@ -1266,13 +1266,24 @@
       await window.api.saveSettings({ language: lang, backgroundMode: e.target.checked });
     });
 
+    $('#settingsShowTutorial').addEventListener('change', async (e) => {
+      const lang = $('#settingsLanguage').value;
+      await window.api.saveSettings({ language: lang, backgroundMode: $('#settingsBackground').checked, showTutorial: e.target.checked });
+    });
+
+    $('#settingsResetTutorial').addEventListener('click', () => {
+      startTutorial();
+    });
+
     window.api.onSettingsChanged((settings) => {
       currentLang = settings.language || 'es';
       applyLanguage(currentLang);
       const langSel = $('#settingsLanguage');
       const bgToggle = $('#settingsBackground');
+      const tutorialToggle = $('#settingsShowTutorial');
       if (langSel) langSel.value = currentLang;
       if (bgToggle) bgToggle.checked = settings.backgroundMode !== false;
+      if (tutorialToggle) tutorialToggle.checked = settings.showTutorial !== false;
     });
   }
 
@@ -1359,8 +1370,15 @@
       applyLanguage(currentLang);
       const langSel = $('#settingsLanguage');
       const bgToggle = $('#settingsBackground');
+      const tutorialToggle = $('#settingsShowTutorial');
       if (langSel) langSel.value = currentLang;
       if (bgToggle) bgToggle.checked = settings.backgroundMode !== false;
+      if (tutorialToggle) tutorialToggle.checked = settings.showTutorial !== false;
+
+      // Show tutorial on first run if enabled
+      if (settings.showTutorial !== false) {
+        setTimeout(() => startTutorial(), 500);
+      }
     } catch (e) {}
   }
 
@@ -1449,6 +1467,118 @@
     const presetSel = $('#presetSelect');
     if (presetSel && presetSel.options[0]) presetSel.options[0].text = t.preset;
   }
+
+  // ===== TUTORIAL SYSTEM =====
+  const TUTORIAL_STEPS = [
+    {
+      title: 'Bienvenido a Nuzlocke Overlay',
+      content: 'Esta guia te ayudara a configurar tu overlay para OBS en 5 pasos.<br>Haz clic en "Siguiente" para continuar.',
+      progress: 0
+    },
+    {
+      title: '1. Crear un proyecto',
+      content: 'Haz clic en el boton <span class="tutorial-highlight">+</span> en la barra lateral izquierda para crear un nuevo proyecto.<br>Dale un nombre (ej: "Mi Nuzlocke Espada").',
+      progress: 16
+    },
+    {
+      title: '2. Seleccionar tu save file',
+      content: 'En la seccion <span class="tutorial-highlight">Guardar</span>, haz clic en <span class="tutorial-highlight">Examinar</span> y selecciona tu archivo de guardado (.sav, .dsv, etc.).<br>La app detectara automaticamente la generacion y el juego.',
+      progress: 33
+    },
+    {
+      title: '3. Elegir estilo de sprite',
+      content: 'En <span class="tutorial-highlight">Estilo de Sprite</span>, selecciona el estilo visual que prefieras (Gen 1-9, animados o estaticos).<br>Puedes previsualizar los sprites en la caja de abajo.',
+      progress: 50
+    },
+    {
+      title: '4. Ajustar el Layout',
+      content: 'En el <span class="tutorial-highlight">Layout Editor</span> (lienzo 1920x1080):<br>• Arrastra los sprites para posicionarlos<br>• Redimensiona con las esquinas<br>• Usa los botones de alineacion y espaciado',
+      progress: 66
+    },
+    {
+      title: '5. Configurar en OBS',
+      content: 'Copia la <span class="tutorial-highlight">URL de OBS</span> que aparece arriba.<br>En OBS Studio: Fuente de Navegador → Pega la URL → 1920x1080.<br>Los sprites se actualizaran solos cada 500ms cuando guardes en el juego.',
+      progress: 83
+    },
+    {
+      title: '¡Listo!',
+      content: 'Ya tienes tu overlay funcionando.<br>• Cambia opciones como <span class="tutorial-highlight">Mostrar nombres</span> o <span class="tutorial-highlight">Rellenar slots vacios</span><br>• Guarda presets para cambiar layouts rapido<br>• Usa el boton <span class="tutorial-highlight">?</span> para ver la ayuda completa',
+      progress: 100
+    }
+  ];
+
+  let tutorialStep = 0;
+  const tutorialOverlay = document.getElementById('tutorialOverlay');
+  const tutorialTitle = document.getElementById('tutorialTitle');
+  const tutorialContent = document.getElementById('tutorialContent');
+  const tutorialStepEl = document.getElementById('tutorialStep');
+  const tutorialProgressBar = document.getElementById('tutorialProgressBar');
+  const tutorialSkip = document.getElementById('tutorialSkip');
+  const tutorialPrev = document.getElementById('tutorialPrev');
+  const tutorialNext = document.getElementById('tutorialNext');
+
+  function startTutorial() {
+    tutorialStep = 0;
+    showTutorialStep();
+    tutorialOverlay.style.display = 'flex';
+  }
+
+  function showTutorialStep() {
+    const step = TUTORIAL_STEPS[tutorialStep];
+    tutorialTitle.textContent = step.title;
+    tutorialContent.innerHTML = step.content;
+    tutorialStepEl.textContent = `${tutorialStep + 1} / ${TUTORIAL_STEPS.length}`;
+    tutorialProgressBar.style.width = step.progress + '%';
+
+    tutorialPrev.style.display = tutorialStep === 0 ? 'none' : 'inline-block';
+    tutorialNext.textContent = tutorialStep === TUTORIAL_STEPS.length - 1 ? 'Finalizar' : 'Siguiente';
+  }
+
+  function nextTutorialStep() {
+    if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+      tutorialStep++;
+      showTutorialStep();
+    } else {
+      closeTutorial();
+      // Disable tutorial for next runs
+      window.api.saveSettings({
+        language: currentLang,
+        backgroundMode: $('#settingsBackground').checked,
+        showTutorial: false
+      }).then(() => {
+        const t = $('#settingsShowTutorial');
+        if (t) t.checked = false;
+      });
+    }
+  }
+
+  function prevTutorialStep() {
+    if (tutorialStep > 0) {
+      tutorialStep--;
+      showTutorialStep();
+    }
+  }
+
+  function closeTutorial() {
+    tutorialOverlay.style.display = 'none';
+  }
+
+  // Tutorial event listeners
+  tutorialSkip.addEventListener('click', () => {
+    closeTutorial();
+    // Save preference
+    window.api.saveSettings({
+      language: currentLang,
+      backgroundMode: $('#settingsBackground').checked,
+      showTutorial: false
+    }).then(() => {
+      const t = $('#settingsShowTutorial');
+      if (t) t.checked = false;
+    });
+  });
+
+  tutorialPrev.addEventListener('click', prevTutorialStep);
+  tutorialNext.addEventListener('click', nextTutorialStep);
 
   init();
 })();

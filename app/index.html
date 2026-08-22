@@ -462,6 +462,19 @@
                 <span class="toggle-slider"></span>
               </label>
             </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Mostrar tutorial al inicio</div>
+                <div class="settings-desc">Ver la guia paso a paso al abrir la app</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="settingsShowTutorial" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <button class="btn-small" id="settingsResetTutorial">Ver tutorial ahora</button>
+            </div>
           </div>
         </div>
       </div>
@@ -485,6 +498,26 @@
       <div class="modal-actions">
         <button class="btn-secondary" id="confirmCancel">Cancelar</button>
         <button class="btn-danger" id="confirmOk">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="tutorialOverlay" style="display:none">
+    <div class="tutorial-box">
+      <div class="tutorial-header">
+        <h3 id="tutorialTitle">Bienvenido a Nuzlocke Overlay</h3>
+        <span class="tutorial-step" id="tutorialStep">1 / 6</span>
+      </div>
+      <div class="tutorial-content" id="tutorialContent">
+        <p>Esta guia te ayudara a configurar tu overlay en pocos minutos.</p>
+      </div>
+      <div class="tutorial-progress">
+        <div class="tutorial-progress-bar" id="tutorialProgressBar"></div>
+      </div>
+      <div class="tutorial-actions">
+        <button class="btn-secondary" id="tutorialSkip">Omitir</button>
+        <button class="btn-secondary" id="tutorialPrev" style="display:none">Anterior</button>
+        <button class="btn-primary" id="tutorialNext">Siguiente</button>
       </div>
     </div>
   </div>
