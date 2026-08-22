@@ -1634,58 +1634,54 @@
     const tCX = tLeft + (tRight - tLeft) / 2;
     const tCY = tTop + (tBottom - tTop) / 2;
 
-    const candidates = [];
-    if (position === 'right') {
-      candidates.push(
-        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
-        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' },
-        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
-        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
-      );
-    } else if (position === 'left') {
-      candidates.push(
-        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' },
-        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
-        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
-        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
-      );
-    } else if (position === 'bottom') {
-      candidates.push(
-        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
-        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
-        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
-        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' }
-      );
-    } else if (position === 'top') {
-      candidates.push(
-        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
-        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
-        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
-        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' }
-      );
-    }
-
-    function overlaps(l, t) {
-      return !(l + popW < tLeft || l > tRight || t + popH < tTop || t > tBottom);
-    }
-
-    let chosen = null;
-    for (const c of candidates) {
-      const cl = Math.max(safeMargin, Math.min(c.left, vw - popW - safeMargin));
-      const ct = Math.max(safeMargin, Math.min(c.top, vh - popH - safeMargin));
-      if (!overlaps(cl, ct)) {
-        chosen = { left: cl, top: ct, pos: c.pos };
-        break;
-      }
-    }
-
-    if (!chosen && candidates.length > 0) {
-      const c = candidates[0];
-      chosen = {
-        left: Math.max(safeMargin, Math.min(c.left, vw - popW - safeMargin)),
-        top: Math.max(safeMargin, Math.min(c.top, vh - popH - safeMargin)),
-        pos: c.pos
+    function clamp(l, t) {
+      return {
+        left: Math.max(safeMargin, Math.min(l, vw - popW - safeMargin)),
+        top: Math.max(safeMargin, Math.min(t, vh - popH - safeMargin))
       };
+    }
+
+    function overlapArea(l, t) {
+      const ox = Math.max(0, Math.min(l + popW, tRight) - Math.max(l, tLeft));
+      const oy = Math.max(0, Math.min(t + popH, tBottom) - Math.max(t, tTop));
+      return ox * oy;
+    }
+
+    // Generate many candidate positions
+    const raw = [];
+    if (position === 'right') {
+      raw.push({ l: tRight + gap, t: tCY - popH / 2, p: 'left' });
+      raw.push({ l: tLeft - popW - gap, t: tCY - popH / 2, p: 'right' });
+      raw.push({ l: tCX - popW / 2, t: tBottom + gap, p: 'top' });
+      raw.push({ l: tCX - popW / 2, t: tTop - popH - gap, p: 'bottom' });
+    } else if (position === 'left') {
+      raw.push({ l: tLeft - popW - gap, t: tCY - popH / 2, p: 'right' });
+      raw.push({ l: tRight + gap, t: tCY - popH / 2, p: 'left' });
+      raw.push({ l: tCX - popW / 2, t: tBottom + gap, p: 'top' });
+      raw.push({ l: tCX - popW / 2, t: tTop - popH - gap, p: 'bottom' });
+    } else if (position === 'bottom') {
+      raw.push({ l: tCX - popW / 2, t: tBottom + gap, p: 'top' });
+      raw.push({ l: tCX - popW / 2, t: tTop - popH - gap, p: 'bottom' });
+      raw.push({ l: tRight + gap, t: tCY - popH / 2, p: 'left' });
+      raw.push({ l: tLeft - popW - gap, t: tCY - popH / 2, p: 'right' });
+    } else if (position === 'top') {
+      raw.push({ l: tCX - popW / 2, t: tTop - popH - gap, p: 'bottom' });
+      raw.push({ l: tCX - popW / 2, t: tBottom + gap, p: 'top' });
+      raw.push({ l: tRight + gap, t: tCY - popH / 2, p: 'left' });
+      raw.push({ l: tLeft - popW - gap, t: tCY - popH / 2, p: 'right' });
+    }
+
+    // Score each candidate: 0 = no overlap, otherwise area of overlap
+    let bestScore = Infinity;
+    let chosen = null;
+    for (const c of raw) {
+      const clamped = clamp(c.l, c.t);
+      const score = overlapArea(clamped.left, clamped.top);
+      if (score < bestScore) {
+        bestScore = score;
+        chosen = { left: clamped.left, top: clamped.top, pos: c.p };
+      }
+      if (score === 0) break; // Perfect, no need to check more
     }
 
     if (chosen) {
