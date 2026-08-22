@@ -1271,8 +1271,8 @@
       await window.api.saveSettings({ language: lang, backgroundMode: $('#settingsBackground').checked, showTutorial: e.target.checked });
     });
 
-    $('#settingsResetTutorial').addEventListener('click', () => {
-      startTutorial();
+    $('#settingsStartTour').addEventListener('click', () => {
+      startTour();
     });
 
     window.api.onSettingsChanged((settings) => {
@@ -1793,15 +1793,6 @@
   tourNext.addEventListener('click', nextTourStep);
   tourClose.addEventListener('click', () => {
     closeTour();
-    // Save preference to not show again
-    window.api.saveSettings({
-      language: currentLang,
-      backgroundMode: $('#settingsBackground').checked,
-      showTutorial: false
-    }).then(() => {
-      const t = $('#settingsShowTutorial');
-      if (t) t.checked = false;
-    });
   });
 
   // Close on overlay click (outside popover)
