@@ -1594,12 +1594,10 @@
   }
 
   function positionSpotlightAndPopover(targetEl, position) {
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
     if (!targetEl) {
-      // Center screen for welcome/finish steps - full dark overlay, no hole
-      tourBackdrop.style.clipPath = 'none';
       tourSpotlight.classList.remove('active');
       tourPopover.style.left = '50%';
       tourPopover.style.top = '50%';
@@ -1610,132 +1608,82 @@
     }
 
     const rect = targetEl.getBoundingClientRect();
-    const pad = 4;
+    const pad = 6;
 
-    // Clamp target rect to viewport (elements partially off-screen)
-    const tLeft = Math.max(0, rect.left) - pad;
-    const tTop = Math.max(0, rect.top) - pad;
-    const tRight = Math.min(viewportWidth, rect.right) + pad;
-    const tBottom = Math.min(viewportHeight, rect.bottom) + pad;
-    const tW = tRight - tLeft;
-    const tH = tBottom - tTop;
-    const borderRadius = 10;
-
-    // Use clip-path polygon with evenodd fill rule to cut a hole
-    // evenodd: outer + inner both clockwise, overlap cancels out
-    const vw = viewportWidth;
-    const vh = viewportHeight;
-    const clip = `polygon(evenodd,
-      0px 0px,
-      ${vw}px 0px,
-      ${vw}px ${vh}px,
-      0px ${vh}px,
-      ${tLeft}px ${tTop}px,
-      ${tRight}px ${tTop}px,
-      ${tRight}px ${tBottom}px,
-      ${tLeft}px ${tBottom}px
-    )`;
-    tourBackdrop.style.clipPath = clip;
-
-    // Spotlight ring
-    tourSpotlight.style.left = tLeft + 'px';
-    tourSpotlight.style.top = tTop + 'px';
-    tourSpotlight.style.width = tW + 'px';
-    tourSpotlight.style.height = tH + 'px';
-    tourSpotlight.style.borderRadius = borderRadius + 'px';
+    // Position spotlight element at the target — its box-shadow creates the dark overlay everywhere else
+    tourSpotlight.style.left = (rect.left - pad) + 'px';
+    tourSpotlight.style.top = (rect.top - pad) + 'px';
+    tourSpotlight.style.width = (rect.width + pad * 2) + 'px';
+    tourSpotlight.style.height = (rect.height + pad * 2) + 'px';
     tourSpotlight.classList.add('active');
 
-    // --- Popover positioning (must NEVER overlap the target hole) ---
-    // Force measure popover
+    // --- Popover positioning (must NEVER overlap the target) ---
     tourPopover.style.visibility = 'hidden';
     tourPopover.style.display = 'block';
-    const popW = Math.min(360, viewportWidth - 40);
+    const popW = Math.min(360, vw - 40);
     const popH = tourPopover.offsetHeight;
     tourPopover.style.visibility = '';
     tourPopover.style.display = '';
 
     const gap = 18;
     const safeMargin = 16;
+    const tLeft = rect.left - pad;
+    const tTop = rect.top - pad;
+    const tRight = rect.right + pad;
+    const tBottom = rect.bottom + pad;
+    const tCX = tLeft + (tRight - tLeft) / 2;
+    const tCY = tTop + (tBottom - tTop) / 2;
 
-    // Candidate positions in priority order based on `position`
     const candidates = [];
-    switch (position) {
-      case 'right':
-        candidates.push(
-          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
-          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' },
-          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
-          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
-        );
-        break;
-      case 'left':
-        candidates.push(
-          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' },
-          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
-          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
-          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
-        );
-        break;
-      case 'bottom':
-        candidates.push(
-          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
-          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
-          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
-          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' }
-        );
-        break;
-      case 'top':
-        candidates.push(
-          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
-          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
-          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
-          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' }
-        );
-        break;
+    if (position === 'right') {
+      candidates.push(
+        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
+        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' },
+        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
+        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
+      );
+    } else if (position === 'left') {
+      candidates.push(
+        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' },
+        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
+        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
+        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
+      );
+    } else if (position === 'bottom') {
+      candidates.push(
+        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
+        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
+        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
+        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' }
+      );
+    } else if (position === 'top') {
+      candidates.push(
+        { left: tCX - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
+        { left: tCX - popW / 2, top: tBottom + gap, pos: 'top' },
+        { left: tRight + gap, top: tCY - popH / 2, pos: 'left' },
+        { left: tLeft - popW - gap, top: tCY - popH / 2, pos: 'right' }
+      );
     }
 
-    // Check if a candidate popover overlaps the target hole
-    function overlapsTarget(popLeft, popTop) {
-      const pRight = popLeft + popW;
-      const pBottom = popTop + popH;
-      return !(pRight < tLeft || popLeft > tRight || pBottom < tTop || popTop > tBottom);
-    }
-
-    // Check if candidate fits in viewport
-    function fitsViewport(popLeft, popTop) {
-      return popLeft >= safeMargin && popTop >= safeMargin &&
-             popLeft + popW <= viewportWidth - safeMargin &&
-             popTop + popH <= viewportHeight - safeMargin;
+    function overlaps(l, t) {
+      return !(l + popW < tLeft || l > tRight || t + popH < tTop || t > tBottom);
     }
 
     let chosen = null;
     for (const c of candidates) {
-      const clampedLeft = Math.max(safeMargin, Math.min(c.left, viewportWidth - popW - safeMargin));
-      const clampedTop = Math.max(safeMargin, Math.min(c.top, viewportHeight - popH - safeMargin));
-      if (!overlapsTarget(clampedLeft, clampedTop) && fitsViewport(clampedLeft, clampedTop)) {
-        chosen = { left: clampedLeft, top: clampedTop, pos: c.pos };
+      const cl = Math.max(safeMargin, Math.min(c.left, vw - popW - safeMargin));
+      const ct = Math.max(safeMargin, Math.min(c.top, vh - popH - safeMargin));
+      if (!overlaps(cl, ct)) {
+        chosen = { left: cl, top: ct, pos: c.pos };
         break;
       }
     }
 
-    // Fallback: clamp and pick best non-overlapping
-    if (!chosen) {
-      for (const c of candidates) {
-        const clampedLeft = Math.max(safeMargin, Math.min(c.left, viewportWidth - popW - safeMargin));
-        const clampedTop = Math.max(safeMargin, Math.min(c.top, viewportHeight - popH - safeMargin));
-        if (!overlapsTarget(clampedLeft, clampedTop)) {
-          chosen = { left: clampedLeft, top: clampedTop, pos: c.pos };
-          break;
-        }
-      }
-    }
-
-    // Last resort: just use the preferred and clamp
     if (!chosen && candidates.length > 0) {
       const c = candidates[0];
       chosen = {
-        left: Math.max(safeMargin, Math.min(c.left, viewportWidth - popW - safeMargin)),
-        top: Math.max(safeMargin, Math.min(c.top, viewportHeight - popH - safeMargin)),
+        left: Math.max(safeMargin, Math.min(c.left, vw - popW - safeMargin)),
+        top: Math.max(safeMargin, Math.min(c.top, vh - popH - safeMargin)),
         pos: c.pos
       };
     }
@@ -1745,11 +1693,7 @@
       tourPopover.style.top = chosen.top + 'px';
       tourPopover.style.transform = 'none';
       tourPopover.dataset.position = chosen.pos;
-
-      // Arrow alignment toward target center
-      const targetCenterX = (tLeft + tRight) / 2;
-      const targetCenterY = (tTop + tBottom) / 2;
-      const arrowPct = Math.max(10, Math.min(90, ((targetCenterX - chosen.left) / popW) * 100));
+      const arrowPct = Math.max(10, Math.min(90, ((tCX - chosen.left) / popW) * 100));
       tourPopover.style.setProperty('--arrow-left', arrowPct + '%');
     }
   }
@@ -1861,7 +1805,6 @@
 
   function closeTour() {
     clearTargetHighlight();
-    tourBackdrop.style.clipPath = 'none';
     tourSpotlight.classList.remove('active');
     tourOverlay.style.display = 'none';
     tourActive = false;
