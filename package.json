@@ -7,8 +7,10 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win",
-    "build:portable": "electron-builder --win portable",
+    "build": "electron-builder --win --mac --linux",
+    "build:win": "electron-builder --win portable",
+    "build:mac": "electron-builder --mac dir",
+    "build:linux": "electron-builder --linux dir",
     "setup": "npm install && electron-builder --win portable"
   },
   "build": {
@@ -50,6 +52,16 @@
     "win": {
       "target": "portable",
       "icon": "logo.png"
+    },
+    "mac": {
+      "target": "dir",
+      "icon": "logo.png",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": "dir",
+      "icon": "logo.png",
+      "category": "Game"
     },
     "portable": {
       "artifactName": "NuzlockeOverlay.exe"

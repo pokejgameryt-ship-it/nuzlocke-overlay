@@ -1,5 +1,5 @@
 @echo off
-title Nuzlocke Overlay - Instalador v2.1
+title Nuzlocke Overlay - Instalador Windows v2.1
 color 0F
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
