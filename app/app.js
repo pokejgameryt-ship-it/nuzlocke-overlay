@@ -1610,7 +1610,7 @@
     }
 
     const rect = targetEl.getBoundingClientRect();
-    const pad = 12;
+    const pad = 4;
 
     // Clamp target rect to viewport (elements partially off-screen)
     const tLeft = Math.max(0, rect.left) - pad;
