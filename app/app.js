@@ -1531,7 +1531,16 @@
       target: '#copyUrlBtn',
       position: 'left',
       action: 'click',
-      progress: 85
+      progress: 75
+    },
+    {
+      id: 'camera-setup',
+      title: '6. Camara virtual para videollamadas',
+      content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para usar tu overlay en Discord, Zoom, Meet, etc.<br>Selecciona tu camara real para mezclarla con los sprites del overlay.',
+      target: '#cameraToggleBtn',
+      position: 'right',
+      action: 'click',
+      progress: 88
     },
     {
       id: 'finished',
@@ -1560,6 +1569,12 @@
 
   function startTour() {
     if (tourActive) return;
+    // Close settings panel if open
+    const settingsPanel = $('#settingsPanel');
+    if (settingsPanel) settingsPanel.style.display = 'none';
+    const helpPanel = $('#helpPanel');
+    if (helpPanel) helpPanel.style.display = 'none';
+
     tourActive = true;
     tourStep = 0;
     showTourStep();
@@ -1598,64 +1613,57 @@
     tourSpotlight.style.width = (rect.width + padding * 2) + 'px';
     tourSpotlight.style.height = (rect.height + padding * 2) + 'px';
 
-    // Position popover
+    // Position popover - force reflow to get actual height
+    tourPopover.style.visibility = 'hidden';
+    tourPopover.style.display = 'block';
     const popoverWidth = 360;
-    const popoverHeight = tourPopover.offsetHeight || 280;
+    const popoverHeight = tourPopover.offsetHeight;
+    tourPopover.style.visibility = '';
+    tourPopover.style.display = '';
+
     const gap = 16;
     let left, top, popoverPos;
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const safeMargin = 20;
 
+    // Calculate ideal position first
     switch (position) {
       case 'right':
         left = rect.right + gap;
         top = rect.top + rect.height / 2 - popoverHeight / 2;
         popoverPos = 'left';
-        if (left + popoverWidth > viewportWidth - 20) {
-          left = rect.left - popoverWidth - gap;
-          popoverPos = 'right';
-        }
-        if (top < 20) top = 20;
-        if (top + popoverHeight > viewportHeight - 20) top = viewportHeight - popoverHeight - 20;
         break;
       case 'left':
         left = rect.left - popoverWidth - gap;
         top = rect.top + rect.height / 2 - popoverHeight / 2;
         popoverPos = 'right';
-        if (left < 20) {
-          left = rect.right + gap;
-          popoverPos = 'left';
-        }
-        if (top < 20) top = 20;
-        if (top + popoverHeight > viewportHeight - 20) top = viewportHeight - popoverHeight - 20;
         break;
       case 'bottom':
         left = rect.left + rect.width / 2 - popoverWidth / 2;
         top = rect.bottom + gap;
         popoverPos = 'top';
-        if (left < 20) left = 20;
-        if (left + popoverWidth > viewportWidth - 20) left = viewportWidth - popoverWidth - 20;
-        if (top + popoverHeight > viewportHeight - 20) {
-          top = rect.top - popoverHeight - gap;
-          popoverPos = 'bottom';
-        }
         break;
       case 'top':
         left = rect.left + rect.width / 2 - popoverWidth / 2;
         top = rect.top - popoverHeight - gap;
         popoverPos = 'bottom';
-        if (left < 20) left = 20;
-        if (left + popoverWidth > viewportWidth - 20) left = viewportWidth - popoverWidth - 20;
-        if (top < 20) {
-          top = rect.bottom + gap;
-          popoverPos = 'top';
-        }
         break;
       default:
         left = '50%';
         top = '50%';
         popoverPos = 'center';
+    }
+
+    // Clamp to viewport with safe margins
+    if (typeof left === 'number') {
+      if (left < safeMargin) left = safeMargin;
+      if (left + popoverWidth > viewportWidth - safeMargin) left = viewportWidth - popoverWidth - safeMargin;
+    }
+    if (typeof top === 'number') {
+      if (top < safeMargin) top = safeMargin;
+      if (top + popoverHeight > viewportHeight - safeMargin) top = viewportHeight - popoverHeight - safeMargin;
     }
 
     tourPopover.style.left = left + 'px';
@@ -1674,6 +1682,11 @@
     const targetEl = getTargetElement(step.target);
     positionSpotlightAndPopover(targetEl, step.position);
 
+    // Highlight target element (bring above overlay)
+    if (targetEl) {
+      targetEl.classList.add('tour-target');
+    }
+
     tourPrev.style.display = tourStep === 0 ? 'none' : 'inline-block';
     tourNext.textContent = tourStep === TOUR_STEPS.length - 1 ? 'Finalizar' : 'Siguiente';
 
@@ -1683,17 +1696,25 @@
     }
   }
 
+  function clearTargetHighlight() {
+    document.querySelectorAll('.tour-target').forEach(el => {
+      el.classList.remove('tour-target');
+      el.style.boxShadow = '';
+      el.style.borderColor = '';
+    });
+  }
+
   function handleTourAction(action, targetEl, selector) {
+    clearTargetHighlight();
+    if (targetEl) targetEl.classList.add('tour-target');
+
     // Remove previous listeners
     targetEl.dataset.tourListener = 'true';
 
     switch (action) {
       case 'click':
-        // Highlight that it's clickable
-        targetEl.style.transition = 'box-shadow 0.2s';
-        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.6)';
         const clickHandler = () => {
-          targetEl.style.boxShadow = '';
+          targetEl.classList.remove('tour-target');
           targetEl.removeEventListener('click', clickHandler);
           nextTourStep();
         };
@@ -1701,14 +1722,10 @@
         break;
 
       case 'type':
-        targetEl.style.transition = 'box-shadow 0.2s, border-color 0.2s';
-        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.6)';
-        targetEl.style.borderColor = '#e94560';
         targetEl.focus();
         const inputHandler = (e) => {
           if (e.key === 'Enter' && e.target.value.trim()) {
-            targetEl.style.boxShadow = '';
-            targetEl.style.borderColor = '';
+            targetEl.classList.remove('tour-target');
             targetEl.removeEventListener('keydown', inputHandler);
             nextTourStep();
           }
@@ -1717,12 +1734,8 @@
         break;
 
       case 'select':
-        targetEl.style.transition = 'box-shadow 0.2s, border-color 0.2s';
-        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.6)';
-        targetEl.style.borderColor = '#e94560';
         const changeHandler = () => {
-          targetEl.style.boxShadow = '';
-          targetEl.style.borderColor = '';
+          targetEl.classList.remove('tour-target');
           targetEl.removeEventListener('change', changeHandler);
           nextTourStep();
         };
@@ -1730,11 +1743,8 @@
         break;
 
       case 'drag':
-        // For canvas, just wait for any interaction
-        targetEl.style.transition = 'box-shadow 0.2s';
-        targetEl.style.boxShadow = '0 0 0 3px rgba(233, 69, 96, 0.4)';
         const dragHandler = () => {
-          targetEl.style.boxShadow = '';
+          targetEl.classList.remove('tour-target');
           targetEl.removeEventListener('mousedown', dragHandler);
           targetEl.removeEventListener('touchstart', dragHandler);
           nextTourStep();
@@ -1771,6 +1781,7 @@
   }
 
   function closeTour() {
+    clearTargetHighlight();
     tourOverlay.style.display = 'none';
     tourSpotlight.style.opacity = '0';
     tourActive = false;
