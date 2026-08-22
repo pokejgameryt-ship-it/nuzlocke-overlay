@@ -1177,7 +1177,32 @@ kbd {
   pointer-events: none;
 }
 
-.tour-popover[data-position="top"]::after { bottom: -9px; left: 50%; margin-left: -8px; border-top: none; border-left: none; }
-.tour-popover[data-position="bottom"]::after { top: -9px; left: 50%; margin-left: -8px; border-bottom: none; border-right: none; }
-.tour-popover[data-position="left"]::after { right: -9px; top: 50%; margin-top: -8px; border-top: none; border-right: none; }
-.tour-popover[data-position="right"]::after { left: -9px; top: 50%; margin-top: -8px; border-bottom: none; border-left: none; }
+/* Arrow positions using --arrow-left custom property (falls back to 50%) */
+.tour-popover[data-position="top"]::after { 
+  bottom: -9px; 
+  left: var(--arrow-left, 50%); 
+  margin-left: -8px; 
+  border-top: none; 
+  border-left: none; 
+}
+.tour-popover[data-position="bottom"]::after { 
+  top: -9px; 
+  left: var(--arrow-left, 50%); 
+  margin-left: -8px; 
+  border-bottom: none; 
+  border-right: none; 
+}
+.tour-popover[data-position="left"]::after { 
+  right: -9px; 
+  top: var(--arrow-left, 50%); 
+  margin-top: -8px; 
+  border-top: none; 
+  border-right: none; 
+}
+.tour-popover[data-position="right"]::after { 
+  left: -9px; 
+  top: var(--arrow-left, 50%); 
+  margin-top: -8px; 
+  border-bottom: none; 
+  border-left: none; 
+}

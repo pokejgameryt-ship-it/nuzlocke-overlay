@@ -1600,6 +1600,7 @@
       tourPopover.style.top = '50%';
       tourPopover.style.transform = 'translate(-50%, -50%)';
       tourPopover.dataset.position = 'center';
+      tourPopover.style.removeProperty('--arrow-left');
       return;
     }
 
@@ -1622,54 +1623,89 @@
     tourPopover.style.display = '';
 
     const gap = 16;
-    let left, top, popoverPos;
+    let left, top;
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const safeMargin = 20;
 
     // Calculate ideal position first
+    let idealLeft, idealTop, desiredPos;
     switch (position) {
       case 'right':
-        left = rect.right + gap;
-        top = rect.top + rect.height / 2 - popoverHeight / 2;
-        popoverPos = 'left';
+        idealLeft = rect.right + gap;
+        idealTop = rect.top + rect.height / 2 - popoverHeight / 2;
+        desiredPos = 'left';
         break;
       case 'left':
-        left = rect.left - popoverWidth - gap;
-        top = rect.top + rect.height / 2 - popoverHeight / 2;
-        popoverPos = 'right';
+        idealLeft = rect.left - popoverWidth - gap;
+        idealTop = rect.top + rect.height / 2 - popoverHeight / 2;
+        desiredPos = 'right';
         break;
       case 'bottom':
-        left = rect.left + rect.width / 2 - popoverWidth / 2;
-        top = rect.bottom + gap;
-        popoverPos = 'top';
+        idealLeft = rect.left + rect.width / 2 - popoverWidth / 2;
+        idealTop = rect.bottom + gap;
+        desiredPos = 'top';
         break;
       case 'top':
-        left = rect.left + rect.width / 2 - popoverWidth / 2;
-        top = rect.top - popoverHeight - gap;
-        popoverPos = 'bottom';
+        idealLeft = rect.left + rect.width / 2 - popoverWidth / 2;
+        idealTop = rect.top - popoverHeight - gap;
+        desiredPos = 'bottom';
         break;
       default:
-        left = '50%';
-        top = '50%';
-        popoverPos = 'center';
+        idealLeft = '50%';
+        idealTop = '50%';
+        desiredPos = 'center';
     }
 
-    // Clamp to viewport with safe margins
-    if (typeof left === 'number') {
-      if (left < safeMargin) left = safeMargin;
-      if (left + popoverWidth > viewportWidth - safeMargin) left = viewportWidth - popoverWidth - safeMargin;
-    }
-    if (typeof top === 'number') {
-      if (top < safeMargin) top = safeMargin;
-      if (top + popoverHeight > viewportHeight - safeMargin) top = viewportHeight - popoverHeight - safeMargin;
+    // Apply clamping and determine ACTUAL position for arrow
+    let popoverPos = desiredPos;
+    let arrowLeft = null;
+
+    if (typeof idealLeft === 'number') {
+      left = Math.max(safeMargin, Math.min(idealLeft, viewportWidth - popoverWidth - safeMargin));
+      // Determine if we clamped horizontally
+      const clampedLeft = left !== idealLeft;
+      
+      top = Math.max(safeMargin, Math.min(idealTop, viewportHeight - popoverHeight - safeMargin));
+      const clampedTop = top !== idealTop;
+
+      // Determine actual arrow position based on FINAL position relative to target
+      const popoverCenterX = left + popoverWidth / 2;
+      const targetCenterX = rect.left + rect.width / 2;
+      const popoverCenterY = top + popoverHeight / 2;
+      const targetCenterY = rect.top + rect.height / 2;
+
+      // Horizontal arrow alignment (percentage from left of popover)
+      arrowLeft = Math.max(10, Math.min(90, ((targetCenterX - left) / popoverWidth) * 100));
+
+      // Determine vertical arrow direction based on actual positions
+      if (desiredPos === 'left' || desiredPos === 'right') {
+        // Popover is to the side - arrow points horizontally
+        popoverPos = popoverCenterX < targetCenterX ? 'left' : 'right';
+      } else if (desiredPos === 'top' || desiredPos === 'bottom') {
+        // Popover is above/below - arrow points vertically
+        popoverPos = popoverCenterY < targetCenterY ? 'top' : 'bottom';
+      }
+    } else {
+      // Center case
+      left = '50%';
+      top = '50%';
+      popoverPos = 'center';
+      arrowLeft = null;
     }
 
     tourPopover.style.left = left + 'px';
     tourPopover.style.top = top + 'px';
     tourPopover.style.transform = 'none';
     tourPopover.dataset.position = popoverPos;
+    
+    // Set arrow horizontal offset for proper alignment
+    if (arrowLeft !== null) {
+      tourPopover.style.setProperty('--arrow-left', arrowLeft + '%');
+    } else {
+      tourPopover.style.removeProperty('--arrow-left');
+    }
   }
 
   function showTourStep() {
