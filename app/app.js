@@ -1556,6 +1556,7 @@
   let tourStep = 0;
   let tourActive = false;
   const tourOverlay = document.getElementById('tourOverlay');
+  const tourBackdrop = document.getElementById('tourBackdrop');
   const tourSpotlight = document.getElementById('tourSpotlight');
   const tourPopover = document.getElementById('tourPopover');
   const tourTitle = document.getElementById('tourTitle');
@@ -1566,11 +1567,6 @@
   const tourPrev = document.getElementById('tourPrev');
   const tourNext = document.getElementById('tourNext');
   const tourClose = document.getElementById('tourClose');
-  // Panel elements
-  const tourPanelTop = document.getElementById('tourPanelTop');
-  const tourPanelBottom = document.getElementById('tourPanelBottom');
-  const tourPanelLeft = document.getElementById('tourPanelLeft');
-  const tourPanelRight = document.getElementById('tourPanelRight');
 
   function startTour() {
     if (tourActive) return;
@@ -1583,7 +1579,7 @@
     tourActive = true;
     tourStep = 0;
     showTourStep();
-    tourOverlay.style.display = 'flex';
+    tourOverlay.style.display = 'block';
     document.body.style.overflow = 'hidden';
   }
 
@@ -1598,12 +1594,12 @@
   }
 
   function positionSpotlightAndPopover(targetEl, position) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
     if (!targetEl) {
-      // Center screen for welcome/finish steps - hide panels and spotlight
-      tourPanelTop.style.height = '0';
-      tourPanelBottom.style.height = '0';
-      tourPanelLeft.style.width = '0';
-      tourPanelRight.style.width = '0';
+      // Center screen for welcome/finish steps - full dark overlay, no hole
+      tourBackdrop.style.clipPath = 'none';
       tourSpotlight.classList.remove('active');
       tourPopover.style.left = '50%';
       tourPopover.style.top = '50%';
@@ -1614,138 +1610,147 @@
     }
 
     const rect = targetEl.getBoundingClientRect();
-    const padding = 10;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const pad = 12;
 
-    // Position the four panels to create a hole for the target
-    // Top panel: covers from top of viewport to top of target
-    tourPanelTop.style.left = '0';
-    tourPanelTop.style.right = '0';
-    tourPanelTop.style.top = '0';
-    tourPanelTop.style.bottom = (viewportHeight - rect.top + padding) + 'px';
+    // Clamp target rect to viewport (elements partially off-screen)
+    const tLeft = Math.max(0, rect.left) - pad;
+    const tTop = Math.max(0, rect.top) - pad;
+    const tRight = Math.min(viewportWidth, rect.right) + pad;
+    const tBottom = Math.min(viewportHeight, rect.bottom) + pad;
+    const tW = tRight - tLeft;
+    const tH = tBottom - tTop;
+    const borderRadius = 10;
 
-    // Bottom panel: covers from bottom of target to bottom of viewport
-    tourPanelBottom.style.left = '0';
-    tourPanelBottom.style.right = '0';
-    tourPanelBottom.style.top = (rect.bottom + padding) + 'px';
-    tourPanelBottom.style.bottom = '0';
+    // Use clip-path polygon with evenodd fill rule to cut a hole
+    // evenodd: outer + inner both clockwise, overlap cancels out
+    const vw = viewportWidth;
+    const vh = viewportHeight;
+    const clip = `polygon(evenodd,
+      0px 0px,
+      ${vw}px 0px,
+      ${vw}px ${vh}px,
+      0px ${vh}px,
+      ${tLeft}px ${tTop}px,
+      ${tRight}px ${tTop}px,
+      ${tRight}px ${tBottom}px,
+      ${tLeft}px ${tBottom}px
+    )`;
+    tourBackdrop.style.clipPath = clip;
 
-    // Left panel: covers from left of viewport to left of target (between top/bottom panels)
-    tourPanelLeft.style.top = (rect.top - padding) + 'px';
-    tourPanelLeft.style.bottom = (viewportHeight - rect.bottom - padding) + 'px';
-    tourPanelLeft.style.left = '0';
-    tourPanelLeft.style.width = (rect.left - padding) + 'px';
-
-    // Right panel: covers from right of target to right of viewport (between top/bottom panels)
-    tourPanelRight.style.top = (rect.top - padding) + 'px';
-    tourPanelRight.style.bottom = (viewportHeight - rect.bottom - padding) + 'px';
-    tourPanelRight.style.right = '0';
-    tourPanelRight.style.width = (viewportWidth - rect.right - padding) + 'px';
-
-    // Show spotlight ring around target
-    const spotlightLeft = rect.left - padding;
-    const spotlightTop = rect.top - padding;
-    const spotlightWidth = rect.width + padding * 2;
-    const spotlightHeight = rect.height + padding * 2;
-    const spotlightRadius = 8 + padding;
-
-    tourSpotlight.style.left = spotlightLeft + 'px';
-    tourSpotlight.style.top = spotlightTop + 'px';
-    tourSpotlight.style.width = spotlightWidth + 'px';
-    tourSpotlight.style.height = spotlightHeight + 'px';
-    tourSpotlight.style.borderRadius = spotlightRadius + 'px';
+    // Spotlight ring
+    tourSpotlight.style.left = tLeft + 'px';
+    tourSpotlight.style.top = tTop + 'px';
+    tourSpotlight.style.width = tW + 'px';
+    tourSpotlight.style.height = tH + 'px';
+    tourSpotlight.style.borderRadius = borderRadius + 'px';
     tourSpotlight.classList.add('active');
 
-    // Position popover - force reflow to get actual height
+    // --- Popover positioning (must NEVER overlap the target hole) ---
+    // Force measure popover
     tourPopover.style.visibility = 'hidden';
     tourPopover.style.display = 'block';
-    const popoverWidth = 360;
-    const popoverHeight = tourPopover.offsetHeight;
+    const popW = Math.min(360, viewportWidth - 40);
+    const popH = tourPopover.offsetHeight;
     tourPopover.style.visibility = '';
     tourPopover.style.display = '';
 
-    const gap = 16;
-    let left, top;
+    const gap = 18;
+    const safeMargin = 16;
 
-    const safeMargin = 20;
-
-    // Calculate ideal position first
-    let idealLeft, idealTop, desiredPos;
+    // Candidate positions in priority order based on `position`
+    const candidates = [];
     switch (position) {
       case 'right':
-        idealLeft = rect.right + gap;
-        idealTop = rect.top + rect.height / 2 - popoverHeight / 2;
-        desiredPos = 'left';
+        candidates.push(
+          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
+          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' },
+          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
+          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
+        );
         break;
       case 'left':
-        idealLeft = rect.left - popoverWidth - gap;
-        idealTop = rect.top + rect.height / 2 - popoverHeight / 2;
-        desiredPos = 'right';
+        candidates.push(
+          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' },
+          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
+          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
+          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' }
+        );
         break;
       case 'bottom':
-        idealLeft = rect.left + rect.width / 2 - popoverWidth / 2;
-        idealTop = rect.bottom + gap;
-        desiredPos = 'top';
+        candidates.push(
+          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
+          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
+          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
+          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' }
+        );
         break;
       case 'top':
-        idealLeft = rect.left + rect.width / 2 - popoverWidth / 2;
-        idealTop = rect.top - popoverHeight - gap;
-        desiredPos = 'bottom';
+        candidates.push(
+          { left: tLeft + tW / 2 - popW / 2, top: tTop - popH - gap, pos: 'bottom' },
+          { left: tLeft + tW / 2 - popW / 2, top: tBottom + gap, pos: 'top' },
+          { left: tRight + gap, top: tTop + tH / 2 - popH / 2, pos: 'left' },
+          { left: tLeft - popW - gap, top: tTop + tH / 2 - popH / 2, pos: 'right' }
+        );
         break;
-      default:
-        idealLeft = '50%';
-        idealTop = '50%';
-        desiredPos = 'center';
     }
 
-    // Apply clamping and determine ACTUAL position for arrow
-    let popoverPos = desiredPos;
-    let arrowLeft = null;
+    // Check if a candidate popover overlaps the target hole
+    function overlapsTarget(popLeft, popTop) {
+      const pRight = popLeft + popW;
+      const pBottom = popTop + popH;
+      return !(pRight < tLeft || popLeft > tRight || pBottom < tTop || popTop > tBottom);
+    }
 
-    if (typeof idealLeft === 'number') {
-      left = Math.max(safeMargin, Math.min(idealLeft, viewportWidth - popoverWidth - safeMargin));
-      top = Math.max(safeMargin, Math.min(idealTop, viewportHeight - popoverHeight - safeMargin));
+    // Check if candidate fits in viewport
+    function fitsViewport(popLeft, popTop) {
+      return popLeft >= safeMargin && popTop >= safeMargin &&
+             popLeft + popW <= viewportWidth - safeMargin &&
+             popTop + popH <= viewportHeight - safeMargin;
+    }
 
-      // Determine actual arrow position based on FINAL position relative to target
-      const popoverCenterX = left + popoverWidth / 2;
-      const targetCenterX = rect.left + rect.width / 2;
-      const popoverCenterY = top + popoverHeight / 2;
-      const targetCenterY = rect.top + rect.height / 2;
-
-      // Horizontal arrow alignment (percentage from left of popover)
-      arrowLeft = Math.max(10, Math.min(90, ((targetCenterX - left) / popoverWidth) * 100));
-
-      // Determine vertical arrow direction based on actual positions
-      if (desiredPos === 'left' || desiredPos === 'right') {
-        popoverPos = popoverCenterX < targetCenterX ? 'left' : 'right';
-      } else if (desiredPos === 'top' || desiredPos === 'bottom') {
-        popoverPos = popoverCenterY < targetCenterY ? 'top' : 'bottom';
+    let chosen = null;
+    for (const c of candidates) {
+      const clampedLeft = Math.max(safeMargin, Math.min(c.left, viewportWidth - popW - safeMargin));
+      const clampedTop = Math.max(safeMargin, Math.min(c.top, viewportHeight - popH - safeMargin));
+      if (!overlapsTarget(clampedLeft, clampedTop) && fitsViewport(clampedLeft, clampedTop)) {
+        chosen = { left: clampedLeft, top: clampedTop, pos: c.pos };
+        break;
       }
-    } else {
-      // Center case - hide panels and spotlight
-      tourPanelTop.style.height = '0';
-      tourPanelBottom.style.height = '0';
-      tourPanelLeft.style.width = '0';
-      tourPanelRight.style.width = '0';
-      tourSpotlight.classList.remove('active');
-      
-      left = '50%';
-      top = '50%';
-      popoverPos = 'center';
-      arrowLeft = null;
     }
 
-    tourPopover.style.left = left + 'px';
-    tourPopover.style.top = top + 'px';
-    tourPopover.style.transform = 'none';
-    tourPopover.dataset.position = popoverPos;
-    
-    // Set arrow horizontal offset for proper alignment
-    if (arrowLeft !== null) {
-      tourPopover.style.setProperty('--arrow-left', arrowLeft + '%');
-    } else {
-      tourPopover.style.removeProperty('--arrow-left');
+    // Fallback: clamp and pick best non-overlapping
+    if (!chosen) {
+      for (const c of candidates) {
+        const clampedLeft = Math.max(safeMargin, Math.min(c.left, viewportWidth - popW - safeMargin));
+        const clampedTop = Math.max(safeMargin, Math.min(c.top, viewportHeight - popH - safeMargin));
+        if (!overlapsTarget(clampedLeft, clampedTop)) {
+          chosen = { left: clampedLeft, top: clampedTop, pos: c.pos };
+          break;
+        }
+      }
+    }
+
+    // Last resort: just use the preferred and clamp
+    if (!chosen && candidates.length > 0) {
+      const c = candidates[0];
+      chosen = {
+        left: Math.max(safeMargin, Math.min(c.left, viewportWidth - popW - safeMargin)),
+        top: Math.max(safeMargin, Math.min(c.top, viewportHeight - popH - safeMargin)),
+        pos: c.pos
+      };
+    }
+
+    if (chosen) {
+      tourPopover.style.left = chosen.left + 'px';
+      tourPopover.style.top = chosen.top + 'px';
+      tourPopover.style.transform = 'none';
+      tourPopover.dataset.position = chosen.pos;
+
+      // Arrow alignment toward target center
+      const targetCenterX = (tLeft + tRight) / 2;
+      const targetCenterY = (tTop + tBottom) / 2;
+      const arrowPct = Math.max(10, Math.min(90, ((targetCenterX - chosen.left) / popW) * 100));
+      tourPopover.style.setProperty('--arrow-left', arrowPct + '%');
     }
   }
 
@@ -1755,6 +1760,9 @@
     tourContent.innerHTML = step.content;
     tourStepEl.textContent = `${tourStep + 1} / ${TOUR_STEPS.length}`;
     tourProgressBar.style.width = step.progress + '%';
+
+    // Remove highlight from previous target
+    clearTargetHighlight();
 
     const targetEl = getTargetElement(step.target);
     positionSpotlightAndPopover(targetEl, step.position);
@@ -1853,11 +1861,7 @@
 
   function closeTour() {
     clearTargetHighlight();
-    // Hide panels and spotlight
-    tourPanelTop.style.height = '0';
-    tourPanelBottom.style.height = '0';
-    tourPanelLeft.style.width = '0';
-    tourPanelRight.style.width = '0';
+    tourBackdrop.style.clipPath = 'none';
     tourSpotlight.classList.remove('active');
     tourOverlay.style.display = 'none';
     tourActive = false;
@@ -1882,9 +1886,9 @@
     closeTour();
   });
 
-  // Close on overlay click (outside popover)
-  tourOverlay.addEventListener('click', (e) => {
-    if (e.target === tourOverlay) {
+  // Close on backdrop click (dark area outside popover)
+  tourBackdrop.addEventListener('click', (e) => {
+    if (e.target === tourBackdrop) {
       closeTour();
     }
   });

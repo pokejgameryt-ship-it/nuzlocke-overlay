@@ -503,11 +503,8 @@
   </div>
 
   <div class="tour-overlay" id="tourOverlay" style="display:none">
-    <!-- Four dark panels that create the spotlight effect by covering everything EXCEPT the target -->
-    <div class="tour-panel tour-panel-top" id="tourPanelTop"></div>
-    <div class="tour-panel tour-panel-bottom" id="tourPanelBottom"></div>
-    <div class="tour-panel tour-panel-left" id="tourPanelLeft"></div>
-    <div class="tour-panel tour-panel-right" id="tourPanelRight"></div>
+    <!-- Single dark backdrop with clip-path hole for target -->
+    <div class="tour-backdrop" id="tourBackdrop"></div>
     <!-- Spotlight ring -->
     <div class="tour-spotlight" id="tourSpotlight"></div>
     <!-- Popover -->

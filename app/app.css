@@ -975,45 +975,18 @@ kbd {
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background: transparent;
   z-index: 99999;
-  display: flex;
   pointer-events: none;
 }
 
-/* Four panels that create the dark overlay with a hole for the target */
-.tour-panel {
+/* Single dark backdrop with clip-path hole for the target */
+.tour-backdrop {
   position: absolute;
+  inset: 0;
   background: rgba(0, 0, 0, 0.65);
-  pointer-events: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+  transition: clip-path 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
-}
-
-.tour-panel-top {
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-}
-
-.tour-panel-bottom {
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-}
-
-.tour-panel-left {
-  top: 0;
-  bottom: 0;
-  left: 0;
-}
-
-.tour-panel-right {
-  top: 0;
-  bottom: 0;
-  right: 0;
 }
 
 /* Spotlight ring around target */
@@ -1038,6 +1011,12 @@ kbd {
 .tour-spotlight.active {
   opacity: 1;
   animation: tourPulse 2s ease-in-out infinite;
+}
+
+/* Target element must sit above the backdrop */
+.tour-target {
+  position: relative;
+  z-index: 3 !important;
 }
 
 .tour-popover {
