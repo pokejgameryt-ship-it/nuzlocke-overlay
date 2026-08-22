@@ -975,53 +975,69 @@ kbd {
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: transparent;
   z-index: 99999;
   display: flex;
   pointer-events: none;
 }
 
-/* Cutout/hole for target element - creates transparent window in overlay */
-.tour-overlay::before {
-  content: '';
+/* Four panels that create the dark overlay with a hole for the target */
+.tour-panel {
   position: absolute;
-  inset: 0;
-  background: inherit;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Target element gets highlighted via overlay cutout, not z-index */
-.tour-target {
-  position: relative !important;
-  box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.5), 0 0 30px rgba(233, 69, 96, 0.3) !important;
-  border-radius: 8px !important;
-  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  z-index: auto !important;
-}
-
-.tour-target::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 14px;
-  box-shadow: 0 0 20px rgba(233, 69, 96, 0.6);
-  animation: tourPulse 2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.tour-spotlight {
-  position: absolute;
-  border-radius: 8px;
-  box-shadow: 0 0 0 2px #e94560, 0 0 20px rgba(233, 69, 96, 0.4);
+  background: rgba(0, 0, 0, 0.65);
   pointer-events: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 }
 
+.tour-panel-top {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.tour-panel-bottom {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.tour-panel-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.tour-panel-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+
+/* Spotlight ring around target */
+.tour-spotlight {
+  position: absolute;
+  border: 3px solid #e94560;
+  border-radius: 12px;
+  box-shadow: 
+    0 0 20px rgba(233, 69, 96, 0.5),
+    inset 0 0 20px rgba(233, 69, 96, 0.3);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+  opacity: 0;
+}
+
 @keyframes tourPulse {
-  0%, 100% { box-shadow: 0 0 30px rgba(233, 69, 96, 0.4); }
-  50% { box-shadow: 0 0 40px rgba(233, 69, 96, 0.8); }
+  0%, 100% { box-shadow: 0 0 20px rgba(233, 69, 96, 0.4), inset 0 0 20px rgba(233, 69, 96, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(233, 69, 96, 0.8), inset 0 0 30px rgba(233, 69, 96, 0.4); }
+}
+
+.tour-spotlight.active {
+  opacity: 1;
+  animation: tourPulse 2s ease-in-out infinite;
 }
 
 .tour-popover {
@@ -1033,7 +1049,7 @@ kbd {
   min-width: 320px;
   max-width: 380px;
   pointer-events: auto;
-  z-index: 2;
+  z-index: 10;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(233, 69, 96, 0.2);
   animation: tourPopoverIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

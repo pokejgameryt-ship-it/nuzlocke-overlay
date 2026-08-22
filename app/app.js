@@ -1556,7 +1556,6 @@
   let tourStep = 0;
   let tourActive = false;
   const tourOverlay = document.getElementById('tourOverlay');
-  const tourBackdrop = document.getElementById('tourBackdrop');
   const tourSpotlight = document.getElementById('tourSpotlight');
   const tourPopover = document.getElementById('tourPopover');
   const tourTitle = document.getElementById('tourTitle');
@@ -1567,6 +1566,11 @@
   const tourPrev = document.getElementById('tourPrev');
   const tourNext = document.getElementById('tourNext');
   const tourClose = document.getElementById('tourClose');
+  // Panel elements
+  const tourPanelTop = document.getElementById('tourPanelTop');
+  const tourPanelBottom = document.getElementById('tourPanelBottom');
+  const tourPanelLeft = document.getElementById('tourPanelLeft');
+  const tourPanelRight = document.getElementById('tourPanelRight');
 
   function startTour() {
     if (tourActive) return;
@@ -1580,10 +1584,6 @@
     tourStep = 0;
     showTourStep();
     tourOverlay.style.display = 'flex';
-    // Force reflow then activate backdrop
-    requestAnimationFrame(() => {
-      tourOverlay.classList.add('active');
-    });
     document.body.style.overflow = 'hidden';
   }
 
@@ -1599,9 +1599,12 @@
 
   function positionSpotlightAndPopover(targetEl, position) {
     if (!targetEl) {
-      // Center screen for welcome/finish steps - clear cutout
-      tourOverlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.65)';
-      tourSpotlight.style.opacity = '0';
+      // Center screen for welcome/finish steps - hide panels and spotlight
+      tourPanelTop.style.height = '0';
+      tourPanelBottom.style.height = '0';
+      tourPanelLeft.style.width = '0';
+      tourPanelRight.style.width = '0';
+      tourSpotlight.classList.remove('active');
       tourPopover.style.left = '50%';
       tourPopover.style.top = '50%';
       tourPopover.style.transform = 'translate(-50%, -50%)';
@@ -1612,29 +1615,47 @@
 
     const rect = targetEl.getBoundingClientRect();
     const padding = 10;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-    // Create cutout in overlay using multiple box-shadows (the "hole" technique)
-    // This creates a transparent window in the dark overlay
-    const overlayLeft = rect.left - padding;
-    const overlayTop = rect.top - padding;
-    const overlayWidth = rect.width + padding * 2;
-    const overlayHeight = rect.height + padding * 2;
-    const borderRadius = 8 + padding;
+    // Position the four panels to create a hole for the target
+    // Top panel: covers from top of viewport to top of target
+    tourPanelTop.style.left = '0';
+    tourPanelTop.style.right = '0';
+    tourPanelTop.style.top = '0';
+    tourPanelTop.style.bottom = (viewportHeight - rect.top + padding) + 'px';
 
-    // Update overlay cutout via box-shadow (creates transparent hole)
-    tourOverlay.style.boxShadow = `
-      0 0 0 9999px rgba(0, 0, 0, 0.65),
-      inset 0 0 0 9999px rgba(0, 0, 0, 0.65),
-      ${overlayLeft}px ${overlayTop}px 0 ${Math.max(overlayWidth, overlayHeight)}px transparent
-    `.replace(/\s+/g, ' ').trim();
+    // Bottom panel: covers from bottom of target to bottom of viewport
+    tourPanelBottom.style.left = '0';
+    tourPanelBottom.style.right = '0';
+    tourPanelBottom.style.top = (rect.bottom + padding) + 'px';
+    tourPanelBottom.style.bottom = '0';
 
-    // Also update spotlight ring position (visual indicator)
-    tourSpotlight.style.opacity = '1';
-    tourSpotlight.style.left = overlayLeft + 'px';
-    tourSpotlight.style.top = overlayTop + 'px';
-    tourSpotlight.style.width = overlayWidth + 'px';
-    tourSpotlight.style.height = overlayHeight + 'px';
-    tourSpotlight.style.borderRadius = borderRadius + 'px';
+    // Left panel: covers from left of viewport to left of target (between top/bottom panels)
+    tourPanelLeft.style.top = (rect.top - padding) + 'px';
+    tourPanelLeft.style.bottom = (viewportHeight - rect.bottom - padding) + 'px';
+    tourPanelLeft.style.left = '0';
+    tourPanelLeft.style.width = (rect.left - padding) + 'px';
+
+    // Right panel: covers from right of target to right of viewport (between top/bottom panels)
+    tourPanelRight.style.top = (rect.top - padding) + 'px';
+    tourPanelRight.style.bottom = (viewportHeight - rect.bottom - padding) + 'px';
+    tourPanelRight.style.right = '0';
+    tourPanelRight.style.width = (viewportWidth - rect.right - padding) + 'px';
+
+    // Show spotlight ring around target
+    const spotlightLeft = rect.left - padding;
+    const spotlightTop = rect.top - padding;
+    const spotlightWidth = rect.width + padding * 2;
+    const spotlightHeight = rect.height + padding * 2;
+    const spotlightRadius = 8 + padding;
+
+    tourSpotlight.style.left = spotlightLeft + 'px';
+    tourSpotlight.style.top = spotlightTop + 'px';
+    tourSpotlight.style.width = spotlightWidth + 'px';
+    tourSpotlight.style.height = spotlightHeight + 'px';
+    tourSpotlight.style.borderRadius = spotlightRadius + 'px';
+    tourSpotlight.classList.add('active');
 
     // Position popover - force reflow to get actual height
     tourPopover.style.visibility = 'hidden';
@@ -1647,8 +1668,6 @@
     const gap = 16;
     let left, top;
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
     const safeMargin = 20;
 
     // Calculate ideal position first
@@ -1686,11 +1705,7 @@
 
     if (typeof idealLeft === 'number') {
       left = Math.max(safeMargin, Math.min(idealLeft, viewportWidth - popoverWidth - safeMargin));
-      // Determine if we clamped horizontally
-      const clampedLeft = left !== idealLeft;
-      
       top = Math.max(safeMargin, Math.min(idealTop, viewportHeight - popoverHeight - safeMargin));
-      const clampedTop = top !== idealTop;
 
       // Determine actual arrow position based on FINAL position relative to target
       const popoverCenterX = left + popoverWidth / 2;
@@ -1703,16 +1718,17 @@
 
       // Determine vertical arrow direction based on actual positions
       if (desiredPos === 'left' || desiredPos === 'right') {
-        // Popover is to the side - arrow points horizontally
         popoverPos = popoverCenterX < targetCenterX ? 'left' : 'right';
       } else if (desiredPos === 'top' || desiredPos === 'bottom') {
-        // Popover is above/below - arrow points vertically
         popoverPos = popoverCenterY < targetCenterY ? 'top' : 'bottom';
       }
     } else {
-      // Center case - clear cutout
-      tourOverlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.65)';
-      tourSpotlight.style.opacity = '0';
+      // Center case - hide panels and spotlight
+      tourPanelTop.style.height = '0';
+      tourPanelBottom.style.height = '0';
+      tourPanelLeft.style.width = '0';
+      tourPanelRight.style.width = '0';
+      tourSpotlight.classList.remove('active');
       
       left = '50%';
       top = '50%';
@@ -1837,17 +1853,15 @@
 
   function closeTour() {
     clearTargetHighlight();
-    tourOverlay.classList.remove('active');
-    // Clear overlay cutout
-    tourOverlay.style.boxShadow = '';
-    tourSpotlight.style.opacity = '0';
-    // Wait for backdrop fade out
-    setTimeout(() => {
-      if (!tourActive) return; // Don't hide if tour was restarted
-      tourOverlay.style.display = 'none';
-      tourActive = false;
-      document.body.style.overflow = '';
-    }, 200);
+    // Hide panels and spotlight
+    tourPanelTop.style.height = '0';
+    tourPanelBottom.style.height = '0';
+    tourPanelLeft.style.width = '0';
+    tourPanelRight.style.width = '0';
+    tourSpotlight.classList.remove('active');
+    tourOverlay.style.display = 'none';
+    tourActive = false;
+    document.body.style.overflow = '';
   }
 
   function skipTourStep() {
