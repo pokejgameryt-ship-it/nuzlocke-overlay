@@ -975,19 +975,29 @@ kbd {
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background: transparent;
-  z-index: 10000;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 99999;
   display: flex;
   pointer-events: none;
 }
 
-/* Target element highlighted - brought above overlay */
+/* Cutout/hole for target element - creates transparent window in overlay */
+.tour-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Target element gets highlighted via overlay cutout, not z-index */
 .tour-target {
   position: relative !important;
-  z-index: 10001 !important;
   box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.5), 0 0 30px rgba(233, 69, 96, 0.3) !important;
   border-radius: 8px !important;
   transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: auto !important;
 }
 
 .tour-target::before {
@@ -998,21 +1008,6 @@ kbd {
   box-shadow: 0 0 20px rgba(233, 69, 96, 0.6);
   animation: tourPulse 2s ease-in-out infinite;
   pointer-events: none;
-}
-
-/* Subtle dark backdrop behind popover only */
-.tour-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.tour-overlay.active .tour-backdrop {
-  opacity: 1;
 }
 
 .tour-spotlight {

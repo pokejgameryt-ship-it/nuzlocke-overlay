@@ -1599,7 +1599,8 @@
 
   function positionSpotlightAndPopover(targetEl, position) {
     if (!targetEl) {
-      // Center screen for welcome/finish steps
+      // Center screen for welcome/finish steps - clear cutout
+      tourOverlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.65)';
       tourSpotlight.style.opacity = '0';
       tourPopover.style.left = '50%';
       tourPopover.style.top = '50%';
@@ -1610,14 +1611,30 @@
     }
 
     const rect = targetEl.getBoundingClientRect();
-    const padding = 8;
+    const padding = 10;
 
-    // Position spotlight
+    // Create cutout in overlay using multiple box-shadows (the "hole" technique)
+    // This creates a transparent window in the dark overlay
+    const overlayLeft = rect.left - padding;
+    const overlayTop = rect.top - padding;
+    const overlayWidth = rect.width + padding * 2;
+    const overlayHeight = rect.height + padding * 2;
+    const borderRadius = 8 + padding;
+
+    // Update overlay cutout via box-shadow (creates transparent hole)
+    tourOverlay.style.boxShadow = `
+      0 0 0 9999px rgba(0, 0, 0, 0.65),
+      inset 0 0 0 9999px rgba(0, 0, 0, 0.65),
+      ${overlayLeft}px ${overlayTop}px 0 ${Math.max(overlayWidth, overlayHeight)}px transparent
+    `.replace(/\s+/g, ' ').trim();
+
+    // Also update spotlight ring position (visual indicator)
     tourSpotlight.style.opacity = '1';
-    tourSpotlight.style.left = (rect.left - padding) + 'px';
-    tourSpotlight.style.top = (rect.top - padding) + 'px';
-    tourSpotlight.style.width = (rect.width + padding * 2) + 'px';
-    tourSpotlight.style.height = (rect.height + padding * 2) + 'px';
+    tourSpotlight.style.left = overlayLeft + 'px';
+    tourSpotlight.style.top = overlayTop + 'px';
+    tourSpotlight.style.width = overlayWidth + 'px';
+    tourSpotlight.style.height = overlayHeight + 'px';
+    tourSpotlight.style.borderRadius = borderRadius + 'px';
 
     // Position popover - force reflow to get actual height
     tourPopover.style.visibility = 'hidden';
@@ -1693,7 +1710,10 @@
         popoverPos = popoverCenterY < targetCenterY ? 'top' : 'bottom';
       }
     } else {
-      // Center case
+      // Center case - clear cutout
+      tourOverlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.65)';
+      tourSpotlight.style.opacity = '0';
+      
       left = '50%';
       top = '50%';
       popoverPos = 'center';
@@ -1746,16 +1766,13 @@
   }
 
   function handleTourAction(action, targetEl, selector) {
-    clearTargetHighlight();
-    if (targetEl) targetEl.classList.add('tour-target');
-
+    // Target element doesn't need special class anymore (overlay handles highlight)
     // Remove previous listeners
     targetEl.dataset.tourListener = 'true';
 
     switch (action) {
       case 'click':
         const clickHandler = () => {
-          targetEl.classList.remove('tour-target');
           targetEl.removeEventListener('click', clickHandler);
           nextTourStep();
         };
@@ -1766,7 +1783,6 @@
         targetEl.focus();
         const inputHandler = (e) => {
           if (e.key === 'Enter' && e.target.value.trim()) {
-            targetEl.classList.remove('tour-target');
             targetEl.removeEventListener('keydown', inputHandler);
             nextTourStep();
           }
@@ -1776,7 +1792,6 @@
 
       case 'select':
         const changeHandler = () => {
-          targetEl.classList.remove('tour-target');
           targetEl.removeEventListener('change', changeHandler);
           nextTourStep();
         };
@@ -1785,7 +1800,6 @@
 
       case 'drag':
         const dragHandler = () => {
-          targetEl.classList.remove('tour-target');
           targetEl.removeEventListener('mousedown', dragHandler);
           targetEl.removeEventListener('touchstart', dragHandler);
           nextTourStep();
@@ -1824,11 +1838,13 @@
   function closeTour() {
     clearTargetHighlight();
     tourOverlay.classList.remove('active');
+    // Clear overlay cutout
+    tourOverlay.style.boxShadow = '';
+    tourSpotlight.style.opacity = '0';
     // Wait for backdrop fade out
     setTimeout(() => {
       if (!tourActive) return; // Don't hide if tour was restarted
       tourOverlay.style.display = 'none';
-      tourSpotlight.style.opacity = '0';
       tourActive = false;
       document.body.style.overflow = '';
     }, 200);
