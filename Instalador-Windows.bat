@@ -8,7 +8,7 @@ setlocal enabledelayedexpansion
 :: CONFIGURACION
 :: ============================================
 set "GITHUB_REPO=pokejgameryt-ship-it/nuzlocke-overlay"
-set "GITHUB_EXE_URL=https://github.com/%GITHUB_REPO%/releases/latest/download/NuzlockeOverlay.exe"
+set "GITHUB_EXE_URL=https://github.com/%GITHUB_REPO%/releases/latest/download/NuzlockeOverlay-Windows-x64.exe"
 set "MEGA_FOLDER=https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg"
 set "RECURSOS_ZIP=Recursos.zip"
 set "DOTNET_VERSION=8.0"
