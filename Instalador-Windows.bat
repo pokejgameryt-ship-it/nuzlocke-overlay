@@ -84,14 +84,10 @@ if "%DOTNET_FOUND%"=="1" (
     echo         Esto puede tardar 1-3 minutos.
     echo.
 
-    where curl >nul 2>&1
-    if %errorlevel% equ 0 (
-        curl -L -o "%DOTNET_INSTALLER%" "https://download.visualstudio.microsoft.com/download/pr/8de8982c-f703-4dc7-a559-4d9714648785/8e115a48385064b23f2124438a26310a/windowsdesktop-runtime-8.0.20-win-x64.exe" --progress-bar
-    ) else (
-        powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://download.visualstudio.microsoft.com/download/pr/8de8982c-f703-4dc7-a559-4d9714648785/8e115a48385064b23f2124438a26310a/windowsdesktop-runtime-8.0.20-win-x64.exe' -OutFile '%DOTNET_INSTALLER%'"
-    )
+    echo         Descargando .NET Runtime...
+    powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://download.visualstudio.microsoft.com/download/pr/8de8982c-f703-4dc7-a559-4d9714648785/8e115a48385064b23f2124438a26310a/windowsdesktop-runtime-8.0.20-win-x64.exe' -OutFile '%DOTNET_INSTALLER%'"
 
-    if %errorlevel% neq 0 (
+    if not exist "%DOTNET_INSTALLER%" (
         echo.
         echo   ERROR: Fallo al descargar .NET Runtime.
         echo   Descargalo manualmente desde:
@@ -126,14 +122,13 @@ echo  [4/4] Descargando NuzlockeOverlay.exe...
 if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
     echo         NuzlockeOverlay.exe ya existe. OK.
 ) else (
-    where curl >nul 2>&1
-    if %errorlevel% equ 0 (
-        curl -L -o "%INSTALL_DIR%\NuzlockeOverlay.exe" "%GITHUB_EXE_URL%" --progress-bar
-    ) else (
-        powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%GITHUB_EXE_URL%' -OutFile '%INSTALL_DIR%\NuzlockeOverlay.exe'"
-    )
+    echo         Descargando desde GitHub...
+    echo         (Puede tardar 1-2 minutos)
+    echo.
 
-    if %errorlevel% neq 0 (
+    powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%GITHUB_EXE_URL%' -OutFile '%INSTALL_DIR%\NuzlockeOverlay.exe'"
+
+    if not exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
         echo.
         echo   ERROR: Fallo al descargar el exe.
         echo   Descargalo manualmente desde:
@@ -142,7 +137,21 @@ if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
         pause
         exit /b 1
     )
-    echo         NuzlockeOverlay.exe descargado.
+
+    :: Verificar que no sea un HTML (error de descarga)
+    powershell -Command "$f = Get-Item '%INSTALL_DIR%\NuzlockeOverlay.exe'; if ($f.Length -lt 10000000) { Write-Host 'ERROR: Archivo muy pequeno, posible error de descarga' } else { Write-Host 'OK' }" | findstr /i "OK" >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo.
+        echo   ERROR: El archivo descargado es muy pequeno.
+        echo   Puede ser un error de GitHub. Intenta descargar manualmente:
+        echo   https://github.com/%GITHUB_REPO%/releases
+        echo.
+        del /f /q "%INSTALL_DIR%\NuzlockeOverlay.exe" >nul 2>&1
+        pause
+        exit /b 1
+    )
+
+    echo         NuzlockeOverlay.exe descargado correctamente.
 )
 echo.
 
