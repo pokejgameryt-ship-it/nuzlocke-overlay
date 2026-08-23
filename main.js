@@ -352,7 +352,22 @@ ipcMain.handle('browse-save-file', async () => {
     properties: ['openFile', 'openDirectory'],
   });
   if (result.canceled || !result.filePaths.length) return null;
-  return result.filePaths[0];
+  const selected = result.filePaths[0];
+  // If directory selected, open a second dialog inside it
+  if (fs.existsSync(selected) && fs.statSync(selected).isDirectory()) {
+    const fileResult = await dialog.showOpenDialog(mainWindow, {
+      title: 'Seleccionar archivo save dentro de la carpeta',
+      defaultPath: selected,
+      filters: [
+        { name: 'Save Files', extensions: ['sav', 'dsv', 'sa1', 'sa2', 'sa3', 'ss1', 'ss2', 'ss3', 'ss4', 'ss5', 'main', 'bin'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    });
+    if (fileResult.canceled || !fileResult.filePaths.length) return null;
+    return fileResult.filePaths[0];
+  }
+  return selected;
 });
 
 // Detect game
