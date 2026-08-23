@@ -164,7 +164,6 @@ echo  [5/6] Descargando Sprites/Recursos desde MEGA...
 if exist "%INSTALL_DIR%\Recursos\Sprites" (
     echo         Carpeta Recursos\Sprites ya existe. OK.
 ) else (
-    :: Comprobar megacmd (mega-get)
     where mega-get >nul 2>&1
     if %errorlevel% neq 0 (
         echo.
@@ -172,44 +171,47 @@ if exist "%INSTALL_DIR%\Recursos\Sprites" (
         echo   Descargalos desde: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
         echo   Y coloca la carpeta "Recursos" en: %INSTALL_DIR%
         echo.
-    ) else (
-        echo         Descargando carpeta Recursos desde MEGA...
-        echo         (Esto puede tardar varios minutos segun tu conexion)
+        goto :step6
+    )
+
+    echo         Descargando carpeta Recursos desde MEGA...
+    echo         (Esto puede tardar varios minutos segun tu conexion)
+    echo.
+
+    mega-get "%MEGA_FOLDER%" "%INSTALL_DIR%\%RECURSOS_ZIP%"
+    if %errorlevel% neq 0 (
         echo.
+        echo   Fallo la descarga. Los sprites se descargan despues.
+        echo   Descargalos desde: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
+        echo   Y coloca la carpeta "Recursos" en: %INSTALL_DIR%
+        echo.
+        goto :step6
+    )
 
-        mega-get "%MEGA_FOLDER%" "%INSTALL_DIR%\%RECURSOS_ZIP%"
-        if %errorlevel% neq 0 (
-            echo.
-            echo   Fallo la descarga desde MEGA. Los sprites se descargan despues.
-            echo   Descargalos desde: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
-            echo   Y coloca la carpeta "Recursos" en: %INSTALL_DIR%
-            echo.
-        ) else (
-            if not exist "%INSTALL_DIR%\%RECURSOS_ZIP%" (
-                echo.
-                echo   No se encontro el archivo descargado. Continuando...
-                echo.
-            ) else (
-                echo         Descarga completada. Extrayendo archivos...
-                echo.
+    if not exist "%INSTALL_DIR%\%RECURSOS_ZIP%" (
+        echo.
+        echo   No se encontro el archivo descargado. Continuando...
+        echo.
+        goto :step6
+    )
 
-                powershell -Command "Expand-Archive -Path '%INSTALL_DIR%\%RECURSOS_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force"
-                if %errorlevel% neq 0 (
-                    echo  Fallo al extraer. Intentando con 7-Zip...
-                    where 7z >nul 2>&1
-                    if %errorlevel% equ 0 (
-                        7z x "%INSTALL_DIR%\%RECURSOS_ZIP%" -o"%INSTALL_DIR%"
-                    )
-                )
+    echo         Descarga completada. Extrayendo archivos...
+    echo.
 
-                del /f /q "%INSTALL_DIR%\%RECURSOS_ZIP%" >nul 2>&1
-                echo         Recursos extraidos correctamente.
-            )
+    powershell -Command "Expand-Archive -Path '%INSTALL_DIR%\%RECURSOS_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force"
+    if %errorlevel% neq 0 (
+        where 7z >nul 2>&1
+        if %errorlevel% equ 0 (
+            7z x "%INSTALL_DIR%\%RECURSOS_ZIP%" -o"%INSTALL_DIR%"
         )
     )
+
+    del /f /q "%INSTALL_DIR%\%RECURSOS_ZIP%" >nul 2>&1
+    echo         Recursos extraidos correctamente.
 )
 echo.
 
+:step6
 :: ============================================
 :: Paso 6: Crear acceso directo en escritorio
 :: ============================================
