@@ -1113,6 +1113,59 @@ kbd {
   color: #e0e0e0;
 }
 
+/* ===== LANGUAGE SELECTOR MODAL ===== */
+.lang-modal {
+  text-align: center;
+  max-width: 420px;
+}
+
+.lang-modal-flag {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.lang-modal h3 {
+  margin: 0 0 8px 0;
+  color: #e94560;
+  font-size: 18px;
+}
+
+.lang-modal p {
+  margin: 0 0 20px 0;
+  color: #a0a0a0;
+  font-size: 13px;
+}
+
+.lang-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lang-option:hover {
+  background: #1e1e35;
+  border-color: #e94560;
+  transform: translateY(-1px);
+}
+
+.lang-flag {
+  font-size: 20px;
+}
+
 /* ===== TOUR / GUIDED TOUR ===== */
 .tour-overlay {
   position: fixed;

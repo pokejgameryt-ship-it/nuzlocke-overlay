@@ -1390,6 +1390,12 @@
   async function loadAndApplySettings() {
     try {
       const settings = await window.api.getSettings();
+
+      if (!settings.language) {
+        showLanguageSelector(settings);
+        return;
+      }
+
       currentLang = settings.language || 'es';
       applyLanguage(currentLang);
       const langSel = $('#settingsLanguage');
@@ -1402,6 +1408,30 @@
         window.api.saveSettings({ ...settings, tutorialSeen: true });
       }
     } catch (e) {}
+  }
+
+  function showLanguageSelector(savedSettings) {
+    const overlay = $('#langOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+
+    const applyLang = (lang) => {
+      currentLang = lang;
+      applyLanguage(lang);
+      const langSel = $('#settingsLanguage');
+      if (langSel) langSel.value = lang;
+      window.api.saveSettings({ ...savedSettings, language: lang });
+      overlay.style.display = 'none';
+
+      if (savedSettings.tutorialSeen !== true && projects.length === 0) {
+        setTimeout(() => startTour(), 800);
+        window.api.saveSettings({ ...savedSettings, language: lang, tutorialSeen: true });
+      }
+    };
+
+    overlay.querySelectorAll('.lang-option').forEach(btn => {
+      btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+    });
   }
 
   function applyLanguage(lang) {

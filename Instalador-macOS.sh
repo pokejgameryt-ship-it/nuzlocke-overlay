@@ -16,7 +16,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║   Nuzlocke Overlay - Instalador macOS v2.1.1  ║${NC}"
+echo -e "${CYAN}║   Nuzlocke Overlay - Instalador macOS v1.0.0  ║${NC}"
 echo -e "${CYAN}║   Soporte: Gen 1 a Gen 9                 ║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════╝${NC}"
 echo ""
