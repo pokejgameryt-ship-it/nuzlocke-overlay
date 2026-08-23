@@ -113,7 +113,7 @@ class FileWatcher {
               otName: pk.otName || '',
             }));
           } catch (pkErr) {
-            Logger.error('Watcher', `[PKHeX] Failed: ${pkErr.message}, falling back to built-in parser`);
+            Logger.error('Watcher', `[PKHeX] Failed: ${pkErr.message}`);
             team = [];
           }
         }
@@ -127,9 +127,11 @@ class FileWatcher {
             if (detected) {
               currentGameInfo = detected;
               Logger.info('Watcher', `Auto-detected: ${detected.name}`);
+            } else {
+              Logger.warn('Watcher', 'Auto-detection failed, using manual game or skipping built-in parser');
             }
           }
-          if (currentGameInfo && !currentGameInfo.encrypted) {
+          if (currentGameInfo && currentGameInfo.generation > 0 && !currentGameInfo.encrypted) {
             team = SaveParser.parse(buffer, currentGameInfo);
           }
         }

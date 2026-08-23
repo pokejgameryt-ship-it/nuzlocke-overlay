@@ -1054,8 +1054,10 @@
           const detected = await window.api.detectGame(file);
           if (detected) {
             project.game = { generation: detected.generation, saveType: detected.saveType, version: detected.version, autoDetected: true };
-            populateGameSelect(project.game);
+          } else {
+            project.game = { generation: 0, saveType: 'unknown', version: 'auto', autoDetected: true };
           }
+          populateGameSelect(project.game);
         }
         await saveProject();
       }
@@ -1071,10 +1073,10 @@
           if (detected) {
             project.game = { generation: detected.generation, saveType: detected.saveType, version: detected.version, autoDetected: true };
           } else {
-            project.game = { generation: 8, saveType: 'gen8', version: 'auto', autoDetected: true };
+            project.game = { generation: 0, saveType: 'unknown', version: 'auto', autoDetected: true };
           }
         } else {
-          project.game = { generation: 8, saveType: 'gen8', version: 'auto', autoDetected: true };
+          project.game = { generation: 0, saveType: 'unknown', version: 'auto', autoDetected: true };
         }
       } else {
         const game = games.find(g => g.id === e.target.value);

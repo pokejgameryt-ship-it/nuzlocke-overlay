@@ -356,7 +356,7 @@ ipcMain.handle('browse-save-file', async () => {
 });
 
 // Detect game
-ipcMain.handle('detect-game', (event, savePath) => {
+ipcMain.handle('detect-game', async (event, savePath) => {
   try {
     let filePath = savePath;
     // If path is a directory (e.g. Citra 00000001 folder), find the actual save file
@@ -370,7 +370,28 @@ ipcMain.handle('detect-game', (event, savePath) => {
       }
     }
     const buffer = fs.readFileSync(filePath);
-    return DetectSave.detect(buffer);
+    const detected = DetectSave.detect(buffer);
+    if (detected) return detected;
+
+    // Fallback: try PKHeX for detection
+    try {
+      const PkHexReader = require('./src/pkhex-reader');
+      const result = await PkHexReader.parse(filePath);
+      if (result && result.generation) {
+        Logger.info('App', `PKHeX detected: gen${result.generation} ${result.game}`);
+        const saveTypeMap = { 1: 'gen1', 2: 'gen2', 3: 'gen3', 4: 'gen4', 5: 'gen5', 6: 'gen6', 7: 'gen7', 8: 'gen8swsh', 9: 'gen9' };
+        return {
+          generation: result.generation,
+          saveType: saveTypeMap[result.generation] || 'gen' + result.generation,
+          version: result.version || result.game || 'auto',
+          name: 'Pokemon Gen ' + result.generation + ' (PKHeX)'
+        };
+      }
+    } catch (pkErr) {
+      Logger.warn('App', `PKHeX detection fallback failed: ${pkErr.message}`);
+    }
+
+    return null;
   } catch (e) {
     Logger.error('App', `detect-game error: ${e.message}`);
     return null;
