@@ -17,8 +17,20 @@
           <button class="btn-icon" id="addProjectBtn" title="Nuevo proyecto">+</button>
         </div>
       </div>
+      <div class="sidebar-search">
+        <input type="text" id="projectSearch" placeholder="Buscar proyecto..." class="project-search-input">
+      </div>
+      <div class="sidebar-sort">
+        <select id="projectSort" class="project-sort-select">
+          <option value="name-asc">Nombre A-Z</option>
+          <option value="name-desc">Nombre Z-A</option>
+          <option value="date-new">Mas reciente</option>
+          <option value="date-old">Mas antiguo</option>
+        </select>
+      </div>
       <div class="project-list" id="projectList"></div>
       <div class="sidebar-footer">
+        <div class="app-credit">Made by <b>PokeJgamer</b></div>
         <button class="donate-btn" id="donateBtn" title="Apoya el proyecto">
           <span class="donate-icon">&#9829;</span> Donar
         </button>
@@ -148,7 +160,6 @@
               <div class="obs-url">
                 <code id="obsUrl">-</code>
                 <button class="btn-secondary" id="copyUrlBtn">Copiar</button>
-                <button class="btn-secondary" id="openUrlBtn">Abrir</button>
               </div>
               <p class="hint">En OBS: Fuente de navegador &rarr; Pegar URL &rarr; 1920x1080</p>
             </section>

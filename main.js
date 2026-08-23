@@ -324,6 +324,8 @@ ipcMain.handle('get-overlay-url', (event, projectId) => {
   return `http://127.0.0.1:${overlayPort}/overlay/${projectId}`;
 });
 
+ipcMain.handle('get-port', () => overlayPort);
+
 // Styles
 ipcMain.handle('get-styles', () => scanSprites(SPRITES_ROOT));
 ipcMain.handle('refresh-styles', () => scanSprites(SPRITES_ROOT));

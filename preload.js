@@ -11,6 +11,7 @@ window.api = {
 
   getTeam: (projectId) => ipcRenderer.invoke('get-team', projectId),
   getOverlayUrl: (projectId) => ipcRenderer.invoke('get-overlay-url', projectId),
+  getPort: () => ipcRenderer.invoke('get-port'),
 
   getStyles: () => ipcRenderer.invoke('get-styles'),
   refreshStyles: () => ipcRenderer.invoke('refresh-styles'),

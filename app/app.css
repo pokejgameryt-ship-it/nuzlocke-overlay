@@ -76,6 +76,62 @@ body {
 .project-item:hover { background: #1e1e35; color: #e0e0e0; }
 .project-item.active { background: #1e1e35; color: #e94560; font-weight: 600; }
 
+.sidebar-search {
+  padding: 0 8px 4px 8px;
+}
+
+.project-search-input {
+  width: 100%;
+  padding: 7px 10px;
+  background: #0f0f1a;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.project-search-input:focus {
+  border-color: #e94560;
+}
+
+.project-search-input::placeholder {
+  color: #555;
+}
+
+.sidebar-sort {
+  padding: 0 8px 6px 8px;
+}
+
+.project-sort-select {
+  width: 100%;
+  padding: 5px 8px;
+  background: #0f0f1a;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  color: #a0a0a0;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+}
+
+.project-sort-select:focus {
+  border-color: #e94560;
+}
+
+.app-credit {
+  text-align: center;
+  font-size: 10px;
+  color: #555;
+  padding: 6px 0 4px 0;
+  letter-spacing: 0.3px;
+}
+
+.app-credit b {
+  color: #e94560;
+}
+
 .sidebar-footer {
   padding: 8px;
   border-top: 1px solid #2a2a40;
@@ -367,12 +423,21 @@ select {
   color: #444;
   font-size: 11px;
   margin-top: 8px;
+  overflow: hidden;
 }
 
 .sprite-preview img {
   max-height: 80px;
+  max-width: 90%;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+}
+
+.sprite-preview .preview-label {
+  font-size: 10px;
+  color: #555;
+  margin-top: 4px;
+  text-align: center;
 }
 
 /* ===== CANVAS ===== */
@@ -744,6 +809,7 @@ select {
 .btn-settings {
   font-size: 16px;
   color: #a0a0c0;
+  background: #1e1e35;
   border: 1px solid #4a4a6a;
 }
 .btn-settings:hover {

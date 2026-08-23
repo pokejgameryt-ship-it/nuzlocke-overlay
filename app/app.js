@@ -14,6 +14,8 @@
   const MAX_HISTORY = 80;
   let currentTeam = [];
   let currentLang = 'es';
+  let projectSearchQuery = '';
+  let projectSortMode = 'name-asc';
 
   function showModal(title, defaultValue) {
     return new Promise(resolve => {
@@ -142,7 +144,24 @@
   function renderProjectList() {
     const list = $('#projectList');
     list.innerHTML = '';
-    projects.forEach(p => {
+
+    let filtered = projects;
+    if (projectSearchQuery) {
+      const q = projectSearchQuery.toLowerCase();
+      filtered = projects.filter(p => (p.name || 'Sin nombre').toLowerCase().includes(q));
+    }
+
+    const sorted = [...filtered].sort((a, b) => {
+      switch (projectSortMode) {
+        case 'name-asc': return (a.name || '').localeCompare(b.name || '');
+        case 'name-desc': return (b.name || '').localeCompare(a.name || '');
+        case 'date-new': return (b.createdAt || 0) - (a.createdAt || 0);
+        case 'date-old': return (a.createdAt || 0) - (b.createdAt || 0);
+        default: return 0;
+      }
+    });
+
+    sorted.forEach(p => {
       const el = document.createElement('div');
       el.className = 'project-item' + (p.id === currentId ? ' active' : '');
       el.textContent = p.name || 'Sin nombre';
@@ -175,6 +194,7 @@
 
     populateGameSelect(project.game);
     populateStyleSelect(project.spriteStyle);
+    updateSpritePreview(project.spriteStyle, project.spriteStylePath);
     loadNicknameStyle(project.nicknameStyle);
     updateObsUrl();
     await refreshTeam();
@@ -283,6 +303,42 @@
     if (!currentId) return;
     const url = await window.api.getOverlayUrl(currentId);
     $('#obsUrl').textContent = url || 'Iniciando servidor...';
+  }
+
+  async function updateSpritePreview(styleId, stylePath) {
+    const preview = $('#spritePreview');
+    if (!preview || !styleId) {
+      if (preview) preview.innerHTML = '<p>Selecciona un estilo</p>';
+      return;
+    }
+    let port = 19876;
+    try { port = await window.api.getPort(); } catch(e) {}
+    const baseUrl = `http://127.0.0.1:${port}/sprites`;
+    const relPath = stylePath || styleId;
+    const tryUrls = [
+      `${baseUrl}/${relPath}/025.png`,
+      `${baseUrl}/${relPath}/0025.png`,
+      `${baseUrl}/${relPath}/25.png`,
+      `${baseUrl}/${relPath}/025.webp`,
+      `${baseUrl}/${relPath}/0025.webp`,
+    ];
+    let tried = 0;
+    function tryNext() {
+      if (tried >= tryUrls.length) {
+        preview.innerHTML = `<div style="color:#555;font-size:11px;">Preview no disponible</div><div class="preview-label">${styleId}</div>`;
+        return;
+      }
+      const url = tryUrls[tried] + '?_t=' + Date.now();
+      tried++;
+      const img = new Image();
+      img.onload = () => { preview.innerHTML = ''; preview.appendChild(img); const lbl = document.createElement('div'); lbl.className = 'preview-label'; lbl.textContent = `Pikachu (#025) - ${styleId}`; preview.appendChild(lbl); };
+      img.onerror = tryNext;
+      img.src = url;
+      img.alt = 'Pikachu preview';
+      img.style.maxHeight = '80px';
+      img.style.imageRendering = 'pixelated';
+    }
+    tryNext();
   }
 
   function getDefaultSlots() {
@@ -940,11 +996,21 @@
     });
 
     $('#addProjectBtn').addEventListener('click', async () => {
-      const project = await window.api.createProject({ name: 'Nuevo Nuzlocke' });
+      const project = await window.api.createProject({ name: 'Nuevo Nuzlocke', createdAt: Date.now() });
       projects.push(project);
       currentId = project.id;
       renderProjectList();
       selectProject(project.id);
+    });
+
+    $('#projectSearch').addEventListener('input', (e) => {
+      projectSearchQuery = e.target.value;
+      renderProjectList();
+    });
+
+    $('#projectSort').addEventListener('change', (e) => {
+      projectSortMode = e.target.value;
+      renderProjectList();
     });
 
     $('#donateBtn').addEventListener('click', () => {
@@ -1016,6 +1082,7 @@
       project.spriteStyle = e.target.value;
       project.spriteStylePath = opt ? opt.dataset.path : '';
       await saveProject();
+      updateSpritePreview(project.spriteStyle, project.spriteStylePath);
     });
 
     $('#showNames').addEventListener('change', async (e) => {
@@ -1059,11 +1126,6 @@
         $('#copyUrlBtn').textContent = 'Copiado!';
         setTimeout(() => $('#copyUrlBtn').textContent = 'Copiar', 1200);
       }
-    });
-
-    $('#openUrlBtn').addEventListener('click', async () => {
-      const url = $('#obsUrl').textContent;
-      if (url && url !== '-') await window.api.openExternal(url);
     });
 
     $('#resetLayoutBtn').addEventListener('click', async () => {
