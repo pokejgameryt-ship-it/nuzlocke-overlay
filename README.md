@@ -90,8 +90,8 @@ Doble clic en `NuzlockeOverlay.exe`
 | **Gen 5** | Blanco, Negro, Blanco 2, Negro 2 | NDS | DeSmuME, melonDS, ... |
 | **Gen 6** | X, Y, Rubi Omega, Zafiro Alfa | 3DS | Citra |
 | **Gen 7** | Sol, Luna, Ultra Sol, Ultra Luna | 3DS | Citra |
-| **Gen 8** | Espada, Escudo, Brilliant Diamond, Shining Pearl | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
-| **Gen 9** | Escarlata, Púrpura | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
+| **Gen 8** | Espada, Escudo, Brilliant Diamond, Shining Pearl, Legends Arceus | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
+| **Gen 9** | Escarlata, Púrpura, Legends Z-A | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
 
 > La deteccion del juego es automatica. Si falla, selecciona el juego manualmente en el selector.
 
