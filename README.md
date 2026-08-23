@@ -32,51 +32,51 @@ Ideal para **streamers de Twitch y YouTube** que hacen runs Nuzlocke y quieren m
 
 ---
 
-## Instalacion rapida (1 minuto)
+## Instalacion rapida
 
-### Opcion 1: Instalador automatico (recomendado)
+### Opcion 1: Instalador automatico
 
-1. Descarga `setup.bat` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
-2. Ejecuta `setup.bat` (descarga el exe, .NET Runtime y sprites automaticamente)
-3. Ejecuta `NuzlockeOverlay.exe`
-
-> **Nota sobre los sprites (MEGA):** Los sprites ocupan ~2.2 GB y no caben en GitHub. El instalador los descarga automaticamente desde MEGA usando `megacmd`.
-> **Solo la primera vez:** Necesitas instalar megacmd (ver instrucciones abajo). Despues, `setup.bat` hace todo solo: descarga exe + .NET Runtime + sprites + crea acceso directo.
-
-### Opcion 2: Descarga directa
-
-1. Descarga `NuzlockeOverlay.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
-2. Necesitas tambien la carpeta `Recursos/Sprites/` con los sprites de Pokemon
-3. Coloca el exe junto a la carpeta `Recursos/` (misma carpeta)
+1. Descarga `Instalador-Windows.bat` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
+2. Ejecutalo (descarga el exe y .NET Runtime automaticamente)
+3. Descarga los sprites manualmente (ver paso 2 abajo)
 4. Ejecuta `NuzlockeOverlay.exe`
+
+### Opcion 2: Instalacion manual (paso a paso)
+
+**Paso 1 - Descargar el exe:**
+Descarga `NuzlockeOverlay.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
+
+**Paso 2 - Descargar los sprites (~2.2 GB):**
+Los sprites estan en MEGA porque no caben en GitHub:
+1. Abre el enlace: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
+2. Descarga toda la carpeta `Recursos`
+3. Extrae el zip
+4. Coloca la carpeta `Recursos` junto al exe (misma carpeta)
+
+La estructura debe ser:
+```
+C:\Users\TU_USUARIO\AppData\Local\NuzlockeOverlay\
+├── NuzlockeOverlay.exe
+└── Recursos\
+    └── Sprites\
+        ├── Gen1\
+        ├── Gen2\
+        ├── ...
+        └── Gen9\
+```
+
+**Paso 3 - Instalar .NET 8.0 Runtime:**
+Si no lo tienes, descargalo desde: https://dotnet.microsoft.com/download/dotnet/8.0
+(El instalador automatico lo instala solo)
+
+**Paso 4 - Ejecutar:**
+Doble clic en `NuzlockeOverlay.exe`
 
 ### Requisitos
 
 - **Windows 10/11** (x64)
-- **.NET 8.0 Runtime** (el instalador lo descarga automaticamente)
+- **.NET 8.0 Runtime** (necesario para PKHeX)
 - **OBS Studio** (para el overlay)
-
----
-
-### Configuracion de MEGA (solo primera vez)
-
-El instalador usa MEGA para descargar la carpeta `Recursos/Sprites/` (~2.2 GB). Necesitas `megacmd` instalado:
-
-1. **Instala megacmd:** Descarga desde <https://mega.io/cmd> (elige Windows x64)
-2. **Reinicia la terminal** (cmd/PowerShell) despues de instalar
-3. **Inicia sesion en MEGA:**
-   ```cmd
-   mega-login TU_EMAIL TU_PASSWORD
-   ```
-   (Solo se hace una vez. La sesion persiste entre reinicios)
-
-4. **Ejecuta `setup.bat`** — Ahora descargara todo automaticamente:
-   - `NuzlockeOverlay.exe` (desde GitHub Releases)
-   - `.NET 8.0 Runtime` (si no esta instalado)
-   - `Recursos/Sprites/` (desde MEGA, extrae y limpia)
-   - Acceso directo en el escritorio
-
-> **No quieres usar MEGA?** Descarga manualmente la carpeta `Recursos` desde MEGA y colocalas junto al exe. El instalador detectara que ya existe y no la descargara.
 
 ---
 
