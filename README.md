@@ -1,11 +1,15 @@
 <p align="center">
-  <img src="logo.png" alt="Nuzlocke Overlay" width="200">
+  <img src="logo.png" alt="Nuzlocke Overlay - OBS Pokemon Overlay for Nuzlocke Runs" width="200">
 </p>
 
 <h1 align="center">Nuzlocke Overlay</h1>
 
 <p align="center">
   <b>Overlay para OBS con seguimiento en tiempo real de tu equipo Pokemon en runs Nuzlocke</b>
+</p>
+
+<p align="center">
+  <i>Pokemon Nuzlocke overlay for OBS | Real-time team tracker | Gen 1-9 support | PKHeX integration | Sprite styles | Multi-language</i>
 </p>
 
 <p align="center">
@@ -20,9 +24,11 @@
 
 ## Que es Nuzlocke Overlay?
 
-Una aplicacion de escritorio para Windows que detecta automaticamente el equipo de Pokemon de tu partida guardada y muestra los sprites en un overlay para OBS Browser Source. Ideal para streamers y creadores de contenido que hacen runs Nuzlocke.
+Nuzlocke Overlay es una aplicacion de escritorio para Windows que funciona como **overlay para OBS** con **seguimiento en tiempo real** del equipo de Pokemon en runs Nuzlocke. Detecta automaticamente tu save file y muestra los sprites de tu equipo en un **Browser Source de OBS**.
 
-**Soporte completo para todas las generaciones: Gen 1 a Gen 9** mediante PKHeX (la libreria estandar de Pokemon) con parser nativo como fallback.
+Ideal para **streamers de Twitch y YouTube** que hacen runs Nuzlocke y quieren mostrar su equipo en pantalla. Compatible con **todos los emuladores** (mGBA, DeSmuME, Citra, Yuzu, etc.) y todas las generaciones de Pokemon.
+
+**Soporte completo: Gen 1 a Gen 9** mediante PKHeX (la libreria estandar de Pokemon) con parser nativo como fallback.
 
 ---
 
