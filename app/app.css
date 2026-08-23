@@ -431,13 +431,7 @@ select {
   max-width: 90%;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-}
-
-.sprite-preview .preview-label {
-  font-size: 10px;
-  color: #555;
-  margin-top: 4px;
-  text-align: center;
+  display: block;
 }
 
 /* ===== CANVAS ===== */
@@ -875,6 +869,62 @@ select {
   font-size: 11px;
   color: #666;
   margin-top: 2px;
+}
+
+.settings-row-tutorial {
+  align-items: flex-start;
+}
+
+.btn-tutorial {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #e94560, #c23152);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-tutorial:hover {
+  background: linear-gradient(135deg, #ff6b81, #e94560);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(233, 69, 96, 0.3);
+}
+
+.social-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #0f0f1a;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  color: #a0a0a0;
+  text-decoration: none;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.social-link:hover {
+  background: #1e1e35;
+  color: #e94560;
+  border-color: #e94560;
+}
+
+.social-link svg {
+  flex-shrink: 0;
 }
 
 /* ===== HELP PANEL ===== */

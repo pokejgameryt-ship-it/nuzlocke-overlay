@@ -12,27 +12,27 @@
       <div class="sidebar-header">
         <h1>Nuzlocke</h1>
         <div class="sidebar-actions">
-          <button class="btn-icon btn-settings" id="settingsBtn" title="Configuracion">&#9881;</button>
-          <button class="btn-icon btn-help" id="helpBtn" title="Ayuda">?</button>
-          <button class="btn-icon" id="addProjectBtn" title="Nuevo proyecto">+</button>
+          <button class="btn-icon btn-settings" id="settingsBtn" data-i18n-title="settings">&#9881;</button>
+          <button class="btn-icon btn-help" id="helpBtn" data-i18n-title="help">?</button>
+          <button class="btn-icon" id="addProjectBtn" data-i18n-title="newProject">+</button>
         </div>
       </div>
       <div class="sidebar-search">
-        <input type="text" id="projectSearch" placeholder="Buscar proyecto..." class="project-search-input">
+        <input type="text" id="projectSearch" data-i18n-placeholder="search" class="project-search-input">
       </div>
       <div class="sidebar-sort">
         <select id="projectSort" class="project-sort-select">
-          <option value="name-asc">Nombre A-Z</option>
-          <option value="name-desc">Nombre Z-A</option>
-          <option value="date-new">Mas reciente</option>
-          <option value="date-old">Mas antiguo</option>
+          <option value="name-asc" data-i18n="sortNameAsc">Nombre A-Z</option>
+          <option value="name-desc" data-i18n="sortNameDesc">Nombre Z-A</option>
+          <option value="date-new" data-i18n="sortDateNew">Mas reciente</option>
+          <option value="date-old" data-i18n="sortDateOld">Mas antiguo</option>
         </select>
       </div>
       <div class="project-list" id="projectList"></div>
       <div class="sidebar-footer">
         <div class="app-credit">Made by <b>PokeJgamer</b></div>
-        <button class="donate-btn" id="donateBtn" title="Apoya el proyecto">
-          <span class="donate-icon">&#9829;</span> Donar
+        <button class="donate-btn" id="donateBtn" data-i18n-title="donateTitle">
+          <span class="donate-icon">&#9829;</span> <span data-i18n="donate">Donar</span>
         </button>
       </div>
     </aside>
@@ -40,67 +40,67 @@
     <main class="content" id="content">
       <div class="empty-state" id="emptyState">
         <div class="empty-icon"> Pokemon </div>
-        <p>Crea un proyecto para empezar</p>
+        <p data-i18n="emptyState">Crea un proyecto para empezar</p>
       </div>
 
       <div class="editor" id="editor" style="display:none">
         <div class="editor-header">
-          <input type="text" id="projectName" class="title-input" placeholder="Nombre del proyecto">
+          <input type="text" id="projectName" class="title-input" data-i18n-placeholder="projectName">
           <div class="header-actions">
-            <button class="btn-danger" id="deleteProjectBtn">Eliminar</button>
+            <button class="btn-danger" id="deleteProjectBtn" data-i18n="delete">Eliminar</button>
           </div>
         </div>
 
         <div class="editor-body">
           <div class="panel-left">
             <section class="card">
-              <h3>Guardar</h3>
+              <h3 data-i18n="saveFile">Guardar</h3>
               <div class="field">
-                <label>Ruta del save file</label>
+                <label data-i18n="saveFileLabel">Ruta del save file</label>
                 <div class="field-row">
                   <input type="text" id="savePath" placeholder="C:\...\pokemon.sav" readonly>
-                  <button class="btn-secondary" id="browseBtn">Examinar</button>
+                  <button class="btn-secondary" id="browseBtn" data-i18n="browse">Examinar</button>
                 </div>
               </div>
               <div class="field">
-                <label>Juego / Generacion</label>
+                <label data-i18n="gameGen">Juego / Generacion</label>
                 <select id="gameSelect"></select>
               </div>
             </section>
 
             <section class="card">
               <div class="card-header-row">
-                <h3>Equipo Detectado</h3>
+                <h3 data-i18n="teamDetected">Equipo Detectado</h3>
               </div>
-              <div class="team-status empty" id="teamStatus">Sin equipo detectado</div>
+              <div class="team-status empty" id="teamStatus" data-i18n="noTeam">Sin equipo detectado</div>
             </section>
 
             <section class="card">
-              <h3>Estilo de Sprite</h3>
+              <h3 data-i18n="spriteStyle">Estilo de Sprite</h3>
               <div class="field">
                 <select id="styleSelect"></select>
               </div>
               <div class="sprite-preview" id="spritePreview">
-                <p>Selecciona un estilo</p>
+                <p data-i18n="selectStyle">Selecciona un estilo</p>
               </div>
             </section>
 
             <section class="card">
-              <h3>Opciones</h3>
+              <h3 data-i18n="options">Opciones</h3>
               <label class="checkbox-label">
                 <input type="checkbox" id="showNames" checked>
-                Mostrar nombres / motes
+                <span data-i18n="showNames">Mostrar nombres / motes</span>
               </label>
               <label class="checkbox-label" style="margin-top:8px">
                 <input type="checkbox" id="usePlaceholder">
-                Rellenar slots vacios
+                <span data-i18n="usePlaceholder">Rellenar slots vacios</span>
               </label>
             </section>
 
             <section class="card" id="nicknameStyleCard">
-              <h3>Estilo de Nickname</h3>
+              <h3 data-i18n="nicknameStyle">Estilo de Nickname</h3>
               <div class="field">
-                <label>Fuente</label>
+                <label data-i18n="font">Fuente</label>
                 <select id="nicknameFont"></select>
               </div>
               <div class="field-row" style="margin-bottom:8px">
@@ -108,73 +108,73 @@
                 <label class="checkbox-label small"><input type="checkbox" id="nicknameItalic"> <i>K</i></label>
               </div>
               <div class="field">
-                <label>Color del texto</label>
+                <label data-i18n="textColor">Color del texto</label>
                 <select id="nicknameColorMode">
-                  <option value="solid">Solido</option>
-                  <option value="linear">Degradado lineal</option>
-                  <option value="radial">Degradado radial</option>
+                  <option value="solid" data-i18n="solid">Solido</option>
+                  <option value="linear" data-i18n="linearGrad">Degradado lineal</option>
+                  <option value="radial" data-i18n="radialGrad">Degradado radial</option>
                 </select>
               </div>
               <div class="field" id="nicknameSolidColorField">
-                <label>Color</label>
+                <label data-i18n="color">Color</label>
                 <input type="color" id="nicknameColor" value="#ffffff" class="color-input">
               </div>
               <div id="nicknameGradientFields" style="display:none">
                 <div class="field-row" style="margin-bottom:8px">
                   <div class="field" style="flex:1">
-                    <label>Color 1</label>
+                    <label data-i18n="color">Color 1</label>
                     <input type="color" id="nicknameGradColor1" value="#ffffff" class="color-input">
                   </div>
                   <div class="field" style="flex:1">
-                    <label>Color 2</label>
+                    <label data-i18n="color">Color 2</label>
                     <input type="color" id="nicknameGradColor2" value="#000000" class="color-input">
                   </div>
                 </div>
                 <div class="field" id="nicknameAngleField">
-                  <label>Angulo: <span id="nicknameAngleVal">0</span>°</label>
+                  <label><span data-i18n="angle">Angulo</span>: <span id="nicknameAngleVal">0</span>°</label>
                   <input type="range" id="nicknameAngle" min="0" max="360" value="0" class="range-input">
                 </div>
               </div>
               <div class="field">
-                <label>Trazo</label>
+                <label data-i18n="stroke">Trazo</label>
                 <div class="field-row" style="margin-bottom:6px">
                   <div class="field" style="flex:1">
-                    <label>Grosor</label>
+                    <label data-i18n="strokeWidth">Grosor</label>
                     <input type="number" id="nicknameStrokeWidth" value="2" min="0" max="20" class="prop-input">
                   </div>
                   <div class="field" style="flex:1">
-                    <label>Color</label>
+                    <label data-i18n="color">Color</label>
                     <input type="color" id="nicknameStrokeColor" value="#000000" class="color-input">
                   </div>
                 </div>
                 <select id="nicknameStrokePos">
-                  <option value="exterior">Exterior</option>
-                  <option value="center">Centrico</option>
-                  <option value="interior">Interior</option>
+                  <option value="exterior" data-i18n="strokeExterior">Exterior</option>
+                  <option value="center" data-i18n="strokeCenter">Centrico</option>
+                  <option value="interior" data-i18n="strokeInterior">Interior</option>
                 </select>
               </div>
             </section>
 
             <section class="card">
-              <h3>URL de OBS</h3>
+              <h3 data-i18n="obsUrl">URL de OBS</h3>
               <div class="obs-url">
                 <code id="obsUrl">-</code>
-                <button class="btn-secondary" id="copyUrlBtn">Copiar</button>
+                <button class="btn-secondary" id="copyUrlBtn" data-i18n="copy">Copiar</button>
               </div>
-              <p class="hint">En OBS: Fuente de navegador &rarr; Pegar URL &rarr; 1920x1080</p>
+              <p class="hint" data-i18n-hint="obsHint">En OBS: Fuente de navegador &rarr; Pegar URL &rarr; 1920x1080</p>
             </section>
           </div>
 
           <div class="panel-right">
             <section class="card card-canvas">
               <div class="card-header-row">
-                <h3>Layout Editor</h3>
+                <h3 data-i18n="layoutEditor">Layout Editor</h3>
                 <div class="canvas-actions">
-                  <button class="btn-small" id="undoBtn" title="Ctrl+Z">Undo</button>
-                  <button class="btn-small" id="redoBtn" title="Ctrl+Shift+Z">Redo</button>
+                  <button class="btn-small" id="undoBtn" title="Ctrl+Z" data-i18n="undo">Undo</button>
+                  <button class="btn-small" id="redoBtn" title="Ctrl+Shift+Z" data-i18n="redo">Redo</button>
                   <span class="separator"></span>
-                  <button class="btn-small" id="resetLayoutBtn">Reset</button>
-                  <button class="btn-small" id="equalSpacingBtn">Espaciado</button>
+                  <button class="btn-small" id="resetLayoutBtn" data-i18n="reset">Reset</button>
+                  <button class="btn-small" id="equalSpacingBtn" data-i18n="spacing">Espaciado</button>
                   <label class="checkbox-label small"><input type="checkbox" id="snapToggle" checked> Snap</label>
                   <button class="btn-small btn-camera" id="cameraToggleBtn">Cam</button>
                   <select id="cameraSelect" class="camera-select" style="display:none"></select>
@@ -224,15 +224,15 @@
 
       <div class="help-panel" id="helpPanel" style="display:none">
         <div class="help-header">
-          <h2>Ayuda</h2>
+          <h2 data-i18n="helpTitle">Ayuda</h2>
           <button class="btn-icon" id="closeHelpBtn">&times;</button>
         </div>
         <div class="help-search">
-          <input type="text" id="helpSearch" placeholder="Buscar..." class="help-search-input">
+          <input type="text" id="helpSearch" data-i18n-placeholder="search" class="help-search-input">
         </div>
         <div class="help-topics" id="helpTopics">
           <div class="help-topic" data-keywords="obs browser source url enlace overlay">
-            <h3 class="help-topic-title">Configurar en OBS</h3>
+            <h3 class="help-topic-title" data-i18n="helpObs">Configurar en OBS</h3>
             <div class="help-topic-content">
               <ol>
                 <li>En OBS, haz clic en <b>+</b> en Fuentes</li>
@@ -246,7 +246,7 @@
           </div>
 
           <div class="help-topic" data-keywords="proyecto save file guardado ruta crear nuevo">
-            <h3 class="help-topic-title">Crear un proyecto</h3>
+            <h3 class="help-topic-title" data-i18n="helpProject">Crear un proyecto</h3>
             <div class="help-topic-content">
               <ol>
                 <li>Haz clic en el boton <b>+</b> de la barra lateral</li>
@@ -262,7 +262,7 @@
           </div>
 
           <div class="help-topic" data-keywords="parser pkhex save lectura decrypt desencriptar generacion gen1 gen2 gen3 gen4 gen5 gen6 gen7 gen8 gen9">
-            <h3 class="help-topic-title">Lectura de saves (PKHeX)</h3>
+            <h3 class="help-topic-title" data-i18n="helpSaves">Lectura de saves (PKHeX)</h3>
             <div class="help-topic-content">
               <p>La app usa <b>PKHeX</b> (la libreria estandar de Pokemon) para leer los saves. Esto garantiza compatibilidad con casi todos los emuladores y formatos.</p>
               <p><b>Juegos soportados (Gen 1 - Gen 9):</b></p>
@@ -282,7 +282,7 @@
           </div>
 
           <div class="help-topic" data-keywords="sprite estilo carpeta recursos imagen png gif">
-            <h3 class="help-topic-title">Estilos de sprite</h3>
+            <h3 class="help-topic-title" data-i18n="helpSprites">Estilos de sprite</h3>
             <div class="help-topic-content">
               <p>Los sprites se cargan automaticamente de la carpeta <b>Recursos/Sprites/</b>.</p>
               <p>Para anadir un nuevo estilo:</p>
@@ -304,7 +304,7 @@
           </div>
 
           <div class="help-topic" data-keywords="placeholder rellenar vacio empty slot hueco">
-            <h3 class="help-topic-title">Rellenar slots vacios</h3>
+            <h3 class="help-topic-title" data-i18n="helpPlaceholder">Rellenar slots vacios</h3>
             <div class="help-topic-content">
               <p>Si tu equipo tiene menos de 6 Pokemon, puedes rellenar los slots vacios con un sprite placeholder.</p>
               <ul>
@@ -317,7 +317,7 @@
           </div>
 
           <div class="help-topic" data-keywords="nickname mote apodo nombre texto fuente color stroke trazo">
-            <h3 class="help-topic-title">Personalizar nicknames</h3>
+            <h3 class="help-topic-title" data-i18n="helpNicknames">Personalizar nicknames</h3>
             <div class="help-topic-content">
               <p>En la seccion <b>"Estilo de Nickname"</b> puedes configurar:</p>
               <ul>
@@ -331,7 +331,7 @@
           </div>
 
           <div class="help-topic" data-keywords="layout editor canvas posicion tamano drag drop mover snap guia alinear">
-            <h3 class="help-topic-title">Layout Editor</h3>
+            <h3 class="help-topic-title" data-i18n="helpLayout">Layout Editor</h3>
             <div class="help-topic-content">
               <p>El editor de layout te permite posicionar los sprites y nicknames en un lienzo de 1920x1080.</p>
               <ul>
@@ -350,7 +350,7 @@
           </div>
 
           <div class="help-topic" data-keywords="presets guardado cargar guardar layout template">
-            <h3 class="help-topic-title">Presets de layout</h3>
+            <h3 class="help-topic-title" data-i18n="helpPresets">Presets de layout</h3>
             <div class="help-topic-content">
               <p>Los presets permiten guardar y reutilizar configuraciones de layout.</p>
               <ul>
@@ -363,7 +363,7 @@
           </div>
 
           <div class="help-topic" data-keywords="configuracion settings idioma modo segundo plano background tray">
-            <h3 class="help-topic-title">Configuracion</h3>
+            <h3 class="help-topic-title" data-i18n="helpSettings">Configuracion</h3>
             <div class="help-topic-content">
               <p>Haz clic en el icono de engranaje para acceder a la configuracion:</p>
               <ul>
@@ -374,7 +374,7 @@
           </div>
 
           <div class="help-topic" data-keywords="error problema no detecta no funciona bug troubleshoot solucionar">
-            <h3 class="help-topic-title">Solucion de problemas</h3>
+            <h3 class="help-topic-title" data-i18n="helpTroubleshoot">Solucion de problemas</h3>
             <div class="help-topic-content">
               <div class="help-faq">
                 <p><b>"No se detecta el equipo"</b></p>
@@ -411,7 +411,7 @@
           </div>
 
           <div class="help-topic" data-keywords="atajo teclado keyboard shortcut hotkey ctrl">
-            <h3 class="help-topic-title">Atajos de teclado</h3>
+            <h3 class="help-topic-title" data-i18n="helpShortcuts">Atajos de teclado</h3>
             <div class="help-topic-content">
               <table class="help-shortcuts">
                 <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Deshacer</td></tr>
@@ -425,7 +425,7 @@
           </div>
 
           <div class="help-topic" data-keywords="emulador emulator mGBA VBA desmume melonDS citra yuzu ryujinx">
-            <h3 class="help-topic-title">Emuladores recomendados</h3>
+            <h3 class="help-topic-title" data-i18n="helpEmulators">Emuladores recomendados</h3>
             <div class="help-topic-content">
               <p>Para mejores resultados, usa estos emuladores:</p>
               <table class="help-shortcuts">
@@ -444,47 +444,71 @@
 
       <div class="settings-panel" id="settingsPanel" style="display:none">
         <div class="settings-header">
-          <h2>Configuracion</h2>
+          <h2 data-i18n="settingsTitle">Configuracion</h2>
           <button class="btn-icon" id="closeSettingsBtn">&times;</button>
         </div>
         <div class="settings-body">
           <div class="settings-group">
-            <div class="settings-group-title">Idioma / Language</div>
+            <div class="settings-group-title" data-i18n="langGroup">Idioma / Language</div>
             <div class="settings-row">
               <div>
-                <div class="settings-label">Idioma de la app</div>
-                <div class="settings-desc">Cambia el idioma de la interfaz</div>
+                <div class="settings-label" data-i18n="langLabel">Idioma de la app</div>
+                <div class="settings-desc" data-i18n="langDesc">Cambia el idioma de la interfaz</div>
               </div>
               <select id="settingsLanguage" style="width:140px">
                 <option value="es">Espanol</option>
                 <option value="en">English</option>
+                <option value="fr">Francais</option>
+                <option value="de">Deutsch</option>
+                <option value="ja">Nihongo</option>
+                <option value="ru">Russkiy</option>
               </select>
             </div>
           </div>
           <div class="settings-group">
-            <div class="settings-group-title">Comportamiento</div>
+            <div class="settings-group-title" data-i18n="behaviorGroup">Comportamiento</div>
             <div class="settings-row">
               <div>
-                <div class="settings-label">Modo en segundo plano</div>
-                <div class="settings-desc">Mantener la app en la bandeja del sistema al cerrar</div>
+                <div class="settings-label" data-i18n="bgMode">Modo en segundo plano</div>
+                <div class="settings-desc" data-i18n="bgDesc">Mantener la app en la bandeja del sistema al cerrar</div>
               </div>
               <label class="toggle-switch">
                 <input type="checkbox" id="settingsBackground" checked>
                 <span class="toggle-slider"></span>
               </label>
             </div>
-            <div class="settings-row">
+          </div>
+          <div class="settings-group">
+            <div class="settings-group-title" data-i18n="tutorialGroup">Tutorial</div>
+            <div class="settings-row settings-row-tutorial">
               <div>
-                <div class="settings-label">Mostrar tutorial al inicio</div>
-                <div class="settings-desc">Ejecutar la guia interactiva automaticamente al abrir la app</div>
+                <div class="settings-label" data-i18n="tutorialLabel">Tutorial guiado</div>
+                <div class="settings-desc" data-i18n="tutorialDesc">Guia paso a paso para configurar tu overlay: crear proyecto, elegir save file, estilo de sprites, layout y OBS.</div>
               </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="settingsShowTutorial" checked>
-                <span class="toggle-slider"></span>
-              </label>
+              <button class="btn-tutorial" id="settingsStartTour" data-i18n="startTour">Iniciar tutorial</button>
             </div>
-            <div class="settings-row">
-              <button class="btn-small" id="settingsStartTour">Iniciar tutorial guiado</button>
+          </div>
+          <div class="settings-group">
+            <div class="settings-group-title" data-i18n="creatorGroup">Creador / Creator</div>
+            <div class="settings-row settings-row-socials">
+              <div class="social-links">
+                <a href="https://www.twitch.tv/pokejgamer" target="_blank" class="social-link" title="Twitch">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+                  <span>Twitch</span>
+                </a>
+                <a href="https://www.youtube.com/channel/UCY-yUwAx1C0ApRHWKdo8o0Q" target="_blank" class="social-link" title="YouTube">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12z"/></svg>
+                  <span>YouTube</span>
+                </a>
+                <a href="https://www.tiktok.com/@pokejgamer" target="_blank" class="social-link" title="TikTok">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+                  <span>TikTok</span>
+                </a>
+                <a href="https://discord.gg/upbhwavQas" target="_blank" class="social-link" title="Discord">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                  <span>Discord</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -493,11 +517,11 @@
   </div>
   <div class="modal-overlay" id="modalOverlay" style="display:none">
     <div class="modal-box">
-      <h3 id="modalTitle">Nombre del preset</h3>
-      <input type="text" id="modalInput" class="modal-input" placeholder="Escribe un nombre...">
+      <h3 id="modalTitle" data-i18n="modalPresetName">Nombre del preset</h3>
+      <input type="text" id="modalInput" class="modal-input" data-i18n-placeholder="modalPresetPlaceholder">
       <div class="modal-actions">
-        <button class="btn-secondary" id="modalCancel">Cancelar</button>
-        <button class="btn-primary" id="modalOk">Aceptar</button>
+        <button class="btn-secondary" id="modalCancel" data-i18n="modalCancel">Cancelar</button>
+        <button class="btn-primary" id="modalOk" data-i18n="modalOk">Aceptar</button>
       </div>
     </div>
   </div>
@@ -529,14 +553,15 @@
         <div class="tour-popover-progress-bar" id="tourProgressBar"></div>
       </div>
       <div class="tour-popover-actions">
-        <button class="btn-secondary tour-skip-btn" id="tourSkipStep">Saltar este paso</button>
-        <button class="btn-secondary tour-prev-btn" id="tourPrev" style="display:none">Anterior</button>
-        <button class="btn-primary tour-next-btn" id="tourNext">Siguiente</button>
+        <button class="btn-secondary tour-skip-btn" id="tourSkipStep" data-i18n="tourSkip">Saltar este paso</button>
+        <button class="btn-secondary tour-prev-btn" id="tourPrev" style="display:none" data-i18n="tourPrev">Anterior</button>
+        <button class="btn-primary tour-next-btn" id="tourNext" data-i18n="tourNext">Siguiente</button>
       </div>
       <button class="tour-close-btn" id="tourClose" aria-label="Cerrar tutorial">&times;</button>
     </div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

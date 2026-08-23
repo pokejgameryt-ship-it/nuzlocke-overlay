@@ -325,13 +325,13 @@
     let tried = 0;
     function tryNext() {
       if (tried >= tryUrls.length) {
-        preview.innerHTML = `<div style="color:#555;font-size:11px;">Preview no disponible</div><div class="preview-label">${styleId}</div>`;
+        preview.innerHTML = '';
         return;
       }
       const url = tryUrls[tried] + '?_t=' + Date.now();
       tried++;
       const img = new Image();
-      img.onload = () => { preview.innerHTML = ''; preview.appendChild(img); const lbl = document.createElement('div'); lbl.className = 'preview-label'; lbl.textContent = `Pikachu (#025) - ${styleId}`; preview.appendChild(lbl); };
+      img.onload = () => { preview.innerHTML = ''; preview.appendChild(img); };
       img.onerror = tryNext;
       img.src = url;
       img.alt = 'Pikachu preview';
@@ -1328,12 +1328,8 @@
       await window.api.saveSettings({ language: lang, backgroundMode: e.target.checked });
     });
 
-    $('#settingsShowTutorial').addEventListener('change', async (e) => {
-      const lang = $('#settingsLanguage').value;
-      await window.api.saveSettings({ language: lang, backgroundMode: $('#settingsBackground').checked, showTutorial: e.target.checked });
-    });
-
     $('#settingsStartTour').addEventListener('click', () => {
+      $('#settingsPanel').style.display = 'none';
       startTour();
     });
 
@@ -1342,88 +1338,17 @@
       applyLanguage(currentLang);
       const langSel = $('#settingsLanguage');
       const bgToggle = $('#settingsBackground');
-      const tutorialToggle = $('#settingsShowTutorial');
       if (langSel) langSel.value = currentLang;
       if (bgToggle) bgToggle.checked = settings.backgroundMode !== false;
-      if (tutorialToggle) tutorialToggle.checked = settings.showTutorial !== false;
     });
   }
 
-  // ===== SETTINGS LANGUAGE SYSTEM (module scope) =====
-  const TRANSLATIONS = {
-    es: {
-      help: 'Ayuda', helpTitle: 'Ayuda',
-      search: 'Buscar...',
-      emptyState: 'Crea un proyecto para empezar',
-      newProject: 'Nuevo proyecto',
-      delete: 'Eliminar', save: 'Guardar', load: 'Cargar',
-      browse: 'Examinar', refresh: 'Refrescar', copy: 'Copiar', open: 'Abrir',
-      reset: 'Reset', undo: 'Undo', redo: 'Redo',
-      savePreset: 'Guardar', loadPreset: 'Cargar', deletePreset: 'Eliminar',
-      projectName: 'Nombre del proyecto',
-      saveFile: 'Ruta del save file',
-      gameGen: 'Juego / Generacion',
-      teamDetected: 'Equipo Detectado', noTeam: 'Sin equipo detectado',
-      spriteStyle: 'Estilo de Sprite', selectStyle: 'Selecciona un estilo',
-      options: 'Opciones', showNames: 'Mostrar nombres / motes',
-      nicknameStyle: 'Estilo de Nickname', font: 'Fuente',
-      bold: 'Negrita', italic: 'Cursiva',
-      textColor: 'Color del texto', solid: 'Solido',
-      linearGrad: 'Degradado lineal', radialGrad: 'Degradado radial',
-      color: 'Color', angle: 'Angulo', stroke: 'Trazo',
-      strokeWidth: 'Grosor', strokePos: 'Exterior', strokeCenter: 'Centrico',
-      strokeInterior: 'Interior',
-      obsUrl: 'URL de OBS',
-      obsHint: 'En OBS: Fuente de navegador -> Pegar URL -> 1920x1080',
-      layoutEditor: 'Layout Editor', espaciado: 'Espaciado',
-      preset: '-- Preset --',
-      settings: 'Configuracion', settingsTitle: 'Configuracion',
-      langLabel: 'Idioma de la app', langDesc: 'Cambia el idioma de la interfaz',
-      bgMode: 'Modo en segundo plano',
-      bgDesc: 'Mantener la app en la bandeja del sistema al cerrar',
-      languageGroup: 'Idioma / Language', behaviorGroup: 'Comportamiento',
-      helpObs: 'Configurar en OBS', helpProject: 'Crear un proyecto',
-      helpSprites: 'Estilos de sprite', helpNicknames: 'Personalizar nicknames',
-      helpLayout: 'Layout Editor', helpGames: 'Juegos compatibles',
-      helpTroubleshoot: 'Solucion de problemas', helpShortcuts: 'Atajos de teclado',
-    },
-    en: {
-      help: 'Help', helpTitle: 'Help',
-      search: 'Search...',
-      emptyState: 'Create a project to get started',
-      newProject: 'New project',
-      delete: 'Delete', save: 'Save', load: 'Load',
-      browse: 'Browse', refresh: 'Refresh', copy: 'Copy', open: 'Open',
-      reset: 'Reset', undo: 'Undo', redo: 'Redo',
-      savePreset: 'Save', loadPreset: 'Load', deletePreset: 'Delete',
-      projectName: 'Project name',
-      saveFile: 'Save file path',
-      gameGen: 'Game / Generation',
-      teamDetected: 'Detected Team', noTeam: 'No team detected',
-      spriteStyle: 'Sprite Style', selectStyle: 'Select a style',
-      options: 'Options', showNames: 'Show names / nicknames',
-      nicknameStyle: 'Nickname Style', font: 'Font',
-      bold: 'Bold', italic: 'Italic',
-      textColor: 'Text color', solid: 'Solid',
-      linearGrad: 'Linear gradient', radialGrad: 'Radial gradient',
-      color: 'Color', angle: 'Angle', stroke: 'Stroke',
-      strokeWidth: 'Width', strokePos: 'Exterior', strokeCenter: 'Center',
-      strokeInterior: 'Interior',
-      obsUrl: 'OBS URL',
-      obsHint: 'In OBS: Browser Source -> Paste URL -> 1920x1080',
-      layoutEditor: 'Layout Editor', espaciado: 'Spacing',
-      preset: '-- Preset --',
-      settings: 'Settings', settingsTitle: 'Settings',
-      langLabel: 'App language', langDesc: 'Change the interface language',
-      bgMode: 'Background mode',
-      bgDesc: 'Keep the app in the system tray when closed',
-      languageGroup: 'Language', behaviorGroup: 'Behavior',
-      helpObs: 'Set up in OBS', helpProject: 'Create a project',
-      helpSprites: 'Sprite styles', helpNicknames: 'Customize nicknames',
-      helpLayout: 'Layout Editor', helpGames: 'Compatible games',
-      helpTroubleshoot: 'Troubleshooting', helpShortcuts: 'Keyboard shortcuts',
-    }
-  };
+  // ===== i18n SYSTEM =====
+  const LANG = window.TRANSLATIONS || {};
+
+  function t(key) {
+    return (LANG[currentLang] && LANG[currentLang][key]) || (LANG.es && LANG.es[key]) || key;
+  }
 
   async function loadAndApplySettings() {
     try {
@@ -1432,102 +1357,58 @@
       applyLanguage(currentLang);
       const langSel = $('#settingsLanguage');
       const bgToggle = $('#settingsBackground');
-      const tutorialToggle = $('#settingsShowTutorial');
       if (langSel) langSel.value = currentLang;
       if (bgToggle) bgToggle.checked = settings.backgroundMode !== false;
-      if (tutorialToggle) tutorialToggle.checked = settings.showTutorial !== false;
 
-      // Show tutorial on first run if enabled
-      if (settings.showTutorial !== false) {
-        setTimeout(() => startTutorial(), 500);
+      if (settings.tutorialSeen !== true && projects.length === 0) {
+        setTimeout(() => startTour(), 800);
+        window.api.saveSettings({ ...settings, tutorialSeen: true });
       }
     } catch (e) {}
   }
 
   function applyLanguage(lang) {
     currentLang = lang;
-    const t = TRANSLATIONS[lang] || TRANSLATIONS.es;
-
-    const helpBtn = $('#helpBtn');
-    if (helpBtn) helpBtn.title = t.help;
-    const settingsBtn = $('#settingsBtn');
-    if (settingsBtn) settingsBtn.title = t.settings;
-
-    const emptyP = $('#emptyState p');
-    if (emptyP) emptyP.textContent = t.emptyState;
-
-    const helpHeader = $('#helpPanel .help-header h2');
-    if (helpHeader) helpHeader.textContent = t.helpTitle;
-    const helpSearch = $('#helpSearch');
-    if (helpSearch) helpSearch.placeholder = t.search;
-
-    const helpTopicMap = {
-      'Configurar en OBS': t.helpObs, 'Set up in OBS': t.helpObs,
-      'Crear un proyecto': t.helpProject, 'Create a project': t.helpProject,
-      'Estilos de sprite': t.helpSprites, 'Sprite styles': t.helpSprites,
-      'Personalizar nicknames': t.helpNicknames, 'Customize nicknames': t.helpNicknames,
-      'Layout Editor': t.helpLayout,
-      'Juegos compatibles': t.helpGames, 'Compatible games': t.helpGames,
-      'Solucion de problemas': t.helpTroubleshoot, 'Troubleshooting': t.helpTroubleshoot,
-      'Atajos de teclado': t.helpShortcuts, 'Keyboard shortcuts': t.helpShortcuts,
-    };
-    document.querySelectorAll('.help-topic-title').forEach(el => {
-      if (helpTopicMap[el.textContent]) el.textContent = helpTopicMap[el.textContent];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const val = t(key);
+      if (val && val !== key) {
+        if (el.tagName === 'INPUT' && el.type !== 'button') el.placeholder = val;
+        else el.textContent = val;
+      }
     });
-
-    const settingsTitle = $('#settingsPanel .settings-header h2');
-    if (settingsTitle) settingsTitle.textContent = t.settingsTitle;
-
-    if ($('#editor') && $('#editor').style.display !== 'none') {
-      applyEditorLanguage(t);
-    }
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      const val = t(key);
+      if (val && val !== key) el.title = val;
+    });
+    document.querySelectorAll('[data-i18n-hint]').forEach(el => {
+      const key = el.getAttribute('data-i18n-hint');
+      const val = t(key);
+      if (val && val !== key) el.innerHTML = val;
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      const val = t(key);
+      if (val && val !== key) el.placeholder = val;
+    });
+    document.querySelectorAll('.help-topic-title').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (key) { const val = t(key); if (val && val !== key) el.textContent = val; }
+    });
+    document.querySelectorAll('.card h3').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (key) { const val = t(key); if (val && val !== key) el.textContent = val; }
+    });
+    updateTourTranslations();
   }
 
-  function applyEditorLanguage(t) {
-    const btnMap = {
-      'Guardar': t.save, 'Examinar': t.browse, 'Refrescar': t.refresh,
-      'Copiar': t.copy, 'Abrir': t.open, 'Nuevo proyecto': t.newProject,
-      'Save': t.save, 'Browse': t.browse, 'Refresh': t.refresh,
-      'Copy': t.copy, 'Open': t.open, 'New project': t.newProject,
-    };
-    document.querySelectorAll('.btn-secondary, .btn-small').forEach(btn => {
-      if (btnMap[btn.textContent]) btn.textContent = btnMap[btn.textContent];
+  function updateTourTranslations() {
+    if (typeof TOUR_STEPS === 'undefined') return;
+    TOUR_STEPS.forEach(step => {
+      if (step._titleKey) { const v = t(step._titleKey); if (v && v !== step._titleKey) step.title = v; }
+      if (step._contentKey) { const v = t(step._contentKey); if (v && v !== step._contentKey) step.content = v; }
     });
-    document.querySelectorAll('.btn-danger').forEach(btn => {
-      if (btn.textContent === 'Eliminar' || btn.textContent === 'Delete') btn.textContent = t.delete;
-    });
-
-    const pn = $('#projectName');
-    if (pn) pn.placeholder = t.projectName;
-
-    const cardMap = {
-      'Guardar': t.saveFile, 'Save file': t.saveFile,
-      'Equipo Detectado': t.teamDetected, 'Detected Team': t.teamDetected,
-      'Estilo de Sprite': t.spriteStyle, 'Sprite Style': t.spriteStyle,
-      'Opciones': t.options, 'Options': t.options,
-      'Estilo de Nickname': t.nicknameStyle, 'Nickname Style': t.nicknameStyle,
-      'URL de OBS': t.obsUrl, 'OBS URL': t.obsUrl,
-    };
-    document.querySelectorAll('.card h3').forEach(h => {
-      if (cardMap[h.textContent]) h.textContent = cardMap[h.textContent];
-    });
-
-    const showNames = $('#showNames');
-    if (showNames && showNames.parentElement) {
-      const txt = showNames.parentElement.childNodes[1];
-      if (txt) txt.textContent = ' ' + t.showNames;
-    }
-
-    document.querySelectorAll('.hint').forEach(h => { h.innerHTML = t.obsHint; });
-
-    const layoutH3 = document.querySelector('.card-canvas h3');
-    if (layoutH3) layoutH3.textContent = t.layoutEditor;
-
-    const espBtn = $('#equalSpacingBtn');
-    if (espBtn) espBtn.textContent = t.espaciado;
-
-    const presetSel = $('#presetSelect');
-    if (presetSel && presetSel.options[0]) presetSel.options[0].text = t.preset;
   }
 
   // ===== GUIDED TOUR SYSTEM =====
@@ -1535,6 +1416,7 @@
     {
       id: 'welcome',
       title: 'Bienvenido a Nuzlocke Overlay',
+      _titleKey: 'tourWelcome', _contentKey: 'tourWelcomeContent',
       content: 'Esta guia interactiva te ayudara a configurar tu overlay en 6 pasos.<br>En cada paso, el area relevante se iluminara. Haz la accion indicada y pulsa "Siguiente".',
       target: null,
       position: 'center',
@@ -1544,6 +1426,7 @@
     {
       id: 'create-project',
       title: '1. Crear tu primer proyecto',
+      _titleKey: 'tourStep1', _contentKey: 'tourStep1Content',
       content: 'Haz clic en el boton <span class="tour-highlight">+</span> para crear un nuevo proyecto Nuzlocke.',
       target: '#addProjectBtn',
       position: 'right',
@@ -1551,17 +1434,9 @@
       progress: 16
     },
     {
-      id: 'project-name',
-      title: 'Nombre del proyecto',
-      content: 'Escribe un nombre para tu run (ej: "Mi Nuzlocke Espada") y pulsa Enter.',
-      target: '#projectName',
-      position: 'bottom',
-      action: 'type',
-      progress: 25
-    },
-    {
       id: 'select-save',
       title: '2. Seleccionar save file',
+      _titleKey: 'tourStep2', _contentKey: 'tourStep2Content',
       content: 'Haz clic en <span class="tour-highlight">Examinar</span> y busca tu archivo de guardado (.sav, .dsv, etc.).<br>La app detectara la generacion y juego automaticamente.',
       target: '#browseBtn',
       position: 'right',
@@ -1571,6 +1446,7 @@
     {
       id: 'select-style',
       title: '3. Elegir estilo de sprites',
+      _titleKey: 'tourStep3', _contentKey: 'tourStep3Content',
       content: 'Despliega el selector <span class="tour-highlight">Estilo de Sprite</span> y elige tu estilo favorito (Gen 1-9, animados o estaticos).',
       target: '#styleSelect',
       position: 'bottom',
@@ -1580,6 +1456,7 @@
     {
       id: 'layout-editor',
       title: '4. Ajustar el Layout Editor',
+      _titleKey: 'tourStep4', _contentKey: 'tourStep4Content',
       content: 'Arrastra los sprites para posicionarlos.<br>• <span class="tour-action-hint">Clic + arrastrar</span> = Mover<br>• <span class="tour-action-hint">Esquinas</span> = Redimensionar<br>• Usa los botones de alineacion y espaciado arriba',
       target: '#layoutCanvas',
       position: 'top',
@@ -1589,6 +1466,7 @@
     {
       id: 'obs-setup',
       title: '5. Configurar en OBS',
+      _titleKey: 'tourStep5', _contentKey: 'tourStep5Content',
       content: 'Copia la <span class="tour-highlight">URL de OBS</span> (boton Copiar).<br>En OBS Studio: Fuente de Navegador → Pega URL → 1920x1080.<br>Los sprites se actualizan solos cada 500ms al guardar.',
       target: '#copyUrlBtn',
       position: 'bottom',
@@ -1598,6 +1476,7 @@
     {
       id: 'camera-setup',
       title: '6. Camara virtual - Previsualizar layout',
+      _titleKey: 'tourStep6', _contentKey: 'tourStep6Content',
       content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para ver tu webcam encima del Layout Editor.<br>Sirve para <span class="tour-highlight">posicionar los sprites</span> sabiendo donde quedara tu cara en OBS/Discord.<br>Selecciona tu camara real y ajustala; los sprites se veran por encima.',
       target: '#cameraToggleBtn',
       position: 'bottom',
@@ -1606,7 +1485,8 @@
     },
     {
       id: 'finished',
-      title: '¡Listo! Tu overlay esta listo',
+      title: 'Listo! Tu overlay esta listo',
+      _titleKey: 'tourFinished', _contentKey: 'tourFinishedContent',
       content: 'Ya puedes empezar tu run Nuzlocke.<br>• Opciones: <span class="tour-highlight">Mostrar nombres</span>, <span class="tour-highlight">Rellenar slots vacios</span><br>• Presets: Guarda/carga layouts rapido<br>• Ayuda: Boton <span class="tour-highlight">?</span> para guia completa',
       target: null,
       position: 'center',
@@ -1775,7 +1655,7 @@
     }
 
     tourPrev.style.display = tourStep === 0 ? 'none' : 'inline-block';
-    tourNext.textContent = tourStep === TOUR_STEPS.length - 1 ? 'Finalizar' : 'Siguiente';
+    tourNext.textContent = tourStep === TOUR_STEPS.length - 1 ? t('tourFinish') : t('tourNext');
 
     // Handle action
     if (step.action !== 'none' && targetEl) {
@@ -1842,14 +1722,11 @@
       showTourStep();
     } else {
       closeTour();
-      // Disable tour for next runs
+      // Mark tutorial as seen so it won't auto-show again
       window.api.saveSettings({
         language: currentLang,
         backgroundMode: $('#settingsBackground').checked,
-        showTutorial: false
-      }).then(() => {
-        const t = $('#settingsShowTutorial');
-        if (t) t.checked = false;
+        tutorialSeen: true
       });
     }
   }
