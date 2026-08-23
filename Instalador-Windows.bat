@@ -168,70 +168,45 @@ if exist "%INSTALL_DIR%\Recursos\Sprites" (
     where mega-get >nul 2>&1
     if %errorlevel% neq 0 (
         echo.
-        echo  -------------------------------------------
-        echo   MEGA CMD no encontrado.
+        echo   megacmd no encontrado. Los sprites se descargan despues.
+        echo   Descargalos desde: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
+        echo   Y coloca la carpeta "Recursos" en: %INSTALL_DIR%
         echo.
-        echo   Para descargar Recursos necesitas megacmd:
+    ) else (
+        echo         Descargando carpeta Recursos desde MEGA...
+        echo         (Esto puede tardar varios minutos segun tu conexion)
         echo.
-        echo   1. Descarga: https://mega.io/cmd
-        echo   2. Instala y reinicia la terminal
-        echo   3. Ejecuta: mega-login TU_EMAIL TU_PASSWORD
-        echo   4. Vuelve a ejecutar este archivo
-        echo.
-        echo   O descarga manualmente la carpeta "Recursos"
-        echo   desde MEGA y colocala en:
-        echo   %INSTALL_DIR%\Recursos
-        echo  -------------------------------------------
-        echo.
-        pause
-        exit /b 1
-    )
 
-    echo         Descargando carpeta Recursos desde MEGA...
-    echo         (Esto puede tardar varios minutos segun tu conexion)
-    echo.
-
-    mega-get "%MEGA_FOLDER%" "%INSTALL_DIR%\%RECURSOS_ZIP%"
-    if %errorlevel% neq 0 (
-        echo.
-        echo  ERROR: Fallo al descargar desde MEGA.
-        echo  Verifica que megacmd esta instalado y logueado.
-        echo.
-        pause
-        exit /b 1
-    )
-
-    if not exist "%INSTALL_DIR%\%RECURSOS_ZIP%" (
-        echo.
-        echo  ERROR: No se encontro el archivo descargado.
-        echo.
-        pause
-        exit /b 1
-    )
-
-    echo         Descarga completada. Extrayendo archivos...
-    echo.
-
-    powershell -Command "Expand-Archive -Path '%INSTALL_DIR%\%RECURSOS_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force"
-    if %errorlevel% neq 0 (
-        echo  ERROR: Fallo al extraer. Intentando con 7-Zip...
-        where 7z >nul 2>&1
-        if %errorlevel% equ 0 (
-            7z x "%INSTALL_DIR%\%RECURSOS_ZIP%" -o"%INSTALL_DIR%"
-            if %errorlevel% neq 0 (
-                echo  ERROR: 7-Zip tambien fallo.
-                pause
-                exit /b 1
-            )
+        mega-get "%MEGA_FOLDER%" "%INSTALL_DIR%\%RECURSOS_ZIP%"
+        if %errorlevel% neq 0 (
+            echo.
+            echo   Fallo la descarga desde MEGA. Los sprites se descargan despues.
+            echo   Descargalos desde: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
+            echo   Y coloca la carpeta "Recursos" en: %INSTALL_DIR%
+            echo.
         ) else (
-            echo  7-Zip no encontrado. Instalalo o extrae manualmente.
-            pause
-            exit /b 1
+            if not exist "%INSTALL_DIR%\%RECURSOS_ZIP%" (
+                echo.
+                echo   No se encontro el archivo descargado. Continuando...
+                echo.
+            ) else (
+                echo         Descarga completada. Extrayendo archivos...
+                echo.
+
+                powershell -Command "Expand-Archive -Path '%INSTALL_DIR%\%RECURSOS_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force"
+                if %errorlevel% neq 0 (
+                    echo  Fallo al extraer. Intentando con 7-Zip...
+                    where 7z >nul 2>&1
+                    if %errorlevel% equ 0 (
+                        7z x "%INSTALL_DIR%\%RECURSOS_ZIP%" -o"%INSTALL_DIR%"
+                    )
+                )
+
+                del /f /q "%INSTALL_DIR%\%RECURSOS_ZIP%" >nul 2>&1
+                echo         Recursos extraidos correctamente.
+            )
         )
     )
-
-    del /f /q "%INSTALL_DIR%\%RECURSOS_ZIP%" >nul 2>&1
-    echo         Recursos extraidos correctamente.
 )
 echo.
 
@@ -275,7 +250,7 @@ if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
 if exist "%INSTALL_DIR%\Recursos\Sprites" (
     echo   [OK] Recursos\Sprites
 ) else (
-    echo   [!!] Recursos\Sprites - FALTA ^(necesita megacmd^)
+    echo   [--] Recursos\Sprites ^(descargar despues desde MEGA^)
 )
 echo.
 echo   Para ejecutar:
