@@ -1454,7 +1454,7 @@
       id: 'welcome',
       title: 'Bienvenido a Nuzlocke Overlay',
       _titleKey: 'tourWelcome', _contentKey: 'tourWelcomeContent',
-      content: 'Esta guia interactiva te ayudara a configurar tu overlay en 6 pasos.<br>En cada paso, el area relevante se iluminara.<br><strong>Lee la instruccion y haz clic en "Siguiente" para continuar.</strong>',
+      content: 'Esta guia interactiva te ayudara a configurar tu overlay en 8 pasos.<br>En cada paso, el area relevante se iluminara.<br><strong>Lee la instruccion y haz clic en "Siguiente" para continuar.</strong>',
       target: null,
       position: 'center',
       action: 'none',
@@ -1468,63 +1468,83 @@
       target: '#addProjectBtn',
       position: 'right',
       action: 'click',
-      progress: 16
+      progress: 12
+    },
+    {
+      id: 'name-project',
+      title: '2. Ponle nombre al proyecto',
+      _titleKey: 'tourStepName', _contentKey: 'tourStepNameContent',
+      content: 'Escribe un nombre para tu proyecto en el campo <span class="tour-highlight">Nombre</span>.<br>Ejemplo: "Nuzlocke Ruby", "Kaizo Plata", etc.',
+      target: '#projectName',
+      position: 'right',
+      action: 'type',
+      progress: 22
     },
     {
       id: 'select-save',
-      title: '2. Seleccionar save file',
+      title: '3. Seleccionar save file',
       _titleKey: 'tourStep2', _contentKey: 'tourStep2Content',
       content: 'Haz clic en <span class="tour-highlight">Examinar</span> y busca tu archivo de guardado (.sav, .dsv, etc.).<br>La app detectara la generacion y juego automaticamente.',
       target: '#browseBtn',
       position: 'right',
       action: 'click',
-      progress: 40
+      progress: 35
     },
     {
       id: 'select-style',
-      title: '3. Elegir estilo de sprites',
+      title: '4. Elegir estilo de sprites',
       _titleKey: 'tourStep3', _contentKey: 'tourStep3Content',
       content: 'Despliega el selector <span class="tour-highlight">Estilo de Sprite</span> y elige tu estilo favorito (Gen 1-9, animados o estaticos).',
       target: '#styleSelect',
       position: 'bottom',
       action: 'select',
+      progress: 45
+    },
+    {
+      id: 'nicknames',
+      title: '5. Mostrar/ocultar nicknames',
+      _titleKey: 'tourStepNick', _contentKey: 'tourStepNickContent',
+      content: 'Activa o desactiva <span class="tour-highlight">Mostrar nombres / motes</span> para decidir si se muestran los nombres de los Pokemon en el overlay.<br>Puedes personalizar fuente, color y trazo en la seccion de abajo.',
+      target: '#showNames',
+      position: 'bottom',
+      action: 'click',
       progress: 55
     },
     {
       id: 'layout-editor',
-      title: '4. Ajustar el Layout Editor',
+      title: '6. Ajustar el Layout Editor',
       _titleKey: 'tourStep4', _contentKey: 'tourStep4Content',
-      content: 'Arrastra los sprites para posicionarlos.<br>• <span class="tour-action-hint">Clic + arrastrar</span> = Mover<br>• <span class="tour-action-hint">Esquinas</span> = Redimensionar<br>• Usa los botones de alineacion y espaciado arriba',
+      content: 'Arrastra los sprites para posicionarlos.<br><span class="tour-action-hint">Clic + arrastrar</span> = Mover<br><span class="tour-action-hint">Esquinas</span> = Redimensionar<br>Usa los botones de alineacion y espaciado arriba',
       target: '#layoutCanvas',
       position: 'top',
       action: 'drag',
-      progress: 70
+      progress: 65
     },
     {
       id: 'obs-setup',
-      title: '5. Configurar en OBS',
+      title: '7. Configurar en OBS',
       _titleKey: 'tourStep5', _contentKey: 'tourStep5Content',
-      content: 'Copia la <span class="tour-highlight">URL de OBS</span> (boton Copiar).<br>En OBS Studio: Fuente de Navegador → Pega URL → 1920x1080.<br>Los sprites se actualizan solos cada 500ms al guardar.',
+      content: 'Copia la <span class="tour-highlight">URL de OBS</span> (boton Copiar).<br>En OBS Studio: Fuente de Navegador -> Pega URL -> 1920x1080.<br>Los sprites se actualizan solos cada 500ms al guardar.',
       target: '#copyUrlBtn',
       position: 'bottom',
       action: 'click',
-      progress: 75
+      progress: 80
     },
     {
       id: 'camera-setup',
-      title: '6. Camara virtual - Previsualizar layout',
+      title: '8. Camara virtual - Previsualizar layout',
       _titleKey: 'tourStep6', _contentKey: 'tourStep6Content',
-      content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para ver tu webcam encima del Layout Editor.<br>Sirve para <span class="tour-highlight">posicionar los sprites</span> sabiendo donde quedara tu cara en OBS/Discord.<br>Selecciona tu camara real y ajustala; los sprites se veran por encima.',
+      content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para ver tu webcam encima del Layout Editor.<br>Sirve para <span class="tour-highlight">posicionar los sprites</span> sabiendo donde quedara tu cara en OBS/Discord.',
       target: '#cameraToggleBtn',
       position: 'bottom',
       action: 'click',
-      progress: 88
+      progress: 90
     },
     {
       id: 'finished',
       title: 'Listo! Tu overlay esta listo',
       _titleKey: 'tourFinished', _contentKey: 'tourFinishedContent',
-      content: 'Ya puedes empezar tu run Nuzlocke.<br>• Opciones: <span class="tour-highlight">Mostrar nombres</span>, <span class="tour-highlight">Rellenar slots vacios</span><br>• Presets: Guarda/carga layouts rapido<br>• Ayuda: Boton <span class="tour-highlight">?</span> para guia completa',
+      content: 'Ya puedes empezar tu run Nuzlocke.<br><span class="tour-highlight">Presets</span>: Guarda/carga layouts rapido<br><span class="tour-highlight">Ayuda</span>: Boton <span class="tour-highlight">?</span> para guia completa',
       target: null,
       position: 'center',
       action: 'none',
