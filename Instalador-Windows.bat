@@ -1,5 +1,5 @@
 @echo off
-title Nuzlocke Overlay - Instalador Windows v2.1
+title Nuzlocke Overlay - Instalador Windows v2.1.1
 color 0F
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
@@ -19,7 +19,7 @@ set "INSTALL_DIR=%LOCALAPPDATA%\NuzlockeOverlay"
 
 echo.
 echo  ╔═══════════════════════════════════════════╗
-echo  ║   Nuzlocke Overlay - Instalador v2.1     ║
+echo  ║   Nuzlocke Overlay - Instalador v2.1.1   ║
 echo  ║   Soporte: Gen 1 a Gen 9                 ║
 echo  ╚═══════════════════════════════════════════╝
 echo.
