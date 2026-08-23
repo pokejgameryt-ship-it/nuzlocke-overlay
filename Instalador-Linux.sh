@@ -4,7 +4,7 @@
 # ============================================
 
 GITHUB_REPO="pokejgameryt-ship-it/nuzlocke-overlay"
-MEGA_FOLDER="https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg"
+MEGA_FOLDER="https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link"
 RECURSOS_ZIP="Recursos.zip"
 INSTALL_DIR="$HOME/.nuzlocke-overlay"
 
@@ -141,21 +141,12 @@ if [ -d "$INSTALL_DIR/Recursos/Sprites" ]; then
 else
     if ! command -v mega-get &>/dev/null; then
         echo ""
-        echo "  ┌────────────────────────────────────────────────────────┐"
-        echo "  │  MEGA CMD no encontrado.                               │"
-        echo "  │                                                        │"
-        case "$PKG_MANAGER" in
-            apt)    echo "  │  sudo apt install megatools                             │" ;;
-            dnf)    echo "  │  sudo dnf install megatools                             │" ;;
-            *)      echo "  │  Instala megacmd: https://mega.io/cmd                   │" ;;
-        esac
-        echo "  │                                                        │"
-        echo "  │  mega-login TU_EMAIL TU_PASSWORD                       │"
-        echo "  │  Vuelve a ejecutar este script.                        │"
-        echo "  │                                                        │"
-        echo "  │  O descarga manualmente "Recursos" desde MEGA          │"
-        echo "  │  y colocala en: $INSTALL_DIR/Recursos                 │"
-        echo "  └────────────────────────────────────────────────────────┘"
+        echo "  -------------------------------------------"
+        echo "  Sprites no descargados automaticamente."
+        echo "  Descargalos desde:"
+        echo "  https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link"
+        echo "  Y coloca la carpeta Recursos en: $INSTALL_DIR/Recursos"
+        echo "  -------------------------------------------"
         echo ""
         read -p "  Pulsa Enter para continuar sin Recursos..."
     else

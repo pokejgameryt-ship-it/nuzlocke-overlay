@@ -47,11 +47,10 @@ Ideal para **streamers de Twitch y YouTube** que hacen runs Nuzlocke y quieren m
 Descarga `NuzlockeOverlay.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
 
 **Paso 2 - Descargar los sprites (~2.2 GB):**
-Los sprites estan en MEGA porque no caben en GitHub:
-1. Abre el enlace: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
+Los sprites estan en Google Drive porque no caben en GitHub:
+1. Abre el enlace: https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link
 2. Descarga toda la carpeta `Recursos`
-3. Extrae el zip
-4. Coloca la carpeta `Recursos` junto al exe (misma carpeta)
+3. Coloca la carpeta `Recursos` junto al exe (misma carpeta)
 
 La estructura debe ser:
 ```

@@ -190,7 +190,7 @@ if exist "%INSTALL_DIR%\Recursos\Sprites" (
 )
 echo.
 echo   IMPORTANTE: Necesitas la carpeta "Recursos" con los sprites.
-echo   Descargala desde: https://mega.nz/folder/hy9RmQ7Y#KYbD0vuNxh3CuMUJGPlmRg
+echo   Descargala desde: https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link
 echo   Coloca la carpeta "Recursos" en: %INSTALL_DIR%
 echo.
 echo   Ver instrucciones completas en:
