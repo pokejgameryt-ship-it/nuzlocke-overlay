@@ -164,8 +164,35 @@
     sorted.forEach(p => {
       const el = document.createElement('div');
       el.className = 'project-item' + (p.id === currentId ? ' active' : '');
-      el.textContent = p.name || 'Sin nombre';
-      el.addEventListener('click', () => selectProject(p.id));
+      
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'project-item-name';
+      nameSpan.textContent = p.name || 'Sin nombre';
+      nameSpan.addEventListener('click', () => selectProject(p.id));
+      el.appendChild(nameSpan);
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'project-delete-btn';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.title = 'Eliminar proyecto';
+      deleteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        // Double confirmation
+        const ok1 = await showConfirm('Eliminar proyecto', `Eliminar "${p.name || 'Sin nombre'}"?\n\nEsta accion no se puede deshacer.`);
+        if (!ok1) return;
+        const ok2 = await showConfirm('Confirmar eliminacion', `Seguro que quieres eliminar "${p.name || 'Sin nombre'}"?\n\nSe eliminaran todos los datos del proyecto.`);
+        if (!ok2) return;
+        await window.api.deleteProject(p.id);
+        projects = projects.filter(pr => pr.id !== p.id);
+        if (currentId === p.id) {
+          currentId = projects.length > 0 ? projects[0].id : null;
+        }
+        renderProjectList();
+        if (currentId) selectProject(currentId);
+        else { $('#editor').style.display = 'none'; $('#emptyState').style.display = 'flex'; }
+      });
+      el.appendChild(deleteBtn);
+      
       list.appendChild(el);
     });
   }
@@ -1427,7 +1454,7 @@
       id: 'welcome',
       title: 'Bienvenido a Nuzlocke Overlay',
       _titleKey: 'tourWelcome', _contentKey: 'tourWelcomeContent',
-      content: 'Esta guia interactiva te ayudara a configurar tu overlay en 6 pasos.<br>En cada paso, el area relevante se iluminara. Haz la accion indicada y pulsa "Siguiente".',
+      content: 'Esta guia interactiva te ayudara a configurar tu overlay en 6 pasos.<br>En cada paso, el area relevante se iluminara.<br><strong>Lee la instruccion y haz clic en "Siguiente" para continuar.</strong>',
       target: null,
       position: 'center',
       action: 'none',
@@ -1682,48 +1709,9 @@
   }
 
   function handleTourAction(action, targetEl, selector) {
-    // Target element doesn't need special class anymore (overlay handles highlight)
-    // Remove previous listeners
-    targetEl.dataset.tourListener = 'true';
-
-    switch (action) {
-      case 'click':
-        const clickHandler = () => {
-          targetEl.removeEventListener('click', clickHandler);
-          nextTourStep();
-        };
-        targetEl.addEventListener('click', clickHandler, { once: true });
-        break;
-
-      case 'type':
-        targetEl.focus();
-        const inputHandler = (e) => {
-          if (e.key === 'Enter' && e.target.value.trim()) {
-            targetEl.removeEventListener('keydown', inputHandler);
-            nextTourStep();
-          }
-        };
-        targetEl.addEventListener('keydown', inputHandler);
-        break;
-
-      case 'select':
-        const changeHandler = () => {
-          targetEl.removeEventListener('change', changeHandler);
-          nextTourStep();
-        };
-        targetEl.addEventListener('change', changeHandler, { once: true });
-        break;
-
-      case 'drag':
-        const dragHandler = () => {
-          targetEl.removeEventListener('mousedown', dragHandler);
-          targetEl.removeEventListener('touchstart', dragHandler);
-          nextTourStep();
-        };
-        targetEl.addEventListener('mousedown', dragHandler, { once: true });
-        targetEl.addEventListener('touchstart', dragHandler, { once: true });
-        break;
-    }
+    // Tour no longer auto-advances on element interaction
+    // User must click Next/Prev buttons to navigate
+    // This prevents the tour from disappearing when performing actions
   }
 
   function nextTourStep() {
@@ -1774,12 +1762,8 @@
     closeTour();
   });
 
-  // Close on backdrop click (dark area outside popover)
-  tourBackdrop.addEventListener('click', (e) => {
-    if (e.target === tourBackdrop) {
-      closeTour();
-    }
-  });
+  // Tour does NOT close on backdrop click
+  // User must use the close button or finish the tour
 
   // Handle window resize
   window.addEventListener('resize', () => {

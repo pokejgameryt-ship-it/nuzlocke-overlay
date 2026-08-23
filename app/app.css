@@ -71,7 +71,33 @@ body {
   font-size: 13px;
   color: #a0a0a0;
   transition: all 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
+
+.project-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-delete-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  opacity: 0;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.project-item:hover .project-delete-btn { opacity: 0.6; }
+.project-delete-btn:hover { color: #e94560 !important; opacity: 1 !important; }
 
 .project-item:hover { background: #1e1e35; color: #e0e0e0; }
 .project-item.active { background: #1e1e35; color: #e94560; font-weight: 600; }
