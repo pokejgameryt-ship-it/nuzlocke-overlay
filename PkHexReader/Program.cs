@@ -38,8 +38,8 @@ for (int i = 0; i < partyCount && i < partyData.Count; i++)
     var mon = new Dictionary<string, object?>
     {
         ["speciesId"] = (int)pk.Species,
-        ["nickname"] = pk.Nickname ?? "",
-        ["otName"] = pk.OriginalTrainerName ?? "",
+        ["nickname"] = SanitizeString(pk.Nickname ?? ""),
+        ["otName"] = SanitizeString(pk.OriginalTrainerName ?? ""),
         ["level"] = (int)pk.CurrentLevel,
         ["isShiny"] = pk.IsShiny,
         ["form"] = (int)pk.Form,
@@ -70,8 +70,18 @@ var result = new Dictionary<string, object>
     ["pokemon"] = pokemonList
 };
 
-var options = new JsonSerializerOptions { WriteIndented = false, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+var options = new JsonSerializerOptions { WriteIndented = false };
 Console.WriteLine(JsonSerializer.Serialize(result, options));
+
+static string SanitizeString(string s)
+{
+    var sb = new System.Text.StringBuilder(s.Length);
+    foreach (var c in s)
+    {
+        if (c >= 32 || c == '\n' || c == '\r') sb.Append(c);
+    }
+    return sb.ToString();
+}
 
 static byte[] TrimDsv(byte[] data)
 {

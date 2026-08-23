@@ -344,12 +344,12 @@ ipcMain.handle('delete-preset', (event, presetId) => presetManager.delete(preset
 // Save file browsing
 ipcMain.handle('browse-save-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Seleccionar save file',
+    title: 'Seleccionar save file o carpeta del emulador',
     filters: [
       { name: 'Save Files', extensions: ['sav', 'dsv', 'sa1', 'sa2', 'sa3', 'ss1', 'ss2', 'ss3', 'ss4', 'ss5', 'main', 'bin'] },
       { name: 'All Files', extensions: ['*'] },
     ],
-    properties: ['openFile'],
+    properties: ['openFile', 'openDirectory'],
   });
   if (result.canceled || !result.filePaths.length) return null;
   return result.filePaths[0];
