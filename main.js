@@ -25,6 +25,7 @@ function resolveBaseDir() {
 }
 
 const BASE_DIR = resolveBaseDir();
+const APP_DIR = __dirname;
 
 const SPRITES_ROOT = path.join(BASE_DIR, 'Recursos', 'Sprites');
 const CONFIG_FILE = path.join(BASE_DIR, 'config.json');
@@ -147,16 +148,16 @@ function startOverlayServer() {
   overlayPort = config.port || 19876;
 
   const expressApp = express();
-  expressApp.use('/css', express.static(path.join(BASE_DIR, 'public', 'css')));
-  expressApp.use('/js', express.static(path.join(BASE_DIR, 'public', 'js')));
+  expressApp.use('/css', express.static(path.join(APP_DIR, 'public', 'css')));
+  expressApp.use('/js', express.static(path.join(APP_DIR, 'public', 'js')));
   expressApp.use('/sprites', express.static(SPRITES_ROOT));
 
   expressApp.get('/', (req, res) => {
-    res.sendFile(path.join(BASE_DIR, 'public', 'overlay.html'));
+    res.sendFile(path.join(APP_DIR, 'public', 'overlay.html'));
   });
 
   expressApp.get('/overlay/:projectId', (req, res) => {
-    res.sendFile(path.join(BASE_DIR, 'public', 'overlay.html'));
+    res.sendFile(path.join(APP_DIR, 'public', 'overlay.html'));
   });
 
   expressApp.get('/api/projects/:id', (req, res) => {
