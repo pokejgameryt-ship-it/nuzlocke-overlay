@@ -34,7 +34,7 @@ Una aplicacion de escritorio para Windows que detecta automaticamente el equipo 
 2. Ejecuta `setup.bat` (descarga el exe, .NET Runtime y sprites automaticamente)
 3. Ejecuta `NuzlockeOverlay.exe`
 
-> **Nota sobre los sprites (MEGA):** Los sprites ocupan ~8.5 GB y no caben en GitHub. El instalador los descarga automaticamente desde MEGA usando `megacmd`.
+> **Nota sobre los sprites (MEGA):** Los sprites ocupan ~2.2 GB y no caben en GitHub. El instalador los descarga automaticamente desde MEGA usando `megacmd`.
 > **Solo la primera vez:** Necesitas instalar megacmd (ver instrucciones abajo). Despues, `setup.bat` hace todo solo: descarga exe + .NET Runtime + sprites + crea acceso directo.
 
 ### Opcion 2: Descarga directa
@@ -54,7 +54,7 @@ Una aplicacion de escritorio para Windows que detecta automaticamente el equipo 
 
 ### Configuracion de MEGA (solo primera vez)
 
-El instalador usa MEGA para descargar la carpeta `Recursos/Sprites/` (~8.5 GB). Necesitas `megacmd` instalado:
+El instalador usa MEGA para descargar la carpeta `Recursos/Sprites/` (~2.2 GB). Necesitas `megacmd` instalado:
 
 1. **Instala megacmd:** Descarga desde <https://mega.io/cmd> (elige Windows x64)
 2. **Reinicia la terminal** (cmd/PowerShell) despues de instalar
