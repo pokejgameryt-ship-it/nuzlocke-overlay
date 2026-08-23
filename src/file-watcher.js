@@ -38,9 +38,39 @@ class FileWatcher {
       return;
     }
 
-    Logger.info('Watcher', `Save file exists: ${savePath} (${fs.statSync(savePath).size} bytes)`);
+    // If savePath is a directory (e.g. Citra's 00000001 folder), find the actual save file inside
+    let resolvedSavePath = savePath;
+    const stats = fs.statSync(savePath);
+    if (stats.isDirectory()) {
+      Logger.info('Watcher', `savePath is a directory, looking for save file inside...`);
+      // Citra: look for 'main' file (3DS save format)
+      const mainFile = path.join(savePath, 'main');
+      if (fs.existsSync(mainFile)) {
+        resolvedSavePath = mainFile;
+        Logger.info('Watcher', `Found Citra save: ${resolvedSavePath}`);
+      } else {
+        // Try common save file extensions
+        const exts = ['.sav', '.dsv', '.sa1', '.sa2', '.sa3', '.ss1', '.ss2', '.ss3', '.ss4', '.ss5', '.bin'];
+        for (const ext of exts) {
+          const candidate = path.join(savePath, 'main' + ext);
+          if (fs.existsSync(candidate)) { resolvedSavePath = candidate; break; }
+        }
+        // If still directory, try first file inside
+        if (resolvedSavePath === savePath) {
+          const files = fs.readdirSync(savePath).filter(f => {
+            try { return fs.statSync(path.join(savePath, f)).isFile(); } catch { return false; }
+          });
+          if (files.length > 0) {
+            resolvedSavePath = path.join(savePath, files[0]);
+            Logger.info('Watcher', `Using first file in directory: ${resolvedSavePath}`);
+          }
+        }
+      }
+    }
 
-    const watcher = chokidar.watch(savePath, {
+    Logger.info('Watcher', `Save file exists: ${resolvedSavePath} (${fs.statSync(resolvedSavePath).size} bytes)`);
+
+    const watcher = chokidar.watch(resolvedSavePath, {
       ignoreInitial: false,
       usePolling: true,
       interval: 500,
@@ -58,7 +88,7 @@ class FileWatcher {
 
         if (PkHexReader) {
           try {
-            const result = await PkHexReader.parse(savePath);
+            const result = await PkHexReader.parse(resolvedSavePath);
             Logger.info('Watcher', `[PKHeX] Found ${result.pokemon.length} Pokemon (${result.game} gen${result.generation})`);
             team = result.pokemon.map(pk => ({
               speciesId: pk.speciesId,
@@ -90,7 +120,7 @@ class FileWatcher {
 
         if (team.length === 0) {
           Logger.info('Watcher', 'Using built-in parser');
-          const buffer = fs.readFileSync(savePath);
+          const buffer = fs.readFileSync(resolvedSavePath);
           let currentGameInfo = gameInfo;
           if (gameInfo && gameInfo.version === 'auto') {
             const detected = DetectSave.detect(buffer);

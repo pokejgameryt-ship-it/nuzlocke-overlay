@@ -137,19 +137,33 @@ class DetectSave {
     }
 
     // === Gen 6/7 3DS ===
-    // 512KB - 1MB with BEEF markers
-    if (size >= 0x80000 && size <= 0x200000) {
+    // Citra saves can be 400KB-1MB with BEEF markers
+    // Some Citra saves are smaller (< 0x80000) with only 1 BEEF block
+    if (size >= 0x50000 && size <= 0x200000) {
       let beefCount = 0;
-      for (let off = 0; off < Math.min(size - 8, 0x100000); off += 4) {
+      for (let off = 0; off < Math.min(size - 8, 0x200000); off += 4) {
         if (buffer.readUInt32LE(off) === 0x42454546) {
           beefCount++;
           if (beefCount >= 2) break;
         }
       }
-      if (beefCount >= 2) {
+      if (beefCount >= 1) {
         // Try Gen7 first (newer), then Gen6
         log(`3DS detected with ${beefCount} BEEF blocks, trying Gen7...`);
         return { generation: 7, saveType: 'gen7', version: 'moon', name: 'Pokemon Gen 7 (Auto)' };
+      }
+    }
+
+    // === Gen 6/7 3DS (small Citra saves) ===
+    // Some Citra saves are 400-500KB with a single BEEF block near the end
+    if (size >= 0x40000 && size < 0x50000) {
+      // Check last 4KB for BEEF marker
+      const tailStart = Math.max(0, size - 0x1000);
+      for (let off = tailStart; off < size - 8; off += 4) {
+        if (buffer.readUInt32LE(off) === 0x42454546) {
+          log(`Small 3DS save detected with BEEF at 0x${off.toString(16)}, trying Gen7...`);
+          return { generation: 7, saveType: 'gen7', version: 'moon', name: 'Pokemon Gen 7 (Auto)' };
+        }
       }
     }
 

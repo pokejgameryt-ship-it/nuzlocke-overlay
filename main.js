@@ -356,7 +356,18 @@ ipcMain.handle('browse-save-file', async () => {
 // Detect game
 ipcMain.handle('detect-game', (event, savePath) => {
   try {
-    const buffer = fs.readFileSync(savePath);
+    let filePath = savePath;
+    // If path is a directory (e.g. Citra 00000001 folder), find the actual save file
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+      const mainFile = path.join(filePath, 'main');
+      if (fs.existsSync(mainFile)) {
+        filePath = mainFile;
+      } else {
+        const files = fs.readdirSync(filePath).filter(f => fs.statSync(path.join(filePath, f)).isFile());
+        if (files.length > 0) filePath = path.join(filePath, files[0]);
+      }
+    }
+    const buffer = fs.readFileSync(filePath);
     return DetectSave.detect(buffer);
   } catch (e) {
     Logger.error('App', `detect-game error: ${e.message}`);
