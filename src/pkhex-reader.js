@@ -103,7 +103,7 @@ class PkHexReader {
       Logger.info('PkHexReader', `[v${CODE_VERSION}] exec: ${dotnetPath} ${dllPath} ${filePath}`);
 
       const child = execFile(dotnetPath, [dllPath, filePath], {
-        timeout: 12000,
+        timeout: 30000,
         maxBuffer: 512 * 1024,
         windowsHide: true,
         env: { ...process.env }
@@ -134,7 +134,7 @@ class PkHexReader {
           Logger.error('PkHexReader', `[v${CODE_VERSION}] TIMEOUT - killing dotnet process`);
           child.kill('SIGKILL');
         }
-      }, 13000);
+      }, 35000);
     });
   }
 }

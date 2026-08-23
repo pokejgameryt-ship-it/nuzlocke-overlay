@@ -1017,6 +1017,14 @@
       window.api.openExternal('https://streamelements.com/pokejgamer-de2e0/tip');
     });
 
+    document.querySelectorAll('.social-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = link.getAttribute('href');
+        if (url) window.api.openExternal(url);
+      });
+    });
+
     $('#deleteProjectBtn').addEventListener('click', async () => {
       if (!currentId) return;
       const ok = await showConfirm('Eliminar proyecto', 'Estas seguro de que quieres eliminar este proyecto?');

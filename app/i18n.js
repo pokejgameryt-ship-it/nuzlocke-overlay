@@ -1,5 +1,5 @@
 // i18n.js - Complete translation system for Nuzlocke Overlay
-const TRANSLATIONS = {
+window.TRANSLATIONS = {
   es: {
     // Sidebar
     search: 'Buscar proyecto...', sortNameAsc: 'Nombre A-Z', sortNameDesc: 'Nombre Z-A',
