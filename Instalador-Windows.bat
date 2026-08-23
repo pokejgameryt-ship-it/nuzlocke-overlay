@@ -1,7 +1,6 @@
 @echo off
 title Nuzlocke Overlay - Instalador Windows v2.1.1
 color 0F
-chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
 :: ============================================
@@ -18,10 +17,10 @@ set "DOTNET_INSTALLER=%TEMP%\dotnet-runtime-installer.exe"
 set "INSTALL_DIR=%LOCALAPPDATA%\NuzlockeOverlay"
 
 echo.
-echo  ╔═══════════════════════════════════════════╗
-echo  ║   Nuzlocke Overlay - Instalador v2.1.1   ║
-echo  ║   Soporte: Gen 1 a Gen 9                 ║
-echo  ╚═══════════════════════════════════════════╝
+echo  ============================================
+echo    Nuzlocke Overlay - Instalador v2.1.1
+echo    Soporte: Gen 1 a Gen 9
+echo  ============================================
 echo.
 echo  Se instalara en: %INSTALL_DIR%
 echo.
@@ -33,10 +32,10 @@ echo  [1/6] Comprobando conexion a internet...
 ping -n 1 github.com >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
-    echo  ┌─────────────────────────────────────────┐
-    echo  │  ERROR: No hay conexion a internet.     │
-    echo  │  Conectate y vuelve a intentar.         │
-    echo  └─────────────────────────────────────────┘
+    echo  -------------------------------------------
+    echo   ERROR: No hay conexion a internet.
+    echo   Conectate y vuelve a intentar.
+    echo  -------------------------------------------
     echo.
     pause
     exit /b 1
@@ -88,7 +87,7 @@ if %errorlevel% equ 0 (
 
 :dotnet_found
 if "%DOTNET_FOUND%"=="1" (
-    echo         .NET Runtime encontrado en: %DOTNET_PATH%
+    echo         .NET Runtime encontrado en: !DOTNET_PATH!
 ) else (
     echo         .NET Runtime no encontrado. Instalando...
     echo         Esto puede tardar 1-3 minutos.
@@ -169,20 +168,20 @@ if exist "%INSTALL_DIR%\Recursos\Sprites" (
     where mega-get >nul 2>&1
     if %errorlevel% neq 0 (
         echo.
-        echo  ┌────────────────────────────────────────────────────────┐
-        echo  │  MEGA CMD no encontrado.                               │
-        echo  │                                                        │
-        echo  │  Para descargar Recursos necesitas megacmd:            │
-        echo  │                                                        │
-        echo  │  1. Descarga: https://mega.io/cmd                      │
-        echo  │  2. Instala y reinicia la terminal                     │
-        echo  │  3. Ejecuta: mega-login TU_EMAIL TU_PASSWORD           │
-        echo  │  4. Vuelve a ejecutar setup.bat                        │
-        echo  │                                                        │
-        echo  │  O descarga manualmente la carpeta "Recursos"          │
-        echo  │  desde MEGA y colocala en:                             │
-        echo  │  %INSTALL_DIR%\Recursos                                │
-        echo  └────────────────────────────────────────────────────────┘
+        echo  -------------------------------------------
+        echo   MEGA CMD no encontrado.
+        echo.
+        echo   Para descargar Recursos necesitas megacmd:
+        echo.
+        echo   1. Descarga: https://mega.io/cmd
+        echo   2. Instala y reinicia la terminal
+        echo   3. Ejecuta: mega-login TU_EMAIL TU_PASSWORD
+        echo   4. Vuelve a ejecutar este archivo
+        echo.
+        echo   O descarga manualmente la carpeta "Recursos"
+        echo   desde MEGA y colocala en:
+        echo   %INSTALL_DIR%\Recursos
+        echo  -------------------------------------------
         echo.
         pause
         exit /b 1
@@ -262,36 +261,36 @@ echo.
 :: ============================================
 :: Verificar instalacion final
 :: ============================================
-echo  ╔═══════════════════════════════════════════════════════╗
-echo  ║              INSTALACION COMPLETADA                   ║
-echo  ╠═══════════════════════════════════════════════════════╣
-echo  ║                                                       ║
-echo  ║  Carpeta: %INSTALL_DIR%
-echo  ║                                                       ║
+echo  ============================================
+echo           INSTALACION COMPLETADA
+echo  ============================================
+echo.
+echo   Carpeta: %INSTALL_DIR%
+echo.
 if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
-echo  ║  [OK] NuzlockeOverlay.exe                             ║
+    echo   [OK] NuzlockeOverlay.exe
 ) else (
-echo  ║  [!!] NuzlockeOverlay.exe - FALTA                     ║
+    echo   [!!] NuzlockeOverlay.exe - FALTA
 )
 if exist "%INSTALL_DIR%\Recursos\Sprites" (
-echo  ║  [OK] Recursos\Sprites                                ║
+    echo   [OK] Recursos\Sprites
 ) else (
-echo  ║  [!!] Recursos\Sprites - FALTA (necesita megacmd)     ║
+    echo   [!!] Recursos\Sprites - FALTA ^(necesita megacmd^)
 )
-echo  ║                                                       ║
-echo  ║  Para ejecutar:                                       ║
-echo  ║    - Doble clic en el acceso directo del escritorio   ║
-echo  ║    - O ejecuta: %INSTALL_DIR%\NuzlockeOverlay.exe     ║
-echo  ║                                                       ║
-echo  ║  Para configurar en OBS:                              ║
-echo  ║    1. Abre la app                                     ║
-echo  ║    2. Crea un proyecto                                ║
-echo  ║    3. Selecciona tu save file                         ║
-echo  ║    4. Copia la URL de OBS                             ║
-echo  ║    5. En OBS: Fuente de navegador (1920x1080)         ║
-echo  ║                                                       ║
-echo  ║  Juegos soportados: Gen 1 - Gen 9                    ║
-echo  ║                                                       ║
-echo  ╚═══════════════════════════════════════════════════════╝
+echo.
+echo   Para ejecutar:
+echo     - Doble clic en el acceso directo del escritorio
+echo     - O ejecuta: %INSTALL_DIR%\NuzlockeOverlay.exe
+echo.
+echo   Para configurar en OBS:
+echo     1. Abre la app
+echo     2. Crea un proyecto
+echo     3. Selecciona tu save file
+echo     4. Copia la URL de OBS
+echo     5. En OBS: Fuente de navegador ^(1920x1080^)
+echo.
+echo   Juegos soportados: Gen 1 - Gen 9
+echo.
+echo  ============================================
 echo.
 pause
