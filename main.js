@@ -445,19 +445,23 @@ ipcMain.handle('get-system-fonts', async () => {
   if (_systemFontsCache) return _systemFontsCache;
   try {
     const { execSync } = require('child_process');
-    const out = execSync(
-      'powershell -NoProfile -Command "' +
-      '$raw = @(); ' +
-      'Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts" | ' +
-      'ForEach-Object { $_.PSObject.Properties | Where-Object { $_.Value -match ".+" -and $_.Name -notmatch "PS" } | ' +
-      'ForEach-Object { $raw += $_.Name }; ' +
-      '$clean = $raw | ForEach-Object { ' +
-      '  $s = $_ -replace "\\(.*","" -replace ";$","" -replace "^\\s+|\\s+$",""; ' +
-      '  $s -split "\\s*&\\s*" ' +
-      '} | ForEach-Object { $_ } | Sort-Object -Unique; ' +
-      '$clean"',
-      { timeout: 8000, encoding: 'utf8' }
-    );
+    const ps = [
+      '$raw = @()',
+      'foreach ($root in @("HKLM","HKCU")) {',
+      '  $regPath = "$root`:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"',
+      '  $item = Get-ItemProperty $regPath -ErrorAction SilentlyContinue',
+      '  if ($item) {',
+      '    $item.PSObject.Properties | Where-Object { $_.Value -match ".+" -and $_.Name -notmatch "PS" } |',
+      '    ForEach-Object { $raw += $_.Name }',
+      '  }',
+      '}',
+      '$clean = $raw | ForEach-Object {',
+      '  $s = $_ -replace "\\(.*","" -replace ";$","" -replace "^\\s+|\\s+$",""',
+      '  $s -split "\\s*&\\s*"',
+      '} | ForEach-Object { $_ } | Sort-Object -Unique',
+      '$clean'
+    ].join('; ');
+    const out = execSync(`powershell -NoProfile -Command "${ps}"`, { timeout: 10000, encoding: 'utf8' });
     const skipPattern = /\b(bold|italic|cursiva|negrita|light|black|demi|narrow|condensed|regular|semibold|extrabold|ultrabold|thin|medium|heavy|ultralight|semilight|oblique|roman)\b/i;
     const skipExact = /^(modern|roman|script|symbol|sans serif collection)$/i;
     const fonts = out.split(/\r?\n/)
