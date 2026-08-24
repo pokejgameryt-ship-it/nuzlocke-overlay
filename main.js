@@ -726,7 +726,7 @@ ipcMain.handle('download-recursos', async (event) => {
     async function downloadNext() {
       while (idx < files.length) {
         const file = files[idx++];
-        const filePath = path.join(destDir, file.path);
+        const filePath = path.join(spritesDir, file.path);
         if (fs.existsSync(filePath)) { skipped++; downloaded++; continue; }
         webContents.send('download-progress', { status: 'downloading', message: file.name, current: downloaded, total });
         try {
