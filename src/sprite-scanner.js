@@ -294,8 +294,8 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
     }
   }
 
-  // Create style from direct + variant files (no gender groups)
-  if (!hasMergedStyle && allSpriteFiles.length > 0) {
+  // Create style from direct + variant files (always, even if gender groups exist)
+  if (allSpriteFiles.length > 0) {
     const relativePath = spriteFiles.length > 0
       ? path.relative(spritesRoot, dirPath).replace(/\\/g, "/")
       : (variantSourcePath || path.relative(spritesRoot, dirPath).replace(/\\/g, "/"));
@@ -608,6 +608,10 @@ function resolveSprite(stylePath, speciesId, options = {}) {
     for (const num of allIds) {
       c.push(`pm${num.padStart(4, '0')}_00_00_00_L`);
     }
+    // pokeicon prefix (LEGENDS ARCEUS: pokeicon_l_0025_000_000_n_00000000_fn_n)
+    for (const num of allIds) {
+      c.push(`pokeicon_l_${num.padStart(4, '0')}_000_000_n_00000000_fn_n`);
+    }
     // conquest prefix (conquest-portrait__004.png)
     for (const num of allIds) {
       c.push(`conquest-portrait__${num.padStart(3, '0')}`);
@@ -737,6 +741,18 @@ function resolveSprite(stylePath, speciesId, options = {}) {
           // Only penalize standalone 's' suffix (not form names like "attack", "speed")
           if (!shinyFlag && /s$/.test(baseLower) && !/attack|defense|speed|shield|incarnate|therian/.test(baseLower)) score -= 200;
           if (shinyFlag && /s$/.test(baseLower)) score += 20;
+        }
+      }
+      // pokeicon_l_NNNN_* format (LEGENDS ARCEUS)
+      if (score === 0 && /^pokeicon_l_\d+/i.test(baseLower)) {
+        const matchNum = baseLower.match(/^pokeicon_l_0*(\d+)/);
+        if (matchNum && matchNum[1] === numStr) {
+          score = 700;
+          // Check if it's the shiny variant (_r at end vs _n)
+          if (shinyFlag && /_r\.png$/.test(baseLower)) score += 30;
+          if (!shinyFlag && /_r\.png$/.test(baseLower)) score -= 200;
+          // Form index: second number after first underscore group
+          if (formInfo) score += 50;
         }
       }
       // Sugimori style: "0025 Pikachu Alola" (space-separated)
@@ -907,6 +923,15 @@ function resolveSprite(stylePath, speciesId, options = {}) {
       // No gender specified: try male first, then female
       if (genderDirs.male) searchDirs.push({ key: 'male', absPath: path.join(root, genderDirs.male), relBase: genderDirs.male });
       if (genderDirs.female) searchDirs.push({ key: 'female', absPath: path.join(root, genderDirs.female), relBase: genderDirs.female });
+    }
+
+    // If no male dir, also search parent dir (which has default/male sprites)
+    if (!genderDirs.male && genderDirs.female) {
+      const parentDir = path.dirname(path.join(root, genderDirs.female));
+      const parentRelBase = path.relative(root, parentDir).replace(/\\/g, "/");
+      if (fs.existsSync(parentDir)) {
+        searchDirs.push({ key: 'default', absPath: parentDir, relBase: parentRelBase });
+      }
     }
 
     for (const gDir of searchDirs) {
