@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# Nuzlocke Overlay - Instalador Linux v1.0.2
+# Nuzlocke Overlay - Updater macOS v1.0.2
 # ============================================
 
 GITHUB_REPO="pokejgameryt-ship-it/nuzlocke-overlay"
@@ -16,8 +16,8 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}============================================${NC}"
-echo -e "${CYAN}║   Nuzlocke Overlay - Instalador Linux v1.0.2  ║${NC}"
-echo -e "${CYAN}║   Soporte: Gen 1 a Gen 9                    ║${NC}"
+echo -e "${CYAN}║   Nuzlocke Overlay - Updater macOS v1.0.2     ║${NC}"
+echo -e "${CYAN}║   Descarga/actualiza app + Sprites (Recursos) ║${NC}"
 echo -e "${CYAN}============================================${NC}"
 echo ""
 echo -e "  Se instalara en: ${YELLOW}$INSTALL_DIR${NC}"
@@ -52,27 +52,23 @@ if command -v dotnet &>/dev/null; then
     DOTNET_FOUND=1
 elif [ -f "$HOME/.dotnet/dotnet" ]; then
     DOTNET_FOUND=1
+elif [ -f "/usr/local/share/dotnet/dotnet" ]; then
+    DOTNET_FOUND=1
 fi
 
 if [ "$DOTNET_FOUND" = "1" ]; then
     echo -e "  ${GREEN}        .NET Runtime encontrado.${NC}"
 else
     echo "        .NET Runtime no encontrado. Instalando..."
-    if command -v apt &>/dev/null; then
-        wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb 2>/dev/null
-        sudo dpkg -i /tmp/packages-microsoft-prod.deb 2>/dev/null
-        sudo apt update 2>/dev/null
-        sudo apt install -y dotnet-runtime-8.0 2>/dev/null
-        echo -e "  ${GREEN}        .NET Runtime instalado.${NC}"
-    elif command -v dnf &>/dev/null; then
-        sudo rpm -Uvh https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm 2>/dev/null
-        sudo dnf install -y dotnet-runtime-8.0 2>/dev/null
+    if command -v brew &>/dev/null; then
+        brew install --cask dotnet
         echo -e "  ${GREEN}        .NET Runtime instalado.${NC}"
     else
         echo ""
         echo "  --------------------------------------------------"
         echo "  Necesitas instalar .NET 8.0 Runtime manualmente."
         echo "  Descargalo desde: https://dotnet.microsoft.com/download/dotnet/8.0"
+        echo "  O instala Homebrew: https://brew.sh"
         echo "  --------------------------------------------------"
         echo ""
         echo "  Sin .NET, el overlay no funcionara."
@@ -85,31 +81,27 @@ echo ""
 # ============================================
 # Paso 4: Descargar NuzlockeOverlay
 # ============================================
-echo -e "  ${YELLOW}[4/5]${NC} Descargando NuzlockeOverlay para Linux..."
-ARCH="$(uname -m)"
-if [ "$ARCH" = "x86_64" ]; then
-    TAR_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/NuzlockeOverlay-Linux-x64.tar.gz"
-else
-    TAR_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/NuzlockeOverlay-Linux-arm64.tar.gz"
-fi
+echo -e "  ${YELLOW}[4/5]${NC} Descargando NuzlockeOverlay para macOS..."
+
+DMG_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/NuzlockeOverlay.dmg"
 
 # Obtener tamanho remoto
-REMOTE_SIZE=$(curl -sI -L "$TAR_URL" 2>/dev/null | grep -i content-length | tail -1 | tr -d '\r' | awk '{print $2}')
+REMOTE_SIZE=$(curl -sI -L "$DMG_URL" 2>/dev/null | grep -i content-length | tail -1 | tr -d '\r' | awk '{print $2}')
 LOCAL_SIZE=0
-if [ -f "$INSTALL_DIR/NuzlockeOverlay" ]; then
-    LOCAL_SIZE=$(stat -c%s "$INSTALL_DIR/NuzlockeOverlay" 2>/dev/null || echo 0)
+if [ -d "$INSTALL_DIR/NuzlockeOverlay.app" ]; then
+    LOCAL_SIZE=$(du -sk "$INSTALL_DIR/NuzlockeOverlay.app" 2>/dev/null | awk '{print $1}')
 fi
 
 if [ "$LOCAL_SIZE" = "$REMOTE_SIZE" ] && [ "$LOCAL_SIZE" != "0" ] && [ -n "$LOCAL_SIZE" ]; then
-    echo -e "  ${GREEN}        NuzlockeOverlay ya esta actualizado. OK.${NC}"
+    echo -e "  ${GREEN}        NuzlockeOverlay.app ya esta actualizado. OK.${NC}"
 else
-    if [ -f "$INSTALL_DIR/NuzlockeOverlay" ]; then
-        echo "        NuzlockeOverlay desactualizado. Actualizando..."
+    if [ -d "$INSTALL_DIR/NuzlockeOverlay.app" ]; then
+        echo "        NuzlockeOverlay.app desactualizado. Actualizando..."
     else
-        echo "        NuzlockeOverlay no encontrado. Descargando..."
+        echo "        NuzlockeOverlay.app no encontrado. Descargando..."
     fi
-    echo "        Descargando..."
-    curl -L -o "$INSTALL_DIR/$RECURSOS_ZIP" "$TAR_URL" --progress-bar 2>/dev/null
+    echo "        Descargando DMG..."
+    curl -L -o "$INSTALL_DIR/$RECURSOS_ZIP" "$DMG_URL" --progress-bar 2>/dev/null
 
     if [ ! -f "$INSTALL_DIR/$RECURSOS_ZIP" ]; then
         echo -e "  ${RED}        Fallo al descargar.${NC}"
@@ -118,10 +110,17 @@ else
         exit 1
     fi
 
-    echo "        Extrayendo..."
-    tar -xzf "$INSTALL_DIR/$RECURSOS_ZIP" -C "$INSTALL_DIR/" 2>/dev/null
+    echo "        Montando DMG..."
+    hdiutil attach "$INSTALL_DIR/$RECURSOS_ZIP" -nobrowse -quiet
+
+    APP_PATH=$(find /Volumes -name "NuzlockeOverlay.app" -maxdepth 2 2>/dev/null | head -1)
+    if [ -n "$APP_PATH" ]; then
+        rm -rf "$INSTALL_DIR/NuzlockeOverlay.app"
+        cp -R "$APP_PATH" "$INSTALL_DIR/"
+        hdiutil detach /Volumes/NuzlockeOverlay* -quiet 2>/dev/null
+    fi
+
     rm -f "$INSTALL_DIR/$RECURSOS_ZIP"
-    chmod +x "$INSTALL_DIR/NuzlockeOverlay" 2>/dev/null
     echo -e "  ${GREEN}        NuzlockeOverlay instalado.${NC}"
 fi
 echo ""
@@ -187,29 +186,6 @@ fi
 echo ""
 
 # ============================================
-# Crear acceso directo en escritorio
-# ============================================
-echo "  Creando acceso directo en el escritorio..."
-DESKTOP_DIR="$HOME/Desktop"
-if [ -d "$DESKTOP_DIR" ]; then
-    cat > "$DESKTOP_DIR/Nuzlocke Overlay.desktop" << EOF
-[Desktop Entry]
-Name=Nuzlocke Overlay
-Comment=OBS overlay para Pokemon Nuzlocke
-Exec=$INSTALL_DIR/NuzlockeOverlay
-Icon=application-x-executable
-Terminal=false
-Type=Application
-Categories=Game;
-EOF
-    chmod +x "$DESKTOP_DIR/Nuzlocke Overlay.desktop" 2>/dev/null
-    echo -e "  ${GREEN}        Acceso directo creado.${NC}"
-else
-    echo "        No se pudo crear el acceso directo."
-fi
-echo ""
-
-# ============================================
 # Verificacion final
 # ============================================
 echo -e "${CYAN}============================================${NC}"
@@ -218,10 +194,10 @@ echo -e "${CYAN}============================================${NC}"
 echo ""
 echo -e "  Carpeta: ${YELLOW}$INSTALL_DIR${NC}"
 echo ""
-if [ -f "$INSTALL_DIR/NuzlockeOverlay" ]; then
-    echo -e "  ${GREEN}[OK]${NC} NuzlockeOverlay"
+if [ -d "$INSTALL_DIR/NuzlockeOverlay.app" ]; then
+    echo -e "  ${GREEN}[OK]${NC} NuzlockeOverlay.app"
 else
-    echo -e "  ${RED}[!!]${NC} NuzlockeOverlay - FALTA"
+    echo -e "  ${RED}[!!]${NC} NuzlockeOverlay.app - FALTA"
 fi
 if [ -d "$INSTALL_DIR/Recursos/Sprites" ]; then
     echo -e "  ${GREEN}[OK]${NC} Recursos/Sprites"

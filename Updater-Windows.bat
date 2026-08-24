@@ -1,5 +1,5 @@
 @echo off
-title Nuzlocke Overlay - Instalador Windows v1.0.2
+title Nuzlocke Overlay - Updater Windows v1.0.2
 color 0F
 setlocal enabledelayedexpansion
 
@@ -16,8 +16,8 @@ set "GDRIVE_FOLDER_ID=1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI"
 
 echo.
 echo  ============================================
-echo    Nuzlocke Overlay - Instalador v1.0.2
-echo    Soporte: Gen 1 a Gen 9
+echo    Nuzlocke Overlay - Updater v1.0.2
+echo    Descarga/actualiza exe + Sprites (Recursos)
 echo  ============================================
 echo.
 echo  Se instalara en: %INSTALL_DIR%
