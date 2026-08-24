@@ -457,6 +457,7 @@
 
   let activeSlotType = 'sprite';
   let lastClickIndex = -1;
+  let lastClickSlotType = 'sprite';
 
   function getActiveSlotData() {
     const project = projects.find(p => p.id === currentId);
@@ -479,7 +480,7 @@
 
     slots.forEach((slot, i) => {
       const el = document.createElement('div');
-      el.className = 'canvas-slot' + (activeSlotType === 'sprite' && selectedSlots.has(i) ? ' selected' : '');
+      el.className = 'canvas-slot' + (selectedSlots.has(i) ? ' selected' : '');
       el.dataset.index = i;
       el.dataset.slotType = 'sprite';
       el.style.left = slot.x + 'px';
@@ -513,7 +514,7 @@
     if (nicknameSlots && nicknameSlots.length > 0) {
       nicknameSlots.forEach((slot, i) => {
         const el = document.createElement('div');
-        el.className = 'canvas-slot nickname-slot' + (activeSlotType === 'nickname' && selectedNicknameSlots.has(i) ? ' selected' : '');
+        el.className = 'canvas-slot nickname-slot' + (selectedNicknameSlots.has(i) ? ' selected' : '');
         el.dataset.index = i;
         el.dataset.slotType = 'nickname';
         el.style.left = slot.x + 'px';
@@ -548,27 +549,26 @@
   function onSlotClick(e, index, slotType) {
     const isNick = slotType === 'nickname';
     const activeSel = isNick ? selectedNicknameSlots : selectedSlots;
-    const otherSel = isNick ? selectedSlots : selectedNicknameSlots;
 
-    if (e.shiftKey && lastClickIndex >= 0 && activeSlotType === slotType) {
+    if (e.shiftKey && lastClickIndex >= 0 && lastClickSlotType === slotType) {
       const start = Math.min(lastClickIndex, index);
       const end = Math.max(lastClickIndex, index);
       if (!e.ctrlKey && !e.metaKey) activeSel.clear();
-      otherSel.clear();
       activeSlotType = slotType;
       for (let i = start; i <= end; i++) activeSel.add(i);
     } else if (e.ctrlKey || e.metaKey) {
       activeSlotType = slotType;
-      otherSel.clear();
       if (activeSel.has(index)) activeSel.delete(index);
       else activeSel.add(index);
       lastClickIndex = index;
+      lastClickSlotType = slotType;
     } else {
       activeSlotType = slotType;
-      activeSel.clear();
-      otherSel.clear();
+      selectedSlots.clear();
+      selectedNicknameSlots.clear();
       activeSel.add(index);
       lastClickIndex = index;
+      lastClickSlotType = slotType;
     }
     syncSlotSelection();
     updatePropPanel();
@@ -577,15 +577,12 @@
   function selectAllSlots() {
     const project = projects.find(p => p.id === currentId);
     if (!project) return;
-    if (activeSlotType === 'nickname') {
-      selectedNicknameSlots.clear();
-      const nSlots = project.nicknameSlots || getDefaultNicknameSlots(project.slots);
-      for (let i = 0; i < nSlots.length; i++) selectedNicknameSlots.add(i);
-    } else {
-      selectedSlots.clear();
-      const sSlots = project.slots || getDefaultSlots();
-      for (let i = 0; i < sSlots.length; i++) selectedSlots.add(i);
-    }
+    selectedSlots.clear();
+    selectedNicknameSlots.clear();
+    const sSlots = project.slots || getDefaultSlots();
+    for (let i = 0; i < sSlots.length; i++) selectedSlots.add(i);
+    const nSlots = project.nicknameSlots || getDefaultNicknameSlots(project.slots);
+    for (let i = 0; i < nSlots.length; i++) selectedNicknameSlots.add(i);
     syncSlotSelection();
     updatePropPanel();
   }
@@ -595,6 +592,7 @@
     selectedNicknameSlots.clear();
     activeSlotType = 'sprite';
     lastClickIndex = -1;
+    lastClickSlotType = 'sprite';
     syncSlotSelection();
     updatePropPanel();
   }
@@ -604,9 +602,9 @@
       const i = parseInt(el.dataset.index);
       const isNickname = el.dataset.slotType === 'nickname';
       if (isNickname) {
-        el.classList.toggle('selected', activeSlotType === 'nickname' && selectedNicknameSlots.has(i));
+        el.classList.toggle('selected', selectedNicknameSlots.has(i));
       } else {
-        el.classList.toggle('selected', activeSlotType === 'sprite' && selectedSlots.has(i));
+        el.classList.toggle('selected', selectedSlots.has(i));
       }
     });
   }
@@ -623,15 +621,18 @@
         activeSlotType = slotType;
         activeSel.add(slotIndex);
         lastClickIndex = slotIndex;
+        lastClickSlotType = slotType;
         syncSlotSelection();
       } else {
         activeSlotType = slotType;
         lastClickIndex = slotIndex;
+        lastClickSlotType = slotType;
       }
     } else {
       if (activeSel.has(slotIndex)) activeSel.delete(slotIndex);
       else activeSel.add(slotIndex);
       activeSlotType = slotType;
+      lastClickSlotType = slotType;
       syncSlotSelection();
       updatePropPanel();
       return;
