@@ -117,6 +117,7 @@
     styles = await window.api.getStyles();
     games = await window.api.getGames();
     await loadSystemFonts();
+    initFontPicker();
     projects = await window.api.listProjects();
     renderProjectList();
     if (projects.length > 0) selectProject(projects[0].id);
@@ -946,17 +947,115 @@
     });
   }
 
+  const FONT_CATEGORIES = {
+    'Arial': 'sans-serif', 'Arial Black': 'sans-serif', 'Calibri': 'sans-serif',
+    'Cambria': 'serif', 'Candara': 'sans-serif', 'Comic Sans MS': 'handwriting',
+    'Consolas': 'monospace', 'Constantia': 'serif', 'Corbel': 'sans-serif',
+    'Courier New': 'monospace', 'Ebrima': 'sans-serif', 'Franklin Gothic': 'sans-serif',
+    'Futura': 'sans-serif', 'Gabriola': 'display', 'Georgia': 'serif',
+    'Haettenschweiler': 'sans-serif', 'Impact': 'display', 'Ink Free': 'handwriting',
+    'Leelawadee': 'sans-serif', 'Lucida Console': 'monospace', 'Lucida Sans': 'sans-serif',
+    'Malgun Gothic': 'sans-serif', 'Microsoft JhengHei': 'sans-serif',
+    'Microsoft Sans Serif': 'sans-serif', 'Myanmar Text': 'sans-serif',
+    'Nirmala UI': 'sans-serif', 'Palatino Linotype': 'serif',
+    'Papyrus': 'handwriting', 'Perpetua': 'serif', 'Rockwell': 'serif',
+    'Segoe UI': 'sans-serif', 'SimSun': 'serif', 'Snap ITC': 'display',
+    'Tahoma': 'sans-serif', 'Times New Roman': 'serif', 'Trebuchet MS': 'sans-serif',
+    'Verdana': 'sans-serif', 'Viner Hand ITC': 'handwriting'
+  };
+
+  function getFontCategory(font) {
+    return FONT_CATEGORIES[font] || 'sans-serif';
+  }
+
   function populateFontSelect(selectedFont) {
-    const sel = $('#nicknameFont');
-    sel.innerHTML = '';
+    const container = $('#fontPickerDropdown');
+    const selected = $('#fontPickerSelected');
+    const hidden = $('#nicknameFont');
+    container.innerHTML = '';
+
     SYSTEM_FONTS.forEach(f => {
-      const opt = document.createElement('option');
-      opt.value = f;
-      opt.textContent = f;
-      opt.style.fontFamily = f;
-      sel.appendChild(opt);
+      const item = document.createElement('div');
+      item.className = 'font-picker-item' + (f === selectedFont ? ' active' : '');
+      item.dataset.font = f;
+      item.dataset.tags = getFontCategory(f);
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'font-picker-item-name';
+      nameEl.textContent = f;
+
+      const previewEl = document.createElement('span');
+      previewEl.className = 'font-picker-item-preview';
+      previewEl.style.fontFamily = `"${f}", sans-serif`;
+      previewEl.textContent = 'Aa Bb Cc 123';
+
+      const tagsEl = document.createElement('span');
+      tagsEl.className = 'font-picker-item-tags';
+      tagsEl.textContent = getFontCategory(f);
+
+      item.appendChild(nameEl);
+      item.appendChild(previewEl);
+      item.appendChild(tagsEl);
+
+      item.addEventListener('click', () => {
+        selected.textContent = f;
+        hidden.value = f;
+        container.querySelectorAll('.font-picker-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        container.classList.remove('open');
+        hidden.dispatchEvent(new Event('change'));
+      });
+
+      container.appendChild(item);
     });
-    if (selectedFont) sel.value = selectedFont;
+
+    if (selectedFont) {
+      selected.textContent = selectedFont;
+      hidden.value = selectedFont;
+    }
+  }
+
+  function initFontPicker() {
+    const picker = $('#fontPicker');
+    const selected = $('#fontPickerSelected');
+    const dropdown = $('#fontPickerDropdown');
+    const search = $('#fontSearch');
+
+    selected.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+      if (dropdown.classList.contains('open')) {
+        search.value = '';
+        filterFonts('');
+        search.focus();
+      }
+    });
+
+    search.addEventListener('input', (e) => {
+      filterFonts(e.target.value.toLowerCase());
+    });
+
+    search.addEventListener('click', (e) => e.stopPropagation());
+
+    document.addEventListener('click', (e) => {
+      if (!picker.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    search.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') dropdown.classList.remove('open');
+    });
+  }
+
+  function filterFonts(query) {
+    const items = $('#fontPickerDropdown').querySelectorAll('.font-picker-item');
+    items.forEach(item => {
+      const font = item.dataset.font.toLowerCase();
+      const tags = item.dataset.tags.toLowerCase();
+      const match = !query || font.includes(query) || tags.includes(query);
+      item.style.display = match ? '' : 'none';
+    });
   }
 
   function loadNicknameStyle(style) {

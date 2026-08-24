@@ -101,7 +101,12 @@
               <h3 data-i18n="nicknameStyle">Estilo de Nickname</h3>
               <div class="field">
                 <label data-i18n="font">Fuente</label>
-                <select id="nicknameFont"></select>
+                <div class="font-picker" id="fontPicker">
+                  <input type="text" class="font-picker-search" id="fontSearch" placeholder="Buscar fuente..." autocomplete="off">
+                  <div class="font-picker-selected" id="fontPickerSelected">Arial</div>
+                  <div class="font-picker-dropdown" id="fontPickerDropdown"></div>
+                </div>
+                <input type="hidden" id="nicknameFont" value="Arial">
               </div>
               <div class="field-row" style="margin-bottom:8px">
                 <label class="checkbox-label small"><input type="checkbox" id="nicknameBold"> <b>N</b></label>
