@@ -243,7 +243,7 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
       return [".png", ".gif", ".jpg", ".jpeg", ".webp"].includes(ext);
     });
     const childDisplayName = `${displayName} - ${entry.name}`;
-    if (subSpriteFiles.length >= 150) {
+    if (subSpriteFiles.length >= 1) {
       scanDir(subPath, regionName, childDisplayName, spritesRoot, results);
     } else if (subSpriteFiles.length === 0) {
       const hasGrandchildren = fs.readdirSync(subPath, { withFileTypes: true }).some(d => d.isDirectory());
