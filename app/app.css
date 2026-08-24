@@ -723,6 +723,47 @@ select {
   border-radius: 3px;
 }
 
+.changelog-section {
+  margin-bottom: 16px;
+}
+
+.changelog-section:last-child {
+  margin-bottom: 0;
+}
+
+.changelog-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e94560;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #2a2a40;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.changelog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.changelog-list li {
+  position: relative;
+  padding: 4px 0 4px 16px;
+  font-size: 13px;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+.changelog-list li::before {
+  content: '\2022';
+  position: absolute;
+  left: 0;
+  color: #e94560;
+  font-weight: bold;
+}
+
 .modal-input {
   width: 100%;
   padding: 8px 10px;

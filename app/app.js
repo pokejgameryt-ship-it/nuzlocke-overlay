@@ -1997,14 +1997,51 @@
     if (!overlay || !content) return;
     const t = window.t || ((k) => k);
     title.textContent = t('changelogTitle') + ' v' + data.version;
-    content.innerHTML = data.releaseNotes
-      ? data.releaseNotes.replace(/\n/g, '<br>')
-      : '<p>No changelog available.</p>';
+    const notes = data.releaseNotes || '';
+    const html = parseChangelog(notes, t);
+    content.innerHTML = html || '<p style="opacity:0.5">No changelog available.</p>';
     overlay.style.display = 'flex';
     okBtn.onclick = async () => {
       overlay.style.display = 'none';
       await window.api.dismissChangelog(data.version);
     };
+  }
+
+  function parseChangelog(notes, t) {
+    const lines = notes.split('\n');
+    const sections = [];
+    let current = null;
+    for (const line of lines) {
+      const h3 = line.match(/^###\s+(.+)/);
+      if (h3) {
+        const header = h3[1].trim();
+        const isFeatures = /nuevas?\s+funciones?|new\s+features?|nouvelles?\s+fonctionnalit|neue\s+funktionen|新機能|новые\s+функции/i.test(header);
+        const isFixes = /correcciones?|bug\s+fixes?|corrections?\s+de\s+bugs?|fehlerbehebungen|バグ修正|исправления?\s+ошибок/i.test(header);
+        if (isFeatures || isFixes) {
+          current = { title: isFeatures ? t('changelogNewFeatures') : t('changelogBugFixes'), items: [] };
+          sections.push(current);
+        } else {
+          current = null;
+        }
+        continue;
+      }
+      if (current && line.startsWith('- ')) {
+        const text = line.slice(2).replace(/\*\*/g, '').trim();
+        if (text) current.items.push(text);
+      }
+    }
+    let html = '';
+    for (const sec of sections) {
+      if (!sec.items.length) continue;
+      html += '<div class="changelog-section">';
+      html += '<div class="changelog-section-title">' + sec.title + '</div>';
+      html += '<ul class="changelog-list">';
+      for (const item of sec.items) {
+        html += '<li>' + item + '</li>';
+      }
+      html += '</ul></div>';
+    }
+    return html;
   }
 
   function showUpdatePopup(data) {
@@ -2016,10 +2053,9 @@
     const goBtn = document.getElementById('updateGo');
     if (!overlay) return;
     const t = window.t || ((k) => k);
-    msg.textContent = `${t('updateMessage')} (v${data.currentVersion} → v${data.latestVersion})`;
-    notes.innerHTML = data.releaseNotes
-      ? data.releaseNotes.replace(/\n/g, '<br>')
-      : '';
+    msg.textContent = `${t('updateMessage')} (v${data.currentVersion} \u2192 v${data.latestVersion})`;
+    const parsed = parseChangelog(data.releaseNotes || '', t);
+    notes.innerHTML = parsed || '';
     overlay.style.display = 'flex';
     goBtn.onclick = () => {
       window.api.openExternal(data.releaseUrl);
