@@ -35,6 +35,11 @@ window.api = {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   openSettingsWindow: () => ipcRenderer.send('open-settings'),
 
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  skipVersion: (version) => ipcRenderer.invoke('skip-version', version),
+  checkChangelog: () => ipcRenderer.invoke('check-changelog'),
+  dismissChangelog: (version) => ipcRenderer.invoke('dismiss-changelog', version),
+
   onSettingsChanged: (callback) => {
     const handler = (e, settings) => callback(settings);
     ipcRenderer.on('settings-changed', handler);

@@ -692,6 +692,37 @@ select {
   font-size: 13px;
 }
 
+.changelog-modal {
+  max-width: 520px;
+  min-width: 400px;
+}
+
+.changelog-content {
+  max-height: 300px;
+  overflow-y: auto;
+  background: #12121e;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #ccc;
+  line-height: 1.6;
+}
+
+.changelog-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.changelog-content::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+.changelog-content::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
 .modal-input {
   width: 100%;
   padding: 8px 10px;

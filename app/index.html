@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: http://127.0.0.1:*; media-src 'self'; connect-src 'self' http://127.0.0.1:*;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: http://127.0.0.1:*; media-src 'self'; connect-src 'self' http://127.0.0.1:*;">
   <title>Nuzlocke Overlay</title>
   <link rel="stylesheet" href="app.css">
 </head>
@@ -494,6 +494,16 @@
             </div>
           </div>
           <div class="settings-group">
+            <div class="settings-group-title" data-i18n="updatesGroup">Actualizaciones</div>
+            <div class="settings-row settings-row-tutorial">
+              <div>
+                <div class="settings-label" data-i18n="checkUpdates">Buscar actualizaciones</div>
+                <div class="settings-desc" data-i18n="checkUpdatesDesc">Comprobar si hay nuevas versiones en GitHub</div>
+              </div>
+              <button class="btn-tutorial" id="checkUpdatesBtn" data-i18n="checkUpdates">Buscar actualizaciones</button>
+            </div>
+          </div>
+          <div class="settings-group">
             <div class="settings-group-title" data-i18n="creatorGroup">Creador / Creator</div>
             <div class="settings-row settings-row-socials">
               <div class="social-links">
@@ -597,6 +607,28 @@
         <button class="btn-primary tour-next-btn" id="tourNext" data-i18n="tourNext">Siguiente</button>
       </div>
       <button class="tour-close-btn" id="tourClose" aria-label="Cerrar tutorial">&times;</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="changelogOverlay" style="display:none">
+    <div class="modal-box changelog-modal">
+      <h3 id="changelogTitle">Novedades</h3>
+      <div class="changelog-content" id="changelogContent"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="changelogOk">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="updateOverlay" style="display:none">
+    <div class="modal-box changelog-modal">
+      <h3 data-i18n="updateTitle">Nueva version disponible</h3>
+      <p id="updateMessage"></p>
+      <div class="changelog-content" id="updateNotes"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="updateSkip" data-i18n="updateSkip">Omitir esta version</button>
+        <button class="btn-primary" id="updateGo" data-i18n="updateGo">Descargar</button>
+      </div>
     </div>
   </div>
 

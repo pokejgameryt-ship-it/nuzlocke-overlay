@@ -114,14 +114,33 @@
   }
 
   async function init() {
-    styles = await window.api.getStyles();
-    games = await window.api.getGames();
-    await loadSystemFonts();
+    setupListeners();
+    try {
+      styles = await window.api.getStyles();
+    } catch (e) {
+      console.error('[INIT] getStyles failed:', e);
+      styles = [];
+    }
+    try {
+      games = await window.api.getGames();
+    } catch (e) {
+      console.error('[INIT] getGames failed:', e);
+      games = [];
+    }
+    try {
+      await loadSystemFonts();
+    } catch (e) {
+      console.error('[INIT] loadSystemFonts failed:', e);
+    }
     initFontPicker();
-    projects = await window.api.listProjects();
+    try {
+      projects = await window.api.listProjects();
+    } catch (e) {
+      console.error('[INIT] listProjects failed:', e);
+      projects = [];
+    }
     renderProjectList();
     if (projects.length > 0) selectProject(projects[0].id);
-    setupListeners();
     await loadAndApplySettings();
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -141,6 +160,11 @@
         if (project) renderCanvasSlots(project.slots, project.nicknameSlots);
       }
     });
+
+    setTimeout(() => {
+      checkChangelog();
+      checkForUpdates();
+    }, 3000);
   }
 
   function renderProjectList() {
@@ -1480,6 +1504,28 @@
       startTour();
     });
 
+    $('#checkUpdatesBtn').addEventListener('click', async () => {
+      const btn = $('#checkUpdatesBtn');
+      const t = window.t || ((k) => k);
+      btn.textContent = '...';
+      btn.disabled = true;
+      try {
+        const result = await window.api.checkForUpdates();
+        if (result.hasUpdate) {
+          showUpdatePopup(result);
+        } else {
+          btn.textContent = t('upToDate') || 'Up to date!';
+          setTimeout(() => { btn.textContent = t('checkUpdates'); btn.disabled = false; }, 3000);
+          return;
+        }
+      } catch (e) {
+        btn.textContent = t('updateError') || 'Error';
+        setTimeout(() => { btn.textContent = t('checkUpdates'); btn.disabled = false; }, 3000);
+        return;
+      }
+      btn.disabled = false;
+    });
+
     window.api.onSettingsChanged((settings) => {
       currentLang = settings.language || 'es';
       applyLanguage(currentLang);
@@ -1931,6 +1977,72 @@
       showTourStep(); // Reposition
     }
   });
+
+  // === CHANGELOG & UPDATE NOTIFICATION ===
+
+  function showChangelog(data) {
+    const overlay = document.getElementById('changelogOverlay');
+    const title = document.getElementById('changelogTitle');
+    const content = document.getElementById('changelogContent');
+    const okBtn = document.getElementById('changelogOk');
+    if (!overlay || !content) return;
+    const t = window.t || ((k) => k);
+    title.textContent = t('changelogTitle') + ' v' + data.version;
+    content.innerHTML = data.releaseNotes
+      ? data.releaseNotes.replace(/\n/g, '<br>')
+      : '<p>No changelog available.</p>';
+    overlay.style.display = 'flex';
+    okBtn.onclick = async () => {
+      overlay.style.display = 'none';
+      await window.api.dismissChangelog(data.version);
+    };
+  }
+
+  function showUpdatePopup(data) {
+    if (data.skipped) return;
+    const overlay = document.getElementById('updateOverlay');
+    const msg = document.getElementById('updateMessage');
+    const notes = document.getElementById('updateNotes');
+    const skipBtn = document.getElementById('updateSkip');
+    const goBtn = document.getElementById('updateGo');
+    if (!overlay) return;
+    const t = window.t || ((k) => k);
+    msg.textContent = `${t('updateMessage')} (v${data.currentVersion} → v${data.latestVersion})`;
+    notes.innerHTML = data.releaseNotes
+      ? data.releaseNotes.replace(/\n/g, '<br>')
+      : '';
+    overlay.style.display = 'flex';
+    goBtn.onclick = () => {
+      window.api.openExternal(data.releaseUrl);
+      overlay.style.display = 'none';
+    };
+    skipBtn.onclick = async () => {
+      overlay.style.display = 'none';
+      await window.api.skipVersion(data.latestVersion);
+    };
+  }
+
+  async function checkForUpdates() {
+    try {
+      const result = await window.api.checkForUpdates();
+      if (result && result.hasUpdate) {
+        showUpdatePopup(result);
+      }
+    } catch (e) {
+      console.error('[UPDATE] check failed:', e);
+    }
+  }
+
+  async function checkChangelog() {
+    try {
+      const result = await window.api.checkChangelog();
+      if (result && result.hasChangelog) {
+        showChangelog(result);
+      }
+    } catch (e) {
+      console.error('[CHANGELOG] check failed:', e);
+    }
+  }
 
   init();
 })();

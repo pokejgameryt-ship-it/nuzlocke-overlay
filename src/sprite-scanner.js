@@ -54,6 +54,13 @@ function scanSprites(spritesRoot) {
     return _cachedStyles;
   }
 
+  if (!fs.existsSync(spritesRoot)) {
+    Logger.warn('Sprites', `Sprites directory not found: ${spritesRoot}`);
+    _cachedStyles = [];
+    _cachedSpritesRoot = spritesRoot;
+    return [];
+  }
+
   const results = [];
   const regionDirs = fs.readdirSync(spritesRoot, { withFileTypes: true }).filter((d) => d.isDirectory());
 

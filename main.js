@@ -21,14 +21,35 @@ function resolveBaseDir() {
     if (fs.existsSync(path.join(parent, 'Recursos'))) return parent;
     return exeDir;
   }
+  if (app.isPackaged) {
+    return app.getPath('userData');
+  }
   return __dirname;
 }
 
 const BASE_DIR = resolveBaseDir();
 const APP_DIR = app.isPackaged ? app.getAppPath() : __dirname;
-console.log('[PATHS] BASE_DIR:', BASE_DIR, 'APP_DIR:', APP_DIR, 'isPackaged:', app.isPackaged, '__dirname:', __dirname);
 
-const SPRITES_ROOT = path.join(BASE_DIR, 'Recursos', 'Sprites');
+if (app.isPackaged && !process.env.PORTABLE_EXECUTABLE_DIR) {
+  Logger.setLogDir(path.join(BASE_DIR, 'logs'));
+}
+
+const SPRITES_ROOT = (() => {
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    const exeDir = process.env.PORTABLE_EXECUTABLE_DIR;
+    if (fs.existsSync(path.join(exeDir, 'Recursos', 'Sprites'))) return path.join(exeDir, 'Recursos', 'Sprites');
+    const parent = path.dirname(exeDir);
+    if (fs.existsSync(path.join(parent, 'Recursos', 'Sprites'))) return path.join(parent, 'Recursos', 'Sprites');
+  }
+  if (app.isPackaged) {
+    const inUserData = path.join(app.getPath('userData'), 'Recursos', 'Sprites');
+    if (fs.existsSync(inUserData)) return inUserData;
+    const besideExe = path.join(path.dirname(process.execPath), 'Recursos', 'Sprites');
+    if (fs.existsSync(besideExe)) return besideExe;
+    return inUserData;
+  }
+  return path.join(__dirname, 'Recursos', 'Sprites');
+})();
 const CONFIG_FILE = path.join(BASE_DIR, 'config.json');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 
@@ -242,6 +263,7 @@ function createWindow() {
       contextIsolation: false,
     },
   });
+  mainWindow.setMenu(null);
   mainWindow.loadFile(path.join(__dirname, 'app', 'index.html'));
 
   try {
@@ -499,6 +521,81 @@ ipcMain.on('update-settings', (event, newSettings) => {
     updateTrayMenu();
   }
   if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.close();
+});
+
+const GITHUB_REPO = 'pokejgameryt-ship-it/nuzlocke-overlay';
+const https = require('https');
+
+function fetchJSON(url) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error('timeout')); });
+  });
+}
+
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+    const latestVersion = (release.tag_name || '').replace(/^v/, '');
+    const currentVersion = app.getVersion();
+    if (latestVersion && latestVersion !== currentVersion) {
+      const settings = loadSettings();
+      const skippedVersion = settings.skippedVersion || '';
+      return {
+        hasUpdate: true,
+        currentVersion,
+        latestVersion,
+        releaseNotes: release.body || '',
+        releaseUrl: release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
+        skipped: skippedVersion === latestVersion,
+      };
+    }
+    return { hasUpdate: false, currentVersion, latestVersion };
+  } catch (e) {
+    return { hasUpdate: false, error: e.message };
+  }
+});
+
+ipcMain.handle('skip-version', (event, version) => {
+  const settings = loadSettings();
+  settings.skippedVersion = version;
+  saveSettingsToFile(settings);
+  return true;
+});
+
+ipcMain.handle('check-changelog', async () => {
+  try {
+    const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+    const latestVersion = (release.tag_name || '').replace(/^v/, '');
+    const settings = loadSettings();
+    const lastSeenChangelog = settings.lastSeenChangelog || '';
+    if (latestVersion && latestVersion !== lastSeenChangelog) {
+      return {
+        hasChangelog: true,
+        version: latestVersion,
+        releaseNotes: release.body || '',
+        releaseUrl: release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
+      };
+    }
+    return { hasChangelog: false };
+  } catch (e) {
+    return { hasChangelog: false, error: e.message };
+  }
+});
+
+ipcMain.handle('dismiss-changelog', (event, version) => {
+  const settings = loadSettings();
+  settings.lastSeenChangelog = version;
+  saveSettingsToFile(settings);
+  return true;
 });
 
 // === APP LIFECYCLE ===
