@@ -466,11 +466,13 @@ let _systemFontsCache = null;
 ipcMain.handle('get-system-fonts', async () => {
   if (_systemFontsCache) return _systemFontsCache;
   try {
-    const { execSync } = require('child_process');
-    const ps = [
+    const { execFileSync } = require('child_process');
+    const fs = require('fs');
+    const tmpScript = path.join(app.getPath('temp'), 'nuzlocke-fonts.ps1');
+    const psScript = [
       '$raw = @()',
       'foreach ($root in @("HKLM","HKCU")) {',
-      '  $regPath = "$root`:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"',
+      '  $regPath = "$root" + ":\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"',
       '  $item = Get-ItemProperty $regPath -ErrorAction SilentlyContinue',
       '  if ($item) {',
       '    $item.PSObject.Properties | Where-Object { $_.Value -match ".+" -and $_.Name -notmatch "PS" } |',
@@ -482,8 +484,10 @@ ipcMain.handle('get-system-fonts', async () => {
       '  $s -split "\\s*&\\s*"',
       '} | ForEach-Object { $_ } | Sort-Object -Unique',
       '$clean'
-    ].join('; ');
-    const out = execSync(`powershell -NoProfile -Command "${ps}"`, { timeout: 10000, encoding: 'utf8' });
+    ].join('\n');
+    fs.writeFileSync(tmpScript, psScript, 'utf8');
+    const out = execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript], { timeout: 15000, encoding: 'utf8' });
+    try { fs.unlinkSync(tmpScript); } catch(e) {}
     const skipPattern = /\b(bold|italic|cursiva|negrita|light|black|demi|narrow|condensed|regular|semibold|extrabold|ultrabold|thin|medium|heavy|ultralight|semilight|oblique|roman)\b/i;
     const skipExact = /^(modern|roman|script|symbol|sans serif collection)$/i;
     const fonts = out.split(/\r?\n/)
@@ -493,6 +497,7 @@ ipcMain.handle('get-system-fonts', async () => {
     _systemFontsCache = fonts.length > 0 ? fonts : getDefaultFonts();
     return _systemFontsCache;
   } catch (e) {
+    console.error('[FONTS] Failed:', e.message);
     _systemFontsCache = getDefaultFonts();
     return _systemFontsCache;
   }
@@ -596,6 +601,107 @@ ipcMain.handle('dismiss-changelog', (event, version) => {
   settings.lastSeenChangelog = version;
   saveSettingsToFile(settings);
   return true;
+});
+
+// === DOWNLOAD RECURSOS FROM GOOGLE DRIVE ===
+const GDRIVE_FOLDER_ID = '1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI';
+
+function gdriveListFolder(folderId) {
+  return new Promise((resolve, reject) => {
+    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)&key=`;
+    https.get(url, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { reject(e); }
+      });
+    }).on('error', reject);
+  });
+}
+
+function gdriveDownloadFile(fileId, destPath) {
+  return new Promise((resolve, reject) => {
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+    const file = fs.createWriteStream(destPath);
+    https.get(url, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
+      if (res.statusCode === 302 || res.statusCode === 301) {
+        const redirect = res.headers.location;
+        file.close();
+        fs.unlinkSync(destPath);
+        return gdriveDownloadFile(fileId, destPath).then(resolve).catch(reject);
+      }
+      const total = parseInt(res.headers['content-length'] || '0', 10);
+      let downloaded = 0;
+      res.on('data', (chunk) => {
+        downloaded += chunk.length;
+        file.write(chunk);
+      });
+      res.on('end', () => { file.end(); resolve({ size: total, downloaded }); });
+      res.on('error', (e) => { file.close(); fs.unlinkSync(destPath); reject(e); });
+    }).on('error', (e) => { file.close(); try { fs.unlinkSync(destPath); } catch(ex) {} reject(e); });
+  });
+}
+
+ipcMain.handle('download-recursos', async (event) => {
+  const webContents = event.sender;
+  const destDir = path.join(userDataDir, 'Recursos', 'Sprites');
+  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+  try {
+    webContents.send('download-progress', { status: 'listing', message: 'Listing Google Drive folder...' });
+    const listing = await gdriveListFolder(GDRIVE_FOLDER_ID);
+    const items = (listing.files || []).filter(f => f.mimeType);
+    let totalItems = 0;
+    let downloaded = 0;
+
+    for (const item of items) {
+      if (item.mimeType === 'application/vnd.google-apps.folder') {
+        const subDir = path.join(destDir, item.name);
+        if (!fs.existsSync(subDir)) fs.mkdirSync(subDir, { recursive: true });
+        webContents.send('download-progress', { status: 'downloading', message: item.name, current: downloaded, total: '?' });
+        const subListing = await gdriveListFolder(item.id);
+        const subFiles = (subListing.files || []).filter(f => f.mimeType !== 'application/vnd.google-apps.folder');
+        totalItems += subFiles.length;
+        for (const subFile of subFiles) {
+          const filePath = path.join(subDir, subFile.name);
+          if (fs.existsSync(filePath)) { downloaded++; continue; }
+          webContents.send('download-progress', { status: 'downloading', message: `${item.name}/${subFile.name}`, current: downloaded, total: totalItems });
+          try {
+            await gdriveDownloadFile(subFile.id, filePath);
+            downloaded++;
+          } catch (e) {
+            console.error(`[DOWNLOAD] Failed: ${subFile.name}: ${e.message}`);
+            downloaded++;
+          }
+        }
+      } else {
+        totalItems++;
+        const filePath = path.join(destDir, item.name);
+        if (fs.existsSync(filePath)) { downloaded++; continue; }
+        webContents.send('download-progress', { status: 'downloading', message: item.name, current: downloaded, total: totalItems });
+        try {
+          await gdriveDownloadFile(item.id, filePath);
+          downloaded++;
+        } catch (e) {
+          console.error(`[DOWNLOAD] Failed: ${item.name}: ${e.message}`);
+          downloaded++;
+        }
+      }
+    }
+
+    webContents.send('download-progress', { status: 'done', message: 'Download complete', current: downloaded, total: totalItems });
+    _cachedStyles = null;
+    return { success: true, files: downloaded };
+  } catch (e) {
+    console.error('[DOWNLOAD] Recursos download failed:', e.message);
+    webContents.send('download-progress', { status: 'error', message: e.message });
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('has-recursos', () => {
+  return fs.existsSync(SPRITES_ROOT);
 });
 
 // === APP LIFECYCLE ===

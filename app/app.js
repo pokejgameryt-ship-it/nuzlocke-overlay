@@ -164,6 +164,7 @@
     setTimeout(() => {
       checkChangelog();
       checkForUpdates();
+      checkAndDownloadRecursos();
     }, 3000);
   }
 
@@ -2042,6 +2043,60 @@
     } catch (e) {
       console.error('[CHANGELOG] check failed:', e);
     }
+  }
+
+  async function checkAndDownloadRecursos() {
+    try {
+      const has = await window.api.hasRecursos();
+      if (has) return;
+      const t = window.t || ((k) => k);
+      if (!confirm(t('downloadDesc') || 'Sprites not found. Download from Google Drive?')) return;
+      startDownloadRecursos();
+    } catch (e) {
+      console.error('[RECURSOS] check failed:', e);
+    }
+  }
+
+  function startDownloadRecursos() {
+    const overlay = document.getElementById('downloadOverlay');
+    const progress = document.getElementById('downloadProgress');
+    const closeBtn = document.getElementById('downloadClose');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    progress.innerHTML = '<p>Connecting to Google Drive...</p>';
+    closeBtn.style.display = 'none';
+
+    const removeListener = window.api.onDownloadProgress((data) => {
+      if (data.status === 'listing') {
+        progress.innerHTML = `<p>${data.message}</p>`;
+      } else if (data.status === 'downloading') {
+        progress.innerHTML = `<p>${data.message}</p><p>${data.current}/${data.total}</p>`;
+      } else if (data.status === 'done') {
+        progress.innerHTML = `<p>Done! ${data.total} files downloaded.</p>`;
+        closeBtn.style.display = '';
+        closeBtn.onclick = () => {
+          overlay.style.display = 'none';
+          if (removeListener) removeListener();
+          styles = [];
+        };
+      } else if (data.status === 'error') {
+        progress.innerHTML = `<p>Error: ${data.message}</p>`;
+        closeBtn.style.display = '';
+        closeBtn.onclick = () => {
+          overlay.style.display = 'none';
+          if (removeListener) removeListener();
+        };
+      }
+    });
+
+    window.api.downloadRecursos().catch((e) => {
+      progress.innerHTML = `<p>Error: ${e.message || 'Download failed'}</p>`;
+      closeBtn.style.display = '';
+      closeBtn.onclick = () => {
+        overlay.style.display = 'none';
+        if (removeListener) removeListener();
+      };
+    });
   }
 
   init();

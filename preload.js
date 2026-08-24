@@ -40,6 +40,14 @@ window.api = {
   checkChangelog: () => ipcRenderer.invoke('check-changelog'),
   dismissChangelog: (version) => ipcRenderer.invoke('dismiss-changelog', version),
 
+  hasRecursos: () => ipcRenderer.invoke('has-recursos'),
+  downloadRecursos: () => ipcRenderer.invoke('download-recursos'),
+  onDownloadProgress: (callback) => {
+    const handler = (e, data) => callback(data);
+    ipcRenderer.on('download-progress', handler);
+    return () => ipcRenderer.removeListener('download-progress', handler);
+  },
+
   onSettingsChanged: (callback) => {
     const handler = (e, settings) => callback(settings);
     ipcRenderer.on('settings-changed', handler);
