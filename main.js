@@ -677,21 +677,28 @@ function retryOrReject(fileId, destPath, retries, err, resolve, reject) {
 }
 
 async function fetchManifest() {
-  return new Promise((resolve, reject) => {
-    https.get(GDRIVE_MANIFEST_URL, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        https.get(res.headers.location, (res2) => {
-          let data = '';
-          res2.on('data', (c) => data += c);
-          res2.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
-        }).on('error', reject);
-        return;
-      }
-      let data = '';
-      res.on('data', (c) => data += c);
-      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
-    }).on('error', reject);
-  });
+  const MAX_REDIRECTS = 5;
+  function doFetch(url, redirectsLeft) {
+    return new Promise((resolve, reject) => {
+      https.get(url, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
+        if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location) {
+          res.resume();
+          if (redirectsLeft <= 0) return reject(new Error('Too many redirects'));
+          return doFetch(res.headers.location, redirectsLeft - 1).then(resolve).catch(reject);
+        }
+        let data = '';
+        res.on('data', (c) => data += c);
+        res.on('end', () => {
+          if (res.statusCode !== 200) {
+            return reject(new Error('HTTP ' + res.statusCode + ': ' + data.substring(0, 200)));
+          }
+          try { resolve(JSON.parse(data)); }
+          catch (e) { reject(new Error('JSON parse error: ' + e.message + ' (response starts with: ' + JSON.stringify(data.substring(0, 50)) + ')')); }
+        });
+      }).on('error', reject);
+    });
+  }
+  return doFetch(GDRIVE_MANIFEST_URL, MAX_REDIRECTS);
 }
 
 ipcMain.handle('download-recursos', async (event) => {
