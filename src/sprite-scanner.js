@@ -41,7 +41,7 @@ function detectGenerations(region) {
     galar: [8], gen8: [8],
     paldea: [9], gen9: [9],
     "todas las generaciones": [1, 2, 3, 4, 5, 6, 7, 8, 9],
-    "legends arceus": [8],
+    "legends arceus": [10],
   };
   return genMap[lower] || [];
 }
@@ -182,9 +182,11 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
     styleDirs.push(entry);
   }
 
-  // Count all files: direct + variant subdirs
+  // Count all files: direct + variant subdirs (skip shiny - always separate)
   let allSpriteFiles = [...spriteFiles];
+  let variantSourcePath = null;
   for (const vDir of variantDirs) {
+    if (vDir.name.toLowerCase().includes('shiny')) continue;
     const vPath = path.join(dirPath, vDir.name);
     const vFiles = fs.readdirSync(vPath, { withFileTypes: true })
       .filter(d => d.isFile())
@@ -233,6 +235,15 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
       allNaming.push(...files);
     }
 
+    // Use actual gender subdirectory path for sprite resolution
+    let stylePath = path.relative(spritesRoot, dirPath).replace(/\\/g, "/");
+    for (const [, gDir] of Object.entries(genderPaths)) {
+      if (gDir && fs.existsSync(gDir) && countSpriteFiles(gDir) > 0) {
+        stylePath = path.relative(spritesRoot, gDir).replace(/\\/g, "/");
+        break;
+      }
+    }
+
     const genderRelPaths = {};
     for (const [key, gDir] of Object.entries(genderPaths)) {
       if (gDir && fs.existsSync(gDir)) {
@@ -244,7 +255,7 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
       id,
       name: groupDisplayName,
       region: regionName,
-      path: relativePath,
+      path: stylePath,
       type: detectType([...allExts].map(e => 'file' + e)),
       extensions: [...allExts],
       namingPattern: detectNamingPattern(allNaming),
@@ -253,23 +264,6 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
       genderDirs: genderRelPaths,
     });
     hasMergedStyle = true;
-  }
-
-  // Create style from direct + variant files (no gender groups)
-  if (!hasMergedStyle && allSpriteFiles.length > 0) {
-    const relativePath = path.relative(spritesRoot, dirPath).replace(/\\/g, "/");
-    const id = buildStyleId(regionName, displayName);
-    results.push({
-      id,
-      name: displayName,
-      region: regionName,
-      path: relativePath,
-      type: detectType(allSpriteFiles),
-      extensions: [...new Set(allSpriteFiles.map((f) => path.extname(f).toLowerCase()))],
-      namingPattern: detectNamingPattern(allSpriteFiles),
-      generations: detectGenerations(regionName),
-      fileCount: allSpriteFiles.length,
-    });
   }
 
   // Process style subdirectories (non-variant, non-gender)
@@ -288,6 +282,9 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
     // A complete Pokemon set is ~50 files, so <=50 means it's a form-specific subset
     if (subFiles.length < 51 && !hasGrandchildren) {
       allSpriteFiles.push(...subFiles);
+      if (!variantSourcePath) {
+        variantSourcePath = path.relative(spritesRoot, subPath).replace(/\\/g, "/");
+      }
       continue;
     }
 
@@ -295,6 +292,25 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
       const childDisplayName = `${displayName} - ${entry.name}`;
       scanDir(subPath, regionName, childDisplayName, spritesRoot, results);
     }
+  }
+
+  // Create style from direct + variant files (no gender groups)
+  if (!hasMergedStyle && allSpriteFiles.length > 0) {
+    const relativePath = spriteFiles.length > 0
+      ? path.relative(spritesRoot, dirPath).replace(/\\/g, "/")
+      : (variantSourcePath || path.relative(spritesRoot, dirPath).replace(/\\/g, "/"));
+    const id = buildStyleId(regionName, displayName);
+    results.push({
+      id,
+      name: displayName,
+      region: regionName,
+      path: relativePath,
+      type: detectType(allSpriteFiles),
+      extensions: [...new Set(allSpriteFiles.map((f) => path.extname(f).toLowerCase()))],
+      namingPattern: detectNamingPattern(allSpriteFiles),
+      generations: detectGenerations(regionName),
+      fileCount: allSpriteFiles.length,
+    });
   }
 }
 
@@ -980,4 +996,19 @@ function resolveSprite(stylePath, speciesId, options = {}) {
   return null;
 }
 
-module.exports = { scanSprites, resolveSprite, detectNamingPattern, invalidateStyleCache };
+function getPreviewSprite(spritesRoot, stylePath) {
+  const dir = path.join(spritesRoot, stylePath);
+  if (!fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir, { withFileTypes: true })
+    .filter(d => d.isFile())
+    .map(d => d.name)
+    .filter(f => {
+      const ext = path.extname(f).toLowerCase();
+      return ['.png', '.gif', '.jpg', '.jpeg', '.webp'].includes(ext);
+    });
+  if (files.length === 0) return null;
+  files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  return stylePath + '/' + files[0];
+}
+
+module.exports = { scanSprites, resolveSprite, detectNamingPattern, invalidateStyleCache, getPreviewSprite };

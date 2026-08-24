@@ -16,6 +16,7 @@ window.api = {
   getStyles: () => ipcRenderer.invoke('get-styles'),
   refreshStyles: () => ipcRenderer.invoke('refresh-styles'),
   resolveSprite: (stylePath, speciesId, options) => ipcRenderer.invoke('resolve-sprite', stylePath, speciesId, options),
+  getPreviewSprite: (stylePath) => ipcRenderer.invoke('get-preview-sprite', stylePath),
 
   getGames: () => ipcRenderer.invoke('get-games'),
   getPresets: () => ipcRenderer.invoke('list-presets'),

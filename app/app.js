@@ -332,11 +332,12 @@
       });
     });
 
-    const genOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+    const genOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0];
     const genLabels = {
       1: 'Gen 1 (Kanto)', 2: 'Gen 2 (Johto)', 3: 'Gen 3 (Hoenn)',
       4: 'Gen 4 (Sinnoh)', 5: 'Gen 5 (Teselia)', 6: 'Gen 6 (Kalos)',
       7: 'Gen 7 (Alola)', 8: 'Gen 8 (Galar)', 9: 'Gen 9 (Paldea)',
+      10: 'Legends Arceus',
       0: 'Otras'
     };
 
@@ -377,30 +378,21 @@
     try { port = await window.api.getPort(); } catch(e) {}
     const baseUrl = `http://127.0.0.1:${port}/sprites`;
     const relPath = stylePath || styleId;
-    const tryUrls = [
-      `${baseUrl}/${relPath}/025.png`,
-      `${baseUrl}/${relPath}/0025.png`,
-      `${baseUrl}/${relPath}/25.png`,
-      `${baseUrl}/${relPath}/025.webp`,
-      `${baseUrl}/${relPath}/0025.webp`,
-    ];
-    let tried = 0;
-    function tryNext() {
-      if (tried >= tryUrls.length) {
-        preview.innerHTML = '';
+    try {
+      const previewPath = await window.api.getPreviewSprite(relPath);
+      if (previewPath) {
+        const url = `${baseUrl}/${previewPath}?_t=${Date.now()}`;
+        const img = new Image();
+        img.onload = () => { preview.innerHTML = ''; preview.appendChild(img); };
+        img.onerror = () => { preview.innerHTML = ''; };
+        img.src = url;
+        img.alt = 'Sprite preview';
+        img.style.maxHeight = '80px';
+        img.style.imageRendering = 'pixelated';
         return;
       }
-      const url = tryUrls[tried] + '?_t=' + Date.now();
-      tried++;
-      const img = new Image();
-      img.onload = () => { preview.innerHTML = ''; preview.appendChild(img); };
-      img.onerror = tryNext;
-      img.src = url;
-      img.alt = 'Pikachu preview';
-      img.style.maxHeight = '80px';
-      img.style.imageRendering = 'pixelated';
-    }
-    tryNext();
+    } catch (e) {}
+    preview.innerHTML = '';
   }
 
   function getDefaultSlots() {

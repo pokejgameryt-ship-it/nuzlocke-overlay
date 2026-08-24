@@ -7,7 +7,7 @@ const express = require('express');
 const http = require('http');
 
 const Logger = require('./src/logger');
-const { scanSprites, resolveSprite } = require('./src/sprite-scanner');
+const { scanSprites, resolveSprite, getPreviewSprite } = require('./src/sprite-scanner');
 const DetectSave = require('./src/detect-save');
 const ProjectManager = require('./src/project-manager');
 const PresetManager = require('./src/preset-manager');
@@ -355,6 +355,9 @@ ipcMain.handle('get-styles', () => scanSprites(SPRITES_ROOT));
 ipcMain.handle('refresh-styles', () => { invalidateStyleCache(); return scanSprites(SPRITES_ROOT); });
 ipcMain.handle('resolve-sprite', (event, stylePath, speciesId, options) => {
   return resolveSprite(stylePath, speciesId, options);
+});
+ipcMain.handle('get-preview-sprite', (event, stylePath) => {
+  return getPreviewSprite(SPRITES_ROOT, stylePath);
 });
 
 // Games
