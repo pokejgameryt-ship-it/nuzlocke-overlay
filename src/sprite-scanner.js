@@ -128,54 +128,87 @@ function countSpriteFiles(dir) {
 }
 
 function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
-  const directFiles = fs.readdirSync(dirPath, { withFileTypes: true }).filter(d => d.isFile()).map(d => d.name);
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  const directFiles = entries.filter(d => d.isFile()).map(d => d.name);
   const spriteFiles = directFiles.filter((f) => {
     const ext = path.extname(f).toLowerCase();
     return [".png", ".gif", ".jpg", ".jpeg", ".webp"].includes(ext);
   });
 
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  const subdirs = entries.filter(d => d.isDirectory() && !d.name.toLowerCase().includes('shiny'));
+  const subdirs = entries.filter(d => d.isDirectory());
 
-  // Detect gender subdirectories - group by base name
-  // e.g., "Male Frame 1" and "Female Frame 1" -> base "Frame 1"
-  const genderGroups = {};  // base -> { male: absPath, female: absPath }
-  const nonGenderSubdirs = [];
+  // Separate gender dirs, variant dirs, and style dirs
+  const genderGroups = {};
+  const variantDirs = [];
+  const styleDirs = [];
+
+  const VARIANT_NAMES = [
+    'back', 'shiny', 'animated', 'gray', 'grey', 'transparent', 'gbc',
+    'male', 'female', 'macho', 'hembra', 'forms', 'alternate versions',
+    'icon', 'icons', 'portraits', 'trainers', 'eggs',
+  ];
+
+  function isVariantDir(name) {
+    const lower = name.toLowerCase();
+    return VARIANT_NAMES.some(v => lower === v || lower.startsWith(v + ' '));
+  }
 
   for (const entry of subdirs) {
-    // First check exact match (e.g., "male", "female")
+    const lower = entry.name.toLowerCase();
+    // Shiny dirs are always variants
+    if (lower.includes('shiny')) {
+      variantDirs.push(entry);
+      continue;
+    }
+    // Gender dirs
     if (isGenderDir(entry.name)) {
-      const key = entry.name.toLowerCase() === 'male' || entry.name.toLowerCase() === 'macho' ? 'male' : 'female';
-      const baseKey = '_exact';  // Group exact matches together
+      const key = lower === 'male' || lower === 'macho' ? 'male' : 'female';
+      const baseKey = '_exact';
       if (!genderGroups[baseKey]) genderGroups[baseKey] = {};
       genderGroups[baseKey][key] = path.join(dirPath, entry.name);
       continue;
     }
-
-    // Then check pattern match (e.g., "Male Frame 1", "Back Female Sprites")
     const parsed = parseGenderDirName(entry.name);
     if (parsed) {
       if (!genderGroups[parsed.base]) genderGroups[parsed.base] = {};
       genderGroups[parsed.base][parsed.gender] = path.join(dirPath, entry.name);
       continue;
     }
-
-    nonGenderSubdirs.push(entry);
+    // Variant dirs (back, animated, forms, etc.)
+    if (isVariantDir(entry.name)) {
+      variantDirs.push(entry);
+      continue;
+    }
+    // Everything else is a potential style dir
+    styleDirs.push(entry);
   }
 
-  // Process each gender group
+  // Count all files: direct + variant subdirs
+  let allSpriteFiles = [...spriteFiles];
+  for (const vDir of variantDirs) {
+    const vPath = path.join(dirPath, vDir.name);
+    const vFiles = fs.readdirSync(vPath, { withFileTypes: true })
+      .filter(d => d.isFile())
+      .map(d => d.name)
+      .filter(f => {
+        const ext = path.extname(f).toLowerCase();
+        return [".png", ".gif", ".jpg", ".jpeg", ".webp"].includes(ext);
+      });
+    allSpriteFiles.push(...vFiles);
+  }
+
+  // Process gender groups
   let hasMergedStyle = false;
   for (const [baseKey, genderPaths] of Object.entries(genderGroups)) {
     const maleCount = countSpriteFiles(genderPaths.male || '');
     const femaleCount = countSpriteFiles(genderPaths.female || '');
-    const totalCount = maleCount + femaleCount;
+    const totalCount = maleCount + femaleCount + allSpriteFiles.length;
 
-    if (totalCount < 150 && spriteFiles.length > 0) continue;
+    if (totalCount === 0) continue;
 
-    // Build display name for this group
     let groupDisplayName;
     if (baseKey === '_exact') {
-      groupDisplayName = displayName;  // Use parent name for exact male/female
+      groupDisplayName = displayName;
     } else {
       groupDisplayName = `${displayName} - ${baseKey}`;
     }
@@ -184,6 +217,12 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
     const id = buildStyleId(regionName, groupDisplayName);
     const allExts = new Set();
     const allNaming = [];
+
+    // Add direct + variant files
+    allSpriteFiles.forEach(f => {
+      allExts.add(path.extname(f).toLowerCase());
+      allNaming.push(f);
+    });
 
     for (const [, gDir] of Object.entries(genderPaths)) {
       if (!gDir || !fs.existsSync(gDir)) continue;
@@ -217,8 +256,8 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
     hasMergedStyle = true;
   }
 
-  // If no merged gender style was created and we have direct sprite files, create normal style
-  if (!hasMergedStyle && spriteFiles.length > 0) {
+  // Create style from direct + variant files (no gender groups)
+  if (!hasMergedStyle && allSpriteFiles.length > 0) {
     const relativePath = path.relative(spritesRoot, dirPath).replace(/\\/g, "/");
     const id = buildStyleId(regionName, displayName);
     results.push({
@@ -226,30 +265,35 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
       name: displayName,
       region: regionName,
       path: relativePath,
-      type: detectType(spriteFiles),
-      extensions: [...new Set(spriteFiles.map((f) => path.extname(f).toLowerCase()))],
-      namingPattern: detectNamingPattern(spriteFiles),
+      type: detectType(allSpriteFiles),
+      extensions: [...new Set(allSpriteFiles.map((f) => path.extname(f).toLowerCase()))],
+      namingPattern: detectNamingPattern(allSpriteFiles),
       generations: detectGenerations(regionName),
-      fileCount: spriteFiles.length,
+      fileCount: allSpriteFiles.length,
     });
   }
 
-  // Process non-gender subdirectories
-  for (const entry of nonGenderSubdirs) {
+  // Process style subdirectories (non-variant, non-gender)
+  for (const entry of styleDirs) {
     const subPath = path.join(dirPath, entry.name);
-    const subDirectFiles = fs.readdirSync(subPath, { withFileTypes: true }).filter(d => d.isFile()).map(d => d.name);
-    const subSpriteFiles = subDirectFiles.filter((f) => {
-      const ext = path.extname(f).toLowerCase();
-      return [".png", ".gif", ".jpg", ".jpeg", ".webp"].includes(ext);
-    });
-    const childDisplayName = `${displayName} - ${entry.name}`;
-    if (subSpriteFiles.length >= 1) {
+    const hasGrandchildren = fs.readdirSync(subPath, { withFileTypes: true }).some(d => d.isDirectory());
+    const subFiles = fs.readdirSync(subPath, { withFileTypes: true })
+      .filter(d => d.isFile())
+      .map(d => d.name)
+      .filter(f => {
+        const ext = path.extname(f).toLowerCase();
+        return [".png", ".gif", ".jpg", ".jpeg", ".webp"].includes(ext);
+      });
+
+    // If subdirectory has <50 files and no grandchildren, treat as variant (merge into parent)
+    if (subFiles.length < 50 && !hasGrandchildren) {
+      allSpriteFiles.push(...subFiles);
+      continue;
+    }
+
+    if (subFiles.length > 0 || hasGrandchildren) {
+      const childDisplayName = `${displayName} - ${entry.name}`;
       scanDir(subPath, regionName, childDisplayName, spritesRoot, results);
-    } else if (subSpriteFiles.length === 0) {
-      const hasGrandchildren = fs.readdirSync(subPath, { withFileTypes: true }).some(d => d.isDirectory());
-      if (hasGrandchildren) {
-        scanDir(subPath, regionName, childDisplayName, spritesRoot, results);
-      }
     }
   }
 }
