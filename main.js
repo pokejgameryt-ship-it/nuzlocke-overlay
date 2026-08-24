@@ -755,6 +755,14 @@ ipcMain.handle('has-recursos', () => {
   return fs.existsSync(spritesDir) && fs.readdirSync(spritesDir).length > 0;
 });
 
+ipcMain.handle('open-recursos-folder', async () => {
+  const recursosDir = path.join(userDataDir, 'Recursos');
+  if (!fs.existsSync(recursosDir)) fs.mkdirSync(recursosDir, { recursive: true });
+  const { shell } = require('electron');
+  await shell.openPath(recursosDir);
+  return true;
+});
+
 // === APP LIFECYCLE ===
 
 function migrateFromBaseDir() {

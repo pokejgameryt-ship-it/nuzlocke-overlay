@@ -41,6 +41,7 @@ window.api = {
   dismissChangelog: (version) => ipcRenderer.invoke('dismiss-changelog', version),
 
   hasRecursos: () => ipcRenderer.invoke('has-recursos'),
+  openRecursosFolder: () => ipcRenderer.invoke('open-recursos-folder'),
   downloadRecursos: () => ipcRenderer.invoke('download-recursos'),
   onDownloadProgress: (callback) => {
     const handler = (e, data) => callback(data);

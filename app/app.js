@@ -1527,6 +1527,14 @@
       btn.disabled = false;
     });
 
+    $('#settingsDownloadSprites').addEventListener('click', () => {
+      startDownloadRecursos();
+    });
+
+    $('#settingsOpenRecursos').addEventListener('click', async () => {
+      await window.api.openRecursosFolder();
+    });
+
     window.api.onSettingsChanged((settings) => {
       currentLang = settings.language || 'es';
       applyLanguage(currentLang);
