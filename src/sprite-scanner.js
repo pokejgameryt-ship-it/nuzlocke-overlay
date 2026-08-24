@@ -143,8 +143,7 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
   const styleDirs = [];
 
   const VARIANT_NAMES = [
-    'back', 'shiny', 'animated', 'gray', 'grey', 'transparent', 'gbc',
-    'male', 'female', 'macho', 'hembra', 'forms', 'alternate versions',
+    'shiny', 'animated', 'forms', 'alternate versions',
     'icon', 'icons', 'portraits', 'trainers', 'eggs',
   ];
 
@@ -285,8 +284,9 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results) {
         return [".png", ".gif", ".jpg", ".jpeg", ".webp"].includes(ext);
       });
 
-    // If subdirectory has <50 files and no grandchildren, treat as variant (merge into parent)
-    if (subFiles.length < 50 && !hasGrandchildren) {
+    // If subdirectory has <51 files and no grandchildren, treat as variant (merge into parent)
+    // A complete Pokemon set is ~50 files, so <=50 means it's a form-specific subset
+    if (subFiles.length < 51 && !hasGrandchildren) {
       allSpriteFiles.push(...subFiles);
       continue;
     }
