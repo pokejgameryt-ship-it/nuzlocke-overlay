@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.0.2-blue" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/gen-1--9-brightgreen" alt="Gen 1-9">
   <img src="https://img.shields.io/badge/languages-ES%20%7C%20EN%20%7C%20FR%20%7C%20DE%20%7C%20JA%20%7C%20RU-brightgreen" alt="Languages">
@@ -34,27 +34,33 @@ Ideal para **streamers de Twitch y YouTube** que hacen runs Nuzlocke y quieren m
 
 ## Instalacion rapida
 
-### Opcion 1: Instalador automatico
+### Opcion 1: Instalador NSIS (Recomendado)
 
-1. Descarga `Instalador-Windows.bat` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
-2. Ejecutalo (descarga el exe y .NET Runtime automaticamente)
-3. Descarga los sprites manualmente (ver paso 2 abajo)
-4. Ejecuta `NuzlockeOverlay.exe`
+1. Descarga `NuzlockeOverlay-Setup-1.0.2.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
+2. Ejecutalo y sigue el asistente de instalacion
+3. Se instala en `C:\Program Files\Nuzlocke Overlay\`
+4. Incluye desinstalador integrado
 
-### Opcion 2: Instalacion manual (paso a paso)
+### Opcion 2: Updater automatico (sin instalador)
+
+1. Descarga `Updater-Windows.bat` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
+2. Ejecutalo — descarga el exe y los Sprites automaticamente desde Google Drive
+3. Ejecuta `NuzlockeOverlay.exe` desde la carpeta de descarga
+
+### Opcion 3: Instalacion manual
 
 **Paso 1 - Descargar el exe:**
 Descarga `NuzlockeOverlay.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
 
 **Paso 2 - Descargar los sprites (~2.2 GB):**
-Los sprites estan en Google Drive porque no caben en GitHub:
-1. Abre el enlace: https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link
-2. Descarga toda la carpeta `Recursos`
-3. Coloca la carpeta `Recursos` junto al exe (misma carpeta)
+Los sprites estan en Google Drive porque no caben en GitHub. Puedes:
+- **Descarga automatica**: Al iniciar la app por primera vez, pregunta si quieres descargarlos
+- **Desde Configuracion**: boton "Descargar Sprites" en la seccion Recursos
+- **Manualmente**: Abre https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link, descarga la carpeta `Recursos` y colocala junto al exe
 
 La estructura debe ser:
 ```
-C:\Users\TU_USUARIO\AppData\Local\NuzlockeOverlay\
+C:\Users\TU_USUARIO\AppData\Roaming\nuzlocke-overlay\
 ├── NuzlockeOverlay.exe
 └── Recursos\
     └── Sprites\
@@ -66,7 +72,7 @@ C:\Users\TU_USUARIO\AppData\Local\NuzlockeOverlay\
 
 **Paso 3 - Instalar .NET 8.0 Runtime:**
 Si no lo tienes, descargalo desde: https://dotnet.microsoft.com/download/dotnet/8.0
-(El instalador automatico lo instala solo)
+(El instalador NSIS lo instala automaticamente si falta)
 
 **Paso 4 - Ejecutar:**
 Doble clic en `NuzlockeOverlay.exe`
@@ -91,7 +97,7 @@ Doble clic en `NuzlockeOverlay.exe`
 | **Gen 6** | X, Y, Rubi Omega, Zafiro Alfa | 3DS | Citra |
 | **Gen 7** | Sol, Luna, Ultra Sol, Ultra Luna | 3DS | Citra |
 | **Gen 8** | Espada, Escudo, Brilliant Diamond, Shining Pearl, Legends Arceus | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
-| **Gen 9** | Escarlata, Púrpura, Legends Z-A | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
+| **Gen 9** | Escarlata, Purpura, Legends Z-A | Switch | Yuzu, Ryujinx, Sudachi, Suyu, ... |
 
 > La deteccion del juego es automatica. Si falla, selecciona el juego manualmente en el selector.
 
@@ -101,8 +107,8 @@ Doble clic en `NuzlockeOverlay.exe`
 
 - **Deteccion automatica de save files** - Selecciona el archivo o carpeta del emulador y la app detecta el juego y equipo solamente
 - **PKHeX integration** - Usa la libreria PKHeX (.NET 8.0) para leer saves de Gen 1-9 con maxima compatibilidad
-- **Parser nativo fallback** - Si PKHeX no esta disponible, un parser interno maneja Gen 1-7
-- **Sprites en tiempo real** - Se actualiza automaticamente cada 500ms cuando guardas en el juego
+- **Parser nativo fallback** - Si PKHeX no esta disponible, un parser interno maneja Gen 1-5
+- **Sprites en tiempo real** - Se actualiza automaticamente cuando guardas en el juego
 - **43+ estilos de sprites** - Gen 1-9, animados (GIF) y estaticos (PNG), incluyendo Artworks, Home, Mystery Dungeon, etc.
 - **Layout editor** - Arrastra y redimensiona los slots en un canvas 1920x1080
 - **Nickname personalizado** - Fuente, color, degradado, contorno, tamano auto
@@ -113,7 +119,11 @@ Doble clic en `NuzlockeOverlay.exe`
 - **6 idiomas** - Espanol, Ingles, Frances, Aleman, Japones, Ruso
 - **Tour interactivo** - Guia paso a paso con spotlight para aprender a usar la app
 - **Busqueda de proyectos** - Filtra y ordena proyectos en la barra lateral
+- **Buscador de fuentes** - Selecciona entre las fuentes del sistema con preview visual y busqueda en tiempo real
 - **Social links** - Acceso rapido a Twitch, YouTube, TikTok y Discord desde ajustes
+- **Descarga automatica de Sprites** - Descarga los sprites desde Google Drive con un clic en Configuracion
+- **Sistema de actualizaciones** - Comprobacion automatica de nuevas versiones al iniciar, popup de changelog
+- **Instalador NSIS** - Instalador grafico con asistente, incluye desinstalador
 
 ---
 
@@ -150,56 +160,64 @@ Doble clic en `NuzlockeOverlay.exe`
 
 ## Estructura de carpetas
 
+### Despues de instalar con NSIS
 ```
-NUZLOCKE APP/
-├── NuzlockeOverlay.exe         # Ejecutable principal
-├── setup.bat                   # Instalador automatico
-├── start.bat                   # Lanzador rapido
-├── logo.png                    # Logo de la app
-├── main.js                     # Process principal de Electron
-├── preload.js                  # Bridge IPC renderer<->main
-├── settings.html               # Ventana de configuracion
-├── config.json                 # Puerto del servidor overlay
-├── package.json
-├── app/
-│   ├── index.html              # UI principal
-│   ├── app.js                  # Logica del renderer
-│   ├── app.css                 # Estilos
-│   └── i18n.js                 # Traducciones (ES, EN, FR, DE, JA, RU)
-├── src/
-│   ├── save-parser.js          # Parser de saves Gen 1-9
-│   ├── pkhex-reader.js         # Wrapper de PKHeX (.NET)
-│   ├── swish-crypto.js         # Desencriptado Sw/Sh
-│   ├── detect-save.js          # Auto-deteccion de formato
-│   ├── sprite-scanner.js       # Scanner y resolver de sprites
-│   ├── file-watcher.js         # Watcher con chokidar
-│   ├── project-manager.js
-│   ├── preset-manager.js
-│   ├── pokemon-data.js         # 1025+ Pokemon + datos de forms
-│   └── logger.js
-├── PkHexReader/                 # Wrapper .NET de PKHeX
-│   ├── Program.cs
-│   ├── PkHexReader.csproj
-│   └── bin/Release/net8.0/
-├── public/
-│   ├── overlay.html            # HTML del overlay para OBS
-│   ├── js/overlay.js           # Logica del overlay
-│   └── css/overlay.css         # Estilos del overlay
-└── Recursos/
-    └── Sprites/                # Carpetas de sprites por generacion
-        ├── Gen1/               # 4 estilos
-        ├── Gen2/               # 3 estilos
-        ├── Gen3/               # 8 estilos
-        ├── Gen4/               # 7 estilos
-        ├── Gen5/               # 4 estilos
-        ├── Gen6/               # 3 estilos
-        ├── Gen7/               # 3 estilos
-        ├── Gen8/               # 3 estilos
-        ├── Gen9/               # 6 estilos
-        └── LEGENDS ARCEUS/     # 2 estilos
+C:\Program Files\Nuzlocke Overlay\      # App instalada (solo lectura)
+├── NuzlockeOverlay.exe
+├── resources\                          # Archivos de la app
+│   └── app\                            # Codigo fuente
+├──Uninstall Nuzlocke Overlay.exe       # Desinstalador
+
+C:\Users\TU\AppData\Roaming\nuzlocke-overlay\   # Datos del usuario
+├── projects.json                       # Proyectos guardados
+├── presets.json                        # Presets guardados
+├── config.json                         # Configuracion
+├── logs\                               # Logs de la app
+└── Recursos\                           # Sprites (descargados)
+    └── Sprites\
+        ├── Gen1/
+        ├── Gen2/
+        ├── ...
+        └── Gen9/
 ```
 
-> **Importante:** La carpeta `Recursos/Sprites/` debe estar junto al exe para que los sprites se carguen. La app escanea subcarpetas automaticamente.
+### Si usas Updater o portable
+```
+Carpeta de descarga\
+├── NuzlockeOverlay.exe
+├── Updater-Windows.bat
+├── logo.png
+├── main.js
+├── preload.js
+├── app/
+│   ├── index.html
+│   ├── app.js
+│   ├── app.css
+│   └── i18n.js
+├── src/
+│   ├── save-parser.js
+│   ├── pkhex-reader.js
+│   ├── swish-crypto.js
+│   ├── detect-save.js
+│   ├── sprite-scanner.js
+│   ├── file-watcher.js
+│   ├── project-manager.js
+│   ├── preset-manager.js
+│   ├── pokemon-data.js
+│   └── logger.js
+├── PkHexReader/
+├── public/
+│   ├── overlay.html
+│   ├── js/overlay.js
+│   ├── css/overlay.css
+│   └── recursos-manifest.json
+└── Recursos/
+    └── Sprites/
+        ├── Gen1/
+        ├── Gen2/
+        ├── ...
+        └── Gen9/
+```
 
 ---
 
@@ -262,19 +280,32 @@ Si te gusta la app y quieres apoyar el proyecto:
 - **Chokidar** - File watcher para detectar cambios en saves
 - **Node.js** - Runtime
 - **i18n** - Sistema de internacionalizacion con 6 idiomas
+- **NSIS** - Instalador grafico para Windows
 
 ---
 
-## Que hay nuevo en v2.1
+## Que hay nuevo en v1.0.2
 
-- **6 idiomas** - Espanol, Ingles, Frances, Aleman, Japones y Ruso con traduccion completa de la UI
-- **Tour interactivo** - Guia paso a paso con spotlight que te enseña a usar la app al primer inicio
-- **Social links** - Acceso rapido a Twitch, YouTube, TikTok y Discord desde ajustes
+- **Instalador NSIS** - Instalador grafico con asistente. Se instala en Program Files y incluye desinstalador
+- **Seccion Recursos en Configuracion** - Botones "Descargar Sprites" y "Abrir carpeta" para gestionar los sprites desde la app
+- **Descarga automatica de Sprites** - Al iniciar por primera vez sin sprites, la app pregunta si quieres descargarlos desde Google Drive
+- **Sistema de actualizaciones** - Comprobacion automatica de nuevas versiones al iniciar. Popup de notificacion con opcion de omitir
+- **Changelog popup** - Al instalar una version nueva, muestra las notas de la release
+- **Buscador de fuentes** - Selector de fuente con busqueda en tiempo real, preview visual y tags de categoria
+- **Fix fonts** - Deteccion de fuentes del sistema via PowerShell con script temporal (resuelve problemas en builds empaquetados)
+- **Fix Electron menu** - Barra de menu nativa eliminada para apariencia limpia en OBS
+- **Fix Google Drive download** - Descarga reescrita con manifiesto JSON (10,018 archivos, 5 workers en paralelo)
+- **Fix logger** - Logs escritos en AppData en vez de Program Files (EPERM fix)
+- **Fix CSP** - Corregido Content Security Policy para builds empaquetados
+
+---
+
+## Que hay nuevo en v1.0.1
+
+- **Buscador de fuentes del sistema** - Selecciona entre ~539 fuentes con preview visual y busqueda
 - **Busqueda y orden de proyectos** - Filtra proyectos por nombre y ordena por fecha o alfabeticamente
-- **Seleccion de carpeta** - Puedes seleccionar una carpeta del emulador y la app te permite elegir el archivo save especifico dentro
-- **Mejor deteccion de saves** - PKHeX como fallback para deteccion de juego cuando el parser nativo no reconoce el formato
-- **PKHeX timeout extendido** - 30 segundos para JIT warmup en primer uso
-- **Fixes** - Corregido parsing de JSON con caracteres especiales en nombres de OT, fix de i18n en window, fix de Snap->Magnet
+- **Fix placeholder en OBS** - Sprite placeholder ahora carga correctamente
+- **Fix sprites scanner** - Ya no crashea si falta la carpeta Recursos
 
 ---
 
