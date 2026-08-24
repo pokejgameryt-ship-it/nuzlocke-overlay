@@ -1,6 +1,6 @@
 {
   "name": "nuzlocke-overlay",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Nuzlocke Overlay App - OBS overlay for Pokemon Nuzlocke runs with real-time team tracking",
   "main": "main.js",
   "author": "PokeJgamer",

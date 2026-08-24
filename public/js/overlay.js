@@ -198,7 +198,7 @@
       if (i >= slots.length) return;
       var slot = slots[i];
 
-      if (pokemon && pokemon.speciesId && pokemon.spriteUrl) {
+      if (pokemon && pokemon.spriteUrl) {
         slot.img.src = pokemon.spriteUrl;
         slot.element.classList.add('active');
         slot.img.alt = pokemon.nickname || pokemon.speciesId.toString();

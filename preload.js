@@ -26,6 +26,8 @@ window.api = {
   detectGame: (savePath) => ipcRenderer.invoke('detect-game', savePath),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
+  getSystemFonts: () => ipcRenderer.invoke('get-system-fonts'),
+
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfig: (config) => ipcRenderer.invoke('save-config', config),
 

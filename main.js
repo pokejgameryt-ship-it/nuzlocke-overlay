@@ -25,7 +25,8 @@ function resolveBaseDir() {
 }
 
 const BASE_DIR = resolveBaseDir();
-const APP_DIR = __dirname;
+const APP_DIR = app.isPackaged ? app.getAppPath() : __dirname;
+console.log('[PATHS] BASE_DIR:', BASE_DIR, 'APP_DIR:', APP_DIR, 'isPackaged:', app.isPackaged, '__dirname:', __dirname);
 
 const SPRITES_ROOT = path.join(BASE_DIR, 'Recursos', 'Sprites');
 const CONFIG_FILE = path.join(BASE_DIR, 'config.json');
@@ -438,6 +439,36 @@ ipcMain.handle('save-settings', (event, settings) => {
   }
   return settings;
 });
+
+let _systemFontsCache = null;
+ipcMain.handle('get-system-fonts', async () => {
+  if (_systemFontsCache) return _systemFontsCache;
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync(
+      'powershell -NoProfile -Command "Get-ItemProperty \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts\' | ForEach-Object { $_.PSObject.Properties | Where-Object { $_.Value -match \'.+\' -and $_.Name -notmatch \'PS\' } | ForEach-Object { $_.Name } }"',
+      { timeout: 5000, encoding: 'utf8' }
+    );
+    const fonts = out.split(/\r?\n/).map(s => s.trim()).filter(Boolean).sort();
+    _systemFontsCache = fonts.length > 0 ? fonts : getDefaultFonts();
+    return _systemFontsCache;
+  } catch (e) {
+    _systemFontsCache = getDefaultFonts();
+    return _systemFontsCache;
+  }
+});
+
+function getDefaultFonts() {
+  return [
+    'Arial', 'Arial Black', 'Calibri', 'Cambria', 'Candara', 'Comic Sans MS',
+    'Consolas', 'Constantia', 'Corbel', 'Courier New', 'Ebrima', 'Franklin Gothic',
+    'Futura', 'Gabriola', 'Georgia', 'Haettenschweiler', 'Impact', 'Ink Free',
+    'Leelawadee', 'Lucida Console', 'Lucida Sans', 'Malgun Gothic', 'Microsoft JhengHei',
+    'Microsoft Sans Serif', 'Myanmar Text', 'Nirmala UI', 'Palatino Linotype',
+    'Papyrus', 'Perpetua', 'Rockwell', 'Segoe UI', 'SimSun', 'Snap ITC',
+    'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana', 'Viner Hand ITC'
+  ];
+}
 
 ipcMain.on('open-settings', (event) => {
   const parent = BrowserWindow.fromWebContents(event.sender);

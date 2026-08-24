@@ -116,6 +116,7 @@
   async function init() {
     styles = await window.api.getStyles();
     games = await window.api.getGames();
+    await loadSystemFonts();
     projects = await window.api.listProjects();
     renderProjectList();
     if (projects.length > 0) selectProject(projects[0].id);
@@ -408,15 +409,25 @@
     };
   }
 
-  const SYSTEM_FONTS = [
-    'Arial', 'Arial Black', 'Calibri', 'Cambria', 'Candara', 'Comic Sans MS',
-    'Consolas', 'Constantia', 'Corbel', 'Courier New', 'Ebrima', 'Franklin Gothic',
-    'Futura', 'Gabriola', 'Georgia', 'Haettenschweiler', 'Impact', 'Ink Free',
-    'Leelawadee', 'Lucida Console', 'Lucida Sans', 'Malgun Gothic', 'Microsoft JhengHei',
-    'Microsoft Sans Serif', 'Myanmar Text', 'Nirmala UI', 'Palatino Linotype',
-    'Papyrus', 'Perpetua', 'Rockwell', 'Segoe UI', 'SimSun', 'Snap ITC',
-    'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana', 'Viner Hand ITC'
-  ];
+  const SYSTEM_FONTS = [];
+
+  async function loadSystemFonts() {
+    try {
+      const fonts = await window.api.getSystemFonts();
+      SYSTEM_FONTS.length = 0;
+      SYSTEM_FONTS.push(...fonts);
+    } catch (e) {
+      SYSTEM_FONTS.push(
+        'Arial', 'Arial Black', 'Calibri', 'Cambria', 'Candara', 'Comic Sans MS',
+        'Consolas', 'Constantia', 'Corbel', 'Courier New', 'Ebrima', 'Franklin Gothic',
+        'Futura', 'Gabriola', 'Georgia', 'Haettenschweiler', 'Impact', 'Ink Free',
+        'Leelawadee', 'Lucida Console', 'Lucida Sans', 'Malgun Gothic', 'Microsoft JhengHei',
+        'Microsoft Sans Serif', 'Myanmar Text', 'Nirmala UI', 'Palatino Linotype',
+        'Papyrus', 'Perpetua', 'Rockwell', 'Segoe UI', 'SimSun', 'Snap ITC',
+        'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana', 'Viner Hand ITC'
+      );
+    }
+  }
 
   let activeSlotType = 'sprite';
   let lastClickIndex = -1;
