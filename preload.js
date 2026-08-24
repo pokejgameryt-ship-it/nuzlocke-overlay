@@ -58,5 +58,10 @@ window.api = {
     const handler = (e, projectId, team, error) => callback(projectId, team, error);
     ipcRenderer.on('team-updated', handler);
     return () => ipcRenderer.removeListener('team-updated', handler);
+  },
+  onStylesRefreshed: (callback) => {
+    const handler = (e, newStyles) => callback(newStyles);
+    ipcRenderer.on('styles-refreshed', handler);
+    return () => ipcRenderer.removeListener('styles-refreshed', handler);
   }
 };

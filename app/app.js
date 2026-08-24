@@ -161,6 +161,14 @@
       }
     });
 
+    window.api.onStylesRefreshed((newStyles) => {
+      styles = newStyles;
+      const project = projects.find(p => p.id === currentId);
+      if (project) {
+        populateStyleSelect(project.spriteStyle);
+      }
+    });
+
     setTimeout(() => {
       checkChangelog();
       checkForUpdates();

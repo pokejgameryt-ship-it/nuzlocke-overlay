@@ -352,7 +352,7 @@ ipcMain.handle('get-port', () => overlayPort);
 
 // Styles
 ipcMain.handle('get-styles', () => scanSprites(SPRITES_ROOT));
-ipcMain.handle('refresh-styles', () => scanSprites(SPRITES_ROOT));
+ipcMain.handle('refresh-styles', () => { invalidateStyleCache(); return scanSprites(SPRITES_ROOT); });
 ipcMain.handle('resolve-sprite', (event, stylePath, speciesId, options) => {
   return resolveSprite(stylePath, speciesId, options);
 });
@@ -742,6 +742,8 @@ ipcMain.handle('download-recursos', async (event) => {
 
     webContents.send('download-progress', { status: 'done', message: 'Download complete', current: downloaded, total });
     _cachedStyles = null;
+    const refreshedStyles = scanSprites(SPRITES_ROOT);
+    webContents.send('styles-refreshed', refreshedStyles);
     return { success: true, files: downloaded - skipped, skipped };
   } catch (e) {
     console.error('[DOWNLOAD] Recursos download failed:', e.message);
