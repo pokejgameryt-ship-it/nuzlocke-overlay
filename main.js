@@ -446,10 +446,24 @@ ipcMain.handle('get-system-fonts', async () => {
   try {
     const { execSync } = require('child_process');
     const out = execSync(
-      'powershell -NoProfile -Command "Get-ItemProperty \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts\' | ForEach-Object { $_.PSObject.Properties | Where-Object { $_.Value -match \'.+\' -and $_.Name -notmatch \'PS\' } | ForEach-Object { $_.Name } }"',
-      { timeout: 5000, encoding: 'utf8' }
+      'powershell -NoProfile -Command "' +
+      '$raw = @(); ' +
+      'Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts" | ' +
+      'ForEach-Object { $_.PSObject.Properties | Where-Object { $_.Value -match ".+" -and $_.Name -notmatch "PS" } | ' +
+      'ForEach-Object { $raw += $_.Name }; ' +
+      '$clean = $raw | ForEach-Object { ' +
+      '  $s = $_ -replace "\\(.*","" -replace ";$","" -replace "^\\s+|\\s+$",""; ' +
+      '  $s -split "\\s*&\\s*" ' +
+      '} | ForEach-Object { $_ } | Sort-Object -Unique; ' +
+      '$clean"',
+      { timeout: 8000, encoding: 'utf8' }
     );
-    const fonts = out.split(/\r?\n/).map(s => s.trim()).filter(Boolean).sort();
+    const skipPattern = /\b(bold|italic|cursiva|negrita|light|black|demi|narrow|condensed|regular|semibold|extrabold|ultrabold|thin|medium|heavy|ultralight|semilight|oblique|roman)\b/i;
+    const skipExact = /^(modern|roman|script|symbol|sans serif collection)$/i;
+    const fonts = out.split(/\r?\n/)
+      .map(s => s.trim().replace(/^"|"$/g, ''))
+      .filter(f => f && f.length > 1 && !skipPattern.test(f) && !skipExact.test(f))
+      .sort((a, b) => a.localeCompare(b));
     _systemFontsCache = fonts.length > 0 ? fonts : getDefaultFonts();
     return _systemFontsCache;
   } catch (e) {
