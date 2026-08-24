@@ -1,10 +1,10 @@
 #!/bin/bash
 # ============================================
-# Nuzlocke Overlay - Instalador macOS
+# Nuzlocke Overlay - Instalador macOS v1.0.2
 # ============================================
 
 GITHUB_REPO="pokejgameryt-ship-it/nuzlocke-overlay"
-MEGA_FOLDER="https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link"
+GDRIVE_FOLDER_ID="1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI"
 RECURSOS_ZIP="Recursos.zip"
 INSTALL_DIR="$HOME/.nuzlocke-overlay"
 
@@ -15,23 +15,12 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo ""
-echo -e "${CYAN}╔═══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║   Nuzlocke Overlay - Instalador macOS v1.0.1  ║${NC}"
-echo -e "${CYAN}║   Soporte: Gen 1 a Gen 9                 ║${NC}"
-echo -e "${CYAN}╚═══════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}============================================${NC}"
+echo -e "${CYAN}║   Nuzlocke Overlay - Instalador macOS v1.0.2  ║${NC}"
+echo -e "${CYAN}║   Soporte: Gen 1 a Gen 9                    ║${NC}"
+echo -e "${CYAN}============================================${NC}"
 echo ""
-echo "  Se instalara en: $INSTALL_DIR"
-echo ""
-
-# Detectar arquitectura
-ARCH="$(uname -m)"
-if [ "$ARCH" = "arm64" ]; then
-    DMG_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/NuzlockeOverlay-macOS-arm64.dmg"
-    echo "  Arquitectura: Apple Silicon (arm64)"
-else
-    DMG_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/NuzlockeOverlay-macOS-x64.dmg"
-    echo "  Arquitectura: Intel (x64)"
-fi
+echo -e "  Se instalara en: ${YELLOW}$INSTALL_DIR${NC}"
 echo ""
 
 # ============================================
@@ -39,14 +28,14 @@ echo ""
 # ============================================
 echo -e "  ${YELLOW}[1/5]${NC} Comprobando conexion a internet..."
 if ! ping -c 1 github.com &>/dev/null; then
-    echo -e "  ${RED}ERROR: No hay conexion a internet.${NC}"
+    echo -e "  ${RED}  ERROR: No hay conexion a internet.${NC}"
     exit 1
 fi
 echo -e "  ${GREEN}        Conexion OK.${NC}"
 echo ""
 
 # ============================================
-# Paso 2: Crear carpeta de instalacion
+# Paso 2: Crear carpeta
 # ============================================
 echo -e "  ${YELLOW}[2/5]${NC} Preparando carpeta de instalacion..."
 mkdir -p "$INSTALL_DIR"
@@ -61,27 +50,31 @@ DOTNET_FOUND=0
 
 if command -v dotnet &>/dev/null; then
     DOTNET_FOUND=1
-    echo -e "  ${GREEN}        dotnet encontrado: $(which dotnet)${NC}"
+elif [ -f "$HOME/.dotnet/dotnet" ]; then
+    DOTNET_FOUND=1
+elif [ -f "/usr/local/share/dotnet/dotnet" ]; then
+    DOTNET_FOUND=1
 fi
 
-if [ "$DOTNET_FOUND" -eq 0 ]; then
-    echo "        .NET Runtime no encontrado."
-
+if [ "$DOTNET_FOUND" = "1" ]; then
+    echo -e "  ${GREEN}        .NET Runtime encontrado.${NC}"
+else
+    echo "        .NET Runtime no encontrado. Instalando..."
     if command -v brew &>/dev/null; then
-        echo "        Instalando via Homebrew..."
         brew install --cask dotnet
-        if [ $? -ne 0 ]; then
-            echo -e "  ${RED}        Fallo la instalacion via Homebrew.${NC}"
-            echo "        Instala manualmente: https://dotnet.microsoft.com/download/dotnet/8.0"
-            exit 1
-        fi
+        echo -e "  ${GREEN}        .NET Runtime instalado.${NC}"
     else
-        echo -e "  ${RED}        Homebrew no encontrado.${NC}"
-        echo "        Instala Homebrew: https://brew.sh"
-        echo "        O instala .NET manualmente: https://dotnet.microsoft.com/download/dotnet/8.0"
-        exit 1
+        echo ""
+        echo "  --------------------------------------------------"
+        echo "  Necesitas instalar .NET 8.0 Runtime manualmente."
+        echo "  Descargalo desde: https://dotnet.microsoft.com/download/dotnet/8.0"
+        echo "  O instala Homebrew: https://brew.sh"
+        echo "  --------------------------------------------------"
+        echo ""
+        echo "  Sin .NET, el overlay no funcionara."
+        echo "  Pulsa Enter para continuar sin .NET..."
+        read
     fi
-    echo -e "  ${GREEN}        .NET Runtime instalado.${NC}"
 fi
 echo ""
 
@@ -89,6 +82,8 @@ echo ""
 # Paso 4: Descargar NuzlockeOverlay
 # ============================================
 echo -e "  ${YELLOW}[4/5]${NC} Descargando NuzlockeOverlay para macOS..."
+
+DMG_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/NuzlockeOverlay.dmg"
 
 # Obtener tamanho remoto
 REMOTE_SIZE=$(curl -sI -L "$DMG_URL" 2>/dev/null | grep -i content-length | tail -1 | tr -d '\r' | awk '{print $2}')
@@ -118,7 +113,6 @@ else
     echo "        Montando DMG..."
     hdiutil attach "$INSTALL_DIR/$RECURSOS_ZIP" -nobrowse -quiet
 
-    # Copiar .app
     APP_PATH=$(find /Volumes -name "NuzlockeOverlay.app" -maxdepth 2 2>/dev/null | head -1)
     if [ -n "$APP_PATH" ]; then
         rm -rf "$INSTALL_DIR/NuzlockeOverlay.app"
@@ -132,30 +126,61 @@ fi
 echo ""
 
 # ============================================
-# Paso 5: Descargar Recursos desde MEGA
+# Paso 5: Descargar Sprites desde Google Drive
 # ============================================
-echo -e "  ${YELLOW}[5/5]${NC} Descargando Sprites/Recursos desde MEGA..."
+echo -e "  ${YELLOW}[5/5]${NC} Comprobando Sprites (Recursos)..."
 if [ -d "$INSTALL_DIR/Recursos/Sprites" ]; then
-    echo -e "  ${GREEN}        Recursos ya existen. OK.${NC}"
+    echo -e "  ${GREEN}        Sprites ya descargados. OK.${NC}"
 else
-    if ! command -v mega-get &>/dev/null; then
-        echo ""
-        echo "  -------------------------------------------"
-        echo "  Sprites no descargados automaticamente."
-        echo "  Descargalos desde:"
-        echo "  https://drive.google.com/drive/folders/1itRjBo1HfZI_dUCa5PptR3x-OiEXppQI?usp=drive_link"
-        echo "  Y coloca la carpeta Recursos en: $INSTALL_DIR/Recursos"
-        echo "  -------------------------------------------"
-        echo ""
-        read -p "  Pulsa Enter para continuar sin Recursos..."
+    echo "        Sprites no encontrados. Descargando desde Google Drive..."
+    echo "        Esto puede tardar varios minutos."
+    echo ""
+
+    mkdir -p "$INSTALL_DIR/Recursos/Sprites"
+
+    # Descargar carpeta de Google Drive
+    curl -sL "https://drive.google.com/drive/folders/${GDRIVE_FOLDER_ID}" -o /tmp/gdrive_page.html 2>/dev/null
+
+    # Extraer IDs de archivos
+    FILE_IDS=$(grep -oP 'data-id="\K[^"]+' /tmp/gdrive_page.html 2>/dev/null | sort -u)
+
+    if [ -n "$FILE_IDS" ]; then
+        TOTAL=$(echo "$FILE_IDS" | wc -l | tr -d ' ')
+        COUNT=0
+        for FILE_ID in $FILE_IDS; do
+            COUNT=$((COUNT + 1))
+            # Obtener metadata del archivo
+            META=$(curl -s "https://www.googleapis.com/drive/v3/files/${FILE_ID}?fields=name,mimeType" 2>/dev/null)
+            FILE_NAME=$(echo "$META" | grep -oP '"name":\s*"\K[^"]+' | head -1)
+            MIME_TYPE=$(echo "$META" | grep -oP '"mimeType":\s*"\K[^"]+' | head -1)
+
+            if [ -n "$FILE_NAME" ]; then
+                echo "  [$COUNT/$TOTAL] $FILE_NAME"
+                if [ "$MIME_TYPE" = "application/vnd.google-apps.folder" ]; then
+                    SUB_DIR="$INSTALL_DIR/Recursos/Sprites/$FILE_NAME"
+                    mkdir -p "$SUB_DIR"
+                    # Descargar contenido de subcarpeta
+                    curl -sL "https://drive.google.com/drive/folders/${FILE_ID}" -o /tmp/gdrive_sub.html 2>/dev/null
+                    SUB_IDS=$(grep -oP 'data-id="\K[^"]+' /tmp/gdrive_sub.html 2>/dev/null | sort -u)
+                    for SUB_ID in $SUB_IDS; do
+                        SUB_META=$(curl -s "https://www.googleapis.com/drive/v3/files/${SUB_ID}?fields=name,mimeType" 2>/dev/null)
+                        SUB_NAME=$(echo "$SUB_META" | grep -oP '"name":\s*"\K[^"]+' | head -1)
+                        SUB_MIME=$(echo "$SUB_META" | grep -oP '"mimeType":\s*"\K[^"]+' | head -1)
+                        if [ -n "$SUB_NAME" ] && [ "$SUB_MIME" != "application/vnd.google-apps.folder" ]; then
+                            curl -sL "https://drive.google.com/uc?export=download&id=${SUB_ID}" -o "$SUB_DIR/$SUB_NAME" 2>/dev/null
+                        fi
+                    done
+                else
+                    curl -sL "https://drive.google.com/uc?export=download&id=${FILE_ID}" -o "$INSTALL_DIR/Recursos/Sprites/$FILE_NAME" 2>/dev/null
+                fi
+            fi
+        done
+        echo -e "  ${GREEN}        Sprites descargados.${NC}"
     else
-        echo "        Descargando desde MEGA..."
-        mega-get "$MEGA_FOLDER" "$INSTALL_DIR/$RECURSOS_ZIP" 2>/dev/null
-        if [ -f "$INSTALL_DIR/$RECURSOS_ZIP" ]; then
-            unzip -o "$INSTALL_DIR/$RECURSOS_ZIP" -d "$INSTALL_DIR/" >/dev/null 2>&1
-            rm -f "$INSTALL_DIR/$RECURSOS_ZIP"
-            echo -e "  ${GREEN}        Recursos descargados.${NC}"
-        fi
+        echo -e "  ${RED}        No se pudieron descargar los sprites automaticamente.${NC}"
+        echo "        Descargalos manualmente desde:"
+        echo "        https://drive.google.com/drive/folders/${GDRIVE_FOLDER_ID}"
+        echo "        Y coloca la carpeta Sprites en: $INSTALL_DIR/Recursos/"
     fi
 fi
 echo ""
@@ -163,27 +188,24 @@ echo ""
 # ============================================
 # Verificacion final
 # ============================================
-echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║              INSTALACION COMPLETADA                   ║${NC}"
-echo -e "${CYAN}╠═══════════════════════════════════════════════════════╣${NC}"
-echo -e "${CYAN}║${NC}                                                       ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  Carpeta: $INSTALL_DIR"
-echo -e "${CYAN}║${NC}                                                       ${CYAN}║${NC}"
+echo -e "${CYAN}============================================${NC}"
+echo -e "${GREEN}        INSTALACION COMPLETADA${NC}"
+echo -e "${CYAN}============================================${NC}"
+echo ""
+echo -e "  Carpeta: ${YELLOW}$INSTALL_DIR${NC}"
+echo ""
 if [ -d "$INSTALL_DIR/NuzlockeOverlay.app" ]; then
-    echo -e "${CYAN}║${NC}  ${GREEN}[OK]${NC} NuzlockeOverlay.app                            ${CYAN}║${NC}"
+    echo -e "  ${GREEN}[OK]${NC} NuzlockeOverlay.app"
 else
-    echo -e "${CYAN}║${NC}  ${RED}[!!]${NC} NuzlockeOverlay.app - FALTA                     ${CYAN}║${NC}"
+    echo -e "  ${RED}[!!]${NC} NuzlockeOverlay.app - FALTA"
 fi
 if [ -d "$INSTALL_DIR/Recursos/Sprites" ]; then
-    echo -e "${CYAN}║${NC}  ${GREEN}[OK]${NC} Recursos/Sprites                               ${CYAN}║${NC}"
+    echo -e "  ${GREEN}[OK]${NC} Recursos/Sprites"
 else
-    echo -e "${CYAN}║${NC}  ${YELLOW}[--]${NC} Recursos/Sprites (opcional)                    ${CYAN}║${NC}"
+    echo -e "  ${YELLOW}[--]${NC} Recursos/Sprites - FALTA (descargalos manualmente)"
 fi
-echo -e "${CYAN}║${NC}                                                       ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  Para ejecutar:                                       ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}    Abre NuzlockeOverlay.app desde la carpeta           ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}                                                       ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  Juegos soportados: Gen 1 - Gen 9                    ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}                                                       ${CYAN}║${NC}"
-echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
 echo ""
+echo -e "  Ver instrucciones en:"
+echo -e "  https://github.com/${GITHUB_REPO}#instalacion-rapida"
+echo ""
+echo -e "${CYAN}============================================${NC}"
