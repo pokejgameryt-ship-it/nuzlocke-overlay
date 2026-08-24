@@ -111,9 +111,21 @@ else
     TAR_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/NuzlockeOverlay-Linux-arm64.tar.gz"
 fi
 
+# Obtener tamanho remoto
+REMOTE_SIZE=$(curl -sI -L "$TAR_URL" 2>/dev/null | grep -i content-length | tail -1 | tr -d '\r' | awk '{print $2}')
+LOCAL_SIZE=0
 if [ -f "$INSTALL_DIR/NuzlockeOverlay" ]; then
-    echo -e "  ${GREEN}        NuzlockeOverlay ya existe. OK.${NC}"
+    LOCAL_SIZE=$(stat -c%s "$INSTALL_DIR/NuzlockeOverlay" 2>/dev/null || echo 0)
+fi
+
+if [ "$LOCAL_SIZE" = "$REMOTE_SIZE" ] && [ "$LOCAL_SIZE" != "0" ] && [ -n "$LOCAL_SIZE" ]; then
+    echo -e "  ${GREEN}        NuzlockeOverlay ya esta actualizado. OK.${NC}"
 else
+    if [ -f "$INSTALL_DIR/NuzlockeOverlay" ]; then
+        echo "        NuzlockeOverlay desactualizado. Actualizando..."
+    else
+        echo "        NuzlockeOverlay no encontrado. Descargando..."
+    fi
     echo "        Descargando..."
     curl -L -o "$INSTALL_DIR/$RECURSOS_ZIP" "$TAR_URL" --progress-bar 2>/dev/null
 

@@ -119,10 +119,26 @@ echo.
 :: Paso 4: Descargar NuzlockeOverlay.exe
 :: ============================================
 echo  [4/4] Descargando NuzlockeOverlay.exe...
+
+:: Obtener tamanho del exe remoto
+echo         Comprobando version remota...
+set "REMOTE_SIZE=0"
+for /f "tokens=*" %%a in ('powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (Invoke-WebRequest -Uri '%GITHUB_EXE_URL%' -Method Head -UseBasicParsing).Headers['Content-Length']"') do set "REMOTE_SIZE=%%a"
+
+:: Obtener tamanho del exe local
+set "LOCAL_SIZE=0"
 if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
-    echo         NuzlockeOverlay.exe ya existe. OK.
+    for /f "tokens=*" %%a in ('powershell -Command "(Get-Item '%INSTALL_DIR%\NuzlockeOverlay.exe').Length"') do set "LOCAL_SIZE=%%a"
+)
+
+if "%LOCAL_SIZE%"=="%REMOTE_SIZE%" (
+    echo         NuzlockeOverlay.exe ya esta actualizado. OK.
 ) else (
-    echo         Descargando desde GitHub...
+    if exist "%INSTALL_DIR%\NuzlockeOverlay.exe" (
+        echo         NuzlockeOverlay.exe desactualizado. Actualizando...
+    ) else (
+        echo         NuzlockeOverlay.exe no encontrado. Descargando...
+    )
     echo         (Puede tardar 1-2 minutos)
     echo.
 

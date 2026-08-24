@@ -89,9 +89,22 @@ echo ""
 # Paso 4: Descargar NuzlockeOverlay
 # ============================================
 echo -e "  ${YELLOW}[4/5]${NC} Descargando NuzlockeOverlay para macOS..."
+
+# Obtener tamanho remoto
+REMOTE_SIZE=$(curl -sI -L "$DMG_URL" 2>/dev/null | grep -i content-length | tail -1 | tr -d '\r' | awk '{print $2}')
+LOCAL_SIZE=0
 if [ -d "$INSTALL_DIR/NuzlockeOverlay.app" ]; then
-    echo -e "  ${GREEN}        NuzlockeOverlay.app ya existe. OK.${NC}"
+    LOCAL_SIZE=$(du -sk "$INSTALL_DIR/NuzlockeOverlay.app" 2>/dev/null | awk '{print $1}')
+fi
+
+if [ "$LOCAL_SIZE" = "$REMOTE_SIZE" ] && [ "$LOCAL_SIZE" != "0" ] && [ -n "$LOCAL_SIZE" ]; then
+    echo -e "  ${GREEN}        NuzlockeOverlay.app ya esta actualizado. OK.${NC}"
 else
+    if [ -d "$INSTALL_DIR/NuzlockeOverlay.app" ]; then
+        echo "        NuzlockeOverlay.app desactualizado. Actualizando..."
+    else
+        echo "        NuzlockeOverlay.app no encontrado. Descargando..."
+    fi
     echo "        Descargando DMG..."
     curl -L -o "$INSTALL_DIR/$RECURSOS_ZIP" "$DMG_URL" --progress-bar 2>/dev/null
 
@@ -108,6 +121,7 @@ else
     # Copiar .app
     APP_PATH=$(find /Volumes -name "NuzlockeOverlay.app" -maxdepth 2 2>/dev/null | head -1)
     if [ -n "$APP_PATH" ]; then
+        rm -rf "$INSTALL_DIR/NuzlockeOverlay.app"
         cp -R "$APP_PATH" "$INSTALL_DIR/"
         hdiutil detach /Volumes/NuzlockeOverlay* -quiet 2>/dev/null
     fi
