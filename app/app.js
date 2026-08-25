@@ -1515,6 +1515,8 @@
         const result = await window.api.checkForUpdates();
         if (result.hasUpdate) {
           showUpdatePopup(result);
+          btn.textContent = t('checkUpdates');
+          btn.disabled = false;
         } else {
           btn.textContent = t('upToDate') || 'Up to date!';
           setTimeout(() => { btn.textContent = t('checkUpdates'); btn.disabled = false; }, 3000);
@@ -1525,7 +1527,6 @@
         setTimeout(() => { btn.textContent = t('checkUpdates'); btn.disabled = false; }, 3000);
         return;
       }
-      btn.disabled = false;
     });
 
     $('#settingsDownloadSprites').addEventListener('click', () => {
@@ -2059,16 +2060,22 @@
     const goBtn = document.getElementById('updateGo');
     if (!overlay) return;
     const t = window.t || ((k) => k);
-    msg.textContent = `${t('updateMessage')} (v${data.currentVersion} \u2192 v${data.latestVersion})`;
+    msg.textContent = `${t('updateMessage')}`;
+    const versionInfo = document.createElement('div');
+    versionInfo.className = 'update-version-info';
+    versionInfo.innerHTML = `<span class="update-version-current">v${data.currentVersion}</span> <span class="update-version-arrow">&rarr;</span> <span class="update-version-latest">v${data.latestVersion}</span>`;
+    msg.parentNode.insertBefore(versionInfo, notes);
     const parsed = parseChangelog(data.releaseNotes || '', t);
-    notes.innerHTML = parsed || '';
+    notes.innerHTML = parsed || `<p style="opacity:0.5">${t('changelogNoNotes') || 'No changelog available.'}</p>`;
     overlay.style.display = 'flex';
     goBtn.onclick = () => {
       window.api.openExternal(data.releaseUrl);
       overlay.style.display = 'none';
+      versionInfo.remove();
     };
     skipBtn.onclick = async () => {
       overlay.style.display = 'none';
+      versionInfo.remove();
       await window.api.skipVersion(data.latestVersion);
     };
   }

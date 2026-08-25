@@ -337,6 +337,25 @@ select {
 
 .btn-secondary:hover { background: #3a3a55; }
 
+.btn-primary {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #e94560, #c23152);
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff6b81, #e94560);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(233, 69, 96, 0.3);
+}
+
 .btn-danger {
   padding: 6px 12px;
   background: transparent;
@@ -822,6 +841,29 @@ select {
 
 .download-progress-eta {
   color: #aaa;
+}
+
+.update-version-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.update-version-current {
+  color: #888;
+  text-decoration: line-through;
+}
+
+.update-version-arrow {
+  color: #e94560;
+  font-size: 18px;
+}
+
+.update-version-latest {
+  color: #4ecdc4;
 }
 
 .modal-input {
