@@ -2251,6 +2251,8 @@
         }
         if (data.isZipMode) {
           renderZipProgress(data);
+        } else if (data.generations) {
+          renderMultiGenProgress(data);
         } else {
           renderProgress(data.current, data.total, data.message);
         }
@@ -2306,6 +2308,45 @@
       progress.innerHTML = '<div class="download-progress-message">' + (data.message || '') + extractIcon + '</div>' +
         statsHtml +
         '<div class="download-progress-bar-track"><div class="download-progress-bar-fill" style="width:' + percent + '%"></div></div>';
+    }
+
+    function renderMultiGenProgress(data) {
+      const current = data.current || 0;
+      const total = data.total || 1;
+      const percent = Math.round((current / total) * 100);
+      const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
+      const speed = elapsed > 0 ? current / elapsed : 0;
+      const remaining = speed > 0 ? (total - current) / speed : 0;
+
+      let statsHtml = '';
+      if (current > 0 && startTime) {
+        statsHtml = '<div class="download-progress-stats">' +
+          '<span class="download-progress-percent">' + percent + '%</span>' +
+          '<span>' + current + ' / ' + total + ' files</span>' +
+          '<span class="download-progress-eta">' + formatSpeed(speed) + ' &middot; ' + formatEta(remaining) + '</span>' +
+          '</div>';
+      }
+
+      let genHtml = '';
+      if (data.generations) {
+        const gens = Object.entries(data.generations).filter(([k, v]) => v.total > 0);
+        genHtml = '<div class="download-gen-bars">' +
+          gens.map(([name, g]) => {
+            const p = g.total > 0 ? Math.round((g.current / g.total) * 100) : 0;
+            const barColor = g.done ? '#4caf50' : (g.current > 0 ? '#2196f3' : '#555');
+            return '<div class="download-gen-row">' +
+              '<span class="download-gen-name">' + name.replace('LEGENDS ARCEUS', 'LA') + '</span>' +
+              '<div class="download-gen-bar"><div class="download-gen-fill" style="width:' + p + '%;background:' + barColor + '"></div></div>' +
+              '<span class="download-gen-pct">' + (g.done ? '&#10003;' : p + '%') + '</span>' +
+              '</div>';
+          }).join('') +
+          '</div>';
+      }
+
+      progress.innerHTML = '<div class="download-progress-message">' + (data.message || '') + '</div>' +
+        statsHtml +
+        '<div class="download-progress-bar-track"><div class="download-progress-bar-fill" style="width:' + percent + '%"></div></div>' +
+        genHtml;
     }
 
     function formatBytes(bytes) {

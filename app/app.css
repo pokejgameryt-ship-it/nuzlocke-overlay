@@ -843,6 +843,49 @@ select {
   color: #aaa;
 }
 
+.download-gen-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.download-gen-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.download-gen-name {
+  width: 30px;
+  font-size: 10px;
+  color: #aaa;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.download-gen-bar {
+  flex: 1;
+  height: 6px;
+  background: #1a1a2e;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.download-gen-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.download-gen-pct {
+  width: 30px;
+  font-size: 10px;
+  color: #888;
+  text-align: left;
+  flex-shrink: 0;
+}
+
 .update-version-info {
   display: flex;
   align-items: center;
