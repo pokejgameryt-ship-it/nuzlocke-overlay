@@ -2009,15 +2009,20 @@
   }
 
   function parseChangelog(notes, t) {
+    function cleanText(s) {
+      return s.replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
     const lines = notes.split('\n');
     const sections = [];
     let current = null;
     for (const line of lines) {
       const h3 = line.match(/^###\s+(.+)/);
       if (h3) {
-        const header = h3[1].trim();
+        const header = cleanText(h3[1]);
         const isFeatures = /nuevas?\s+funciones?|new\s+features?|nouvelles?\s+fonctionnalit|neue\s+funktionen|新機能|новые\s+функции/i.test(header);
-        const isFixes = /correcciones?|bug\s+fixes?|corrections?\s+de\s+bugs?|fehlerbehebungen|バグ修正|исправления?\s+ошибок/i.test(header);
+        const isFixes = /correcciones?|bug\s+fixes?|corrections?|fehlerbehebungen|バグ修正|исправления?\s+ошибок/i.test(header);
         if (isFeatures || isFixes) {
           current = { title: isFeatures ? t('changelogNewFeatures') : t('changelogBugFixes'), items: [] };
           sections.push(current);
@@ -2027,7 +2032,7 @@
         continue;
       }
       if (current && line.startsWith('- ')) {
-        const text = line.slice(2).replace(/\*\*/g, '').trim();
+        const text = cleanText(line.slice(2).replace(/\*\*/g, ''));
         if (text) current.items.push(text);
       }
     }
@@ -2108,16 +2113,69 @@
     const closeBtn = document.getElementById('downloadClose');
     if (!overlay) return;
     overlay.style.display = 'flex';
-    progress.innerHTML = '<p>Connecting to Google Drive...</p>';
+    const t = window.t || ((k) => k);
+    progress.innerHTML = `<div class="download-progress-message">${t('downloadConnecting') || 'Connecting to Google Drive...'}</div>`;
     closeBtn.style.display = 'none';
+
+    let startTime = null;
+    let lastBytes = 0;
+    let lastTime = 0;
+
+    function formatEta(seconds) {
+      if (seconds < 60) return `${Math.ceil(seconds)}s`;
+      const m = Math.floor(seconds / 60);
+      const s = Math.ceil(seconds % 60);
+      return `${m}m ${s}s`;
+    }
+
+    function formatSpeed(filesPerSec) {
+      if (filesPerSec < 1) return `${(filesPerSec * 60).toFixed(0)} files/min`;
+      return `${filesPerSec.toFixed(1)} files/s`;
+    }
+
+    function renderProgress(current, total, message) {
+      const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+      const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
+      const speed = elapsed > 0 ? current / elapsed : 0;
+      const remaining = speed > 0 ? (total - current) / speed : 0;
+
+      let statsHtml = '';
+      if (current > 0 && startTime) {
+        statsHtml = `
+          <div class="download-progress-stats">
+            <span class="download-progress-percent">${percent}%</span>
+            <span>${current} / ${total}</span>
+            <span class="download-progress-eta">${formatSpeed(speed)} &middot; ${formatEta(remaining)}</span>
+          </div>`;
+      } else if (total > 0) {
+        statsHtml = `
+          <div class="download-progress-stats">
+            <span class="download-progress-percent">0%</span>
+            <span>0 / ${total}</span>
+          </div>`;
+      }
+
+      progress.innerHTML = `
+        <div class="download-progress-message">${message || ''}</div>
+        ${statsHtml}
+        <div class="download-progress-bar-track">
+          <div class="download-progress-bar-fill" style="width:${percent}%"></div>
+        </div>`;
+    }
 
     const removeListener = window.api.onDownloadProgress((data) => {
       if (data.status === 'listing') {
-        progress.innerHTML = `<p>${data.message}</p>`;
+        progress.innerHTML = `<div class="download-progress-message">${data.message}</div>`;
       } else if (data.status === 'downloading') {
-        progress.innerHTML = `<p>${data.message}</p><p>${data.current}/${data.total}</p>`;
+        if (!startTime) {
+          startTime = Date.now();
+          lastTime = Date.now();
+          lastBytes = 0;
+        }
+        renderProgress(data.current, data.total, data.message);
       } else if (data.status === 'done') {
-        progress.innerHTML = `<p>Done! ${data.total} files downloaded.</p>`;
+        const t2 = window.t || ((k) => k);
+        renderProgress(data.total, data.total, t2('downloadDone') || `Done! ${data.total} files downloaded.`);
         closeBtn.style.display = '';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
@@ -2125,7 +2183,7 @@
           styles = [];
         };
       } else if (data.status === 'error') {
-        progress.innerHTML = `<p>Error: ${data.message}</p>`;
+        progress.innerHTML = `<div class="download-progress-message" style="color:#e94560">Error: ${data.message}</div>`;
         closeBtn.style.display = '';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
@@ -2135,7 +2193,7 @@
     });
 
     window.api.downloadRecursos().catch((e) => {
-      progress.innerHTML = `<p>Error: ${e.message || 'Download failed'}</p>`;
+      progress.innerHTML = `<div class="download-progress-message" style="color:#e94560">Error: ${e.message || 'Download failed'}</div>`;
       closeBtn.style.display = '';
       closeBtn.onclick = () => {
         overlay.style.display = 'none';

@@ -764,6 +764,66 @@ select {
   font-weight: bold;
 }
 
+.download-progress-container {
+  background: #12121e;
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #ccc;
+  line-height: 1.6;
+}
+
+.download-progress-message {
+  margin-bottom: 10px;
+  color: #e0e0e0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.download-progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background: #1a1a2e;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.download-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e94560, #ff6b6b);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  min-width: 0;
+}
+
+.download-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.download-progress-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.download-progress-percent {
+  color: #e94560;
+  font-weight: 700;
+}
+
+.download-progress-eta {
+  color: #aaa;
+}
+
 .modal-input {
   width: 100%;
   padding: 8px 10px;
