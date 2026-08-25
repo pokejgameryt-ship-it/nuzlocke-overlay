@@ -596,19 +596,34 @@ ipcMain.handle('download-update', async (event, releaseUrl) => {
     webContents.send('download-progress', { status: 'downloading', message: 'Downloading update...', current: 0, total: 100 });
 
     await new Promise((resolve, reject) => {
-      const file = fs.createWriteStream(destPath);
-      https.get(downloadUrl, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
-        if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location) {
-          https.get(res.headers.location, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res2) => {
-            handleDownloadResponse(res2, installer.id, destPath, 0, resolve, reject);
-          }).on('error', reject);
-          return;
-        }
-        handleDownloadResponse(res, installer.id, destPath, 0, resolve, reject);
-      }).on('error', reject);
+      const doDownload = (url, redirectsLeft) => {
+        https.get(url, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
+          if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location && redirectsLeft > 0) {
+            res.resume();
+            return doDownload(res.headers.location, redirectsLeft - 1);
+          }
+          if (res.statusCode !== 200) {
+            res.resume();
+            return reject(new Error('HTTP ' + res.statusCode));
+          }
+          const dir = path.dirname(destPath);
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          const file = fs.createWriteStream(destPath);
+          res.pipe(file);
+          file.on('finish', () => {
+            file.close(() => resolve());
+          });
+          file.on('error', (e) => {
+            try { fs.unlinkSync(destPath); } catch(ex) {}
+            reject(e);
+          });
+        }).on('error', reject);
+      };
+      doDownload(downloadUrl, 5);
     });
 
     webContents.send('download-progress', { status: 'done', message: 'Download complete', current: 100, total: 100 });
+    await new Promise(r => setTimeout(r, 500));
     shell.openPath(destPath);
     return { success: true, path: destPath };
   } catch (e) {

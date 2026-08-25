@@ -2160,10 +2160,10 @@
   async function checkForUpdates() {
     try {
       const result = await window.api.checkForUpdates();
-      if (result.hasChangelog) {
-        showChangelog(result);
-      } else if (result.hasUpdate && !result.skipped) {
+      if (result.hasUpdate && !result.skipped) {
         showUpdatePopup(result);
+      } else if (result.hasChangelog) {
+        showChangelog(result);
       }
     } catch (e) {
       console.error('[UPDATE] check failed:', e);
