@@ -22,6 +22,10 @@
 
 ---
 
+<p align="center">
+  <img src="example.png" alt="Nuzlocke Overlay Example - Team display with sprites and nicknames" width="800">
+</p>
+
 ## Que es Nuzlocke Overlay?
 
 Nuzlocke Overlay es una aplicacion de escritorio para Windows que funciona como **overlay para OBS** con **seguimiento en tiempo real** del equipo de Pokemon en runs Nuzlocke. Detecta automaticamente tu save file y muestra los sprites de tu equipo en un **Browser Source de OBS**.
