@@ -647,7 +647,7 @@ const SPRITES_ZIP_BASE_URL = 'https://github.com/pokejgameryt-ship-it/nuzlocke-o
 const GDRIVE_LEGACY_MANIFEST = 'https://raw.githubusercontent.com/pokejgameryt-ship-it/nuzlocke-overlay/master/public/recursos-manifest.json';
 const GDRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download';
 const extractZip = require('extract-zip');
-const dlAgent = new https.Agent({ keepAlive: true, maxSockets: 25, maxFreeSockets: 10, timeout: 30000 });
+const dlAgent = new https.Agent({ keepAlive: true, maxSockets: 60, maxFreeSockets: 20, timeout: 30000 });
 
 let activeDownload = null;
 
@@ -773,7 +773,7 @@ async function doZipDownload(webContents, spritesDir, zipManifest) {
 }
 
 async function doMultiGenDownload(webContents, spritesDir) {
-  const MAX_CONCURRENT = 20;
+  const MAX_CONCURRENT = 50;
   let activeCount = 0;
   const waitQueue = [];
 
@@ -1053,7 +1053,11 @@ if (!gotLock) {
     }
   });
 
-  app.on('before-quit', () => {
+  app.on('before-quit', (e) => {
+    if (activeDownload && activeDownload.status === 'downloading') {
+      e.preventDefault();
+      return;
+    }
     const projects = projectManager.listAll();
     for (const p of projects) {
       fileWatcher.stopWatching(p.id);
