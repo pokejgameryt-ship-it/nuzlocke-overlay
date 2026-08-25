@@ -641,102 +641,62 @@ ipcMain.handle('dismiss-changelog', (event, version) => {
   return true;
 });
 
-// === DOWNLOAD RECURSOS FROM GOOGLE DRIVE ===
-const GDRIVE_MANIFEST_URL = 'https://raw.githubusercontent.com/pokejgameryt-ship-it/nuzlocke-overlay/master/public/recursos-manifest.json';
+// === DOWNLOAD RECURSOS VIA ZIPs + FAST LEGACY ===
+const SPRITES_ZIP_MANIFEST_URL = 'https://raw.githubusercontent.com/pokejgameryt-ship-it/nuzlocke-overlay/master/sprites-manifest.json';
+const SPRITES_ZIP_BASE_URL = 'https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/';
+const GDRIVE_LEGACY_MANIFEST = 'https://raw.githubusercontent.com/pokejgameryt-ship-it/nuzlocke-overlay/master/public/recursos-manifest.json';
 const GDRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download';
+const extractZip = require('extract-zip');
+const dlAgent = new https.Agent({ keepAlive: true, maxSockets: 60, maxFreeSockets: 20, timeout: 30000 });
 
-function gdriveDownloadFile(fileId, destPath, retries) {
-  retries = retries || 0;
+function dlBuffer(url) {
   return new Promise((resolve, reject) => {
-    const url = GDRIVE_DOWNLOAD_URL + '&id=' + fileId + '&confirm=t';
-    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (res) => {
-      if (res.statusCode >= 301 && res.statusCode <= 308) {
-        const loc = res.headers.location;
-        if (loc && !loc.includes('virus')) {
-          https.get(loc, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res2) => {
-            handleDownloadResponse(res2, fileId, destPath, retries, resolve, reject);
-          }).on('error', (e) => retryOrReject(fileId, destPath, retries, e, resolve, reject));
-        } else {
-          handleDownloadResponse(res, fileId, destPath, retries, resolve, reject);
+    const doReq = (u, left) => {
+      https.get(u, { headers: { 'User-Agent': 'NuzlockeOverlay' }, agent: dlAgent }, (res) => {
+        if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location && left > 0) {
+          res.resume(); return doReq(res.headers.location, left - 1);
         }
-        return;
-      }
-      handleDownloadResponse(res, fileId, destPath, retries, resolve, reject);
-    }).on('error', (e) => retryOrReject(fileId, destPath, retries, e, resolve, reject));
+        if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); }
+        const ch = []; res.on('data', (c) => ch.push(c)); res.on('end', () => resolve(Buffer.concat(ch))); res.on('error', reject);
+      }).on('error', reject);
+    };
+    doReq(url, 5);
   });
 }
 
-function handleDownloadResponse(res, fileId, destPath, retries, resolve, reject) {
-  if (res.statusCode === 429 || res.statusCode >= 500) {
-    return retryOrReject(fileId, destPath, retries, new Error('HTTP ' + res.statusCode), resolve, reject);
-  }
-  if (res.statusCode !== 200) {
-    res.resume();
-    return reject(new Error('HTTP ' + res.statusCode));
-  }
-  const contentType = (res.headers['content-type'] || '');
-  if (contentType.includes('text/html')) {
-    let body = '';
-    res.setEncoding('utf8');
-    res.on('data', (c) => { body += c; });
-    res.on('end', () => {
-      const confirmMatch = body.match(/confirm=([0-9A-Za-z_-]+)/);
-      const uuidMatch = body.match(/uuid=([0-9A-Za-z_-]+)/);
-      const downloadUrl = body.match(/action="([^"]+)"/);
-      if (confirmMatch || downloadUrl) {
-        let nextUrl = downloadUrl ? downloadUrl[1] : GDRIVE_DOWNLOAD_URL;
-        nextUrl += '&id=' + fileId + '&confirm=' + (confirmMatch ? confirmMatch[1] : 't');
-        if (uuidMatch) nextUrl += '&uuid=' + uuidMatch[1];
-        https.get(nextUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res2) => {
-          handleDownloadResponse(res2, fileId, destPath, retries, resolve, reject);
-        }).on('error', (e) => retryOrReject(fileId, destPath, retries, e, resolve, reject));
-      } else {
-        retryOrReject(fileId, destPath, retries, new Error('No download link in HTML'), resolve, reject);
-      }
-    });
-    return;
-  }
-  const dir = path.dirname(destPath);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const file = fs.createWriteStream(destPath);
-  res.pipe(file);
-  file.on('finish', () => { file.close(); resolve(); });
-  file.on('error', (e) => { try { fs.unlinkSync(destPath); } catch(ex) {} reject(e); });
-}
-
-function retryOrReject(fileId, destPath, retries, err, resolve, reject) {
-  if (retries < 2) {
-    setTimeout(() => {
-      gdriveDownloadFile(fileId, destPath, retries + 1).then(resolve).catch(reject);
-    }, 1000 * (retries + 1));
-  } else {
-    reject(err);
-  }
-}
-
-async function fetchManifest() {
-  const MAX_REDIRECTS = 5;
-  function doFetch(url, redirectsLeft) {
-    return new Promise((resolve, reject) => {
-      https.get(url, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
-        if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location) {
-          res.resume();
-          if (redirectsLeft <= 0) return reject(new Error('Too many redirects'));
-          return doFetch(res.headers.location, redirectsLeft - 1).then(resolve).catch(reject);
+function dlFileStream(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const dir = path.dirname(destPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const file = fs.createWriteStream(destPath);
+    const doReq = (u, left) => {
+      https.get(u, { headers: { 'User-Agent': 'NuzlockeOverlay' }, agent: dlAgent }, (res) => {
+        if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location && left > 0) {
+          res.resume(); return doReq(res.headers.location, left - 1);
         }
-        let data = '';
-        res.on('data', (c) => data += c);
-        res.on('end', () => {
-          if (res.statusCode !== 200) {
-            return reject(new Error('HTTP ' + res.statusCode + ': ' + data.substring(0, 200)));
-          }
-          try { resolve(JSON.parse(data)); }
-          catch (e) { reject(new Error('JSON parse error: ' + e.message + ' (response starts with: ' + JSON.stringify(data.substring(0, 50)) + ')')); }
-        });
-      }).on('error', reject);
-    });
+        if (res.statusCode !== 200) { res.resume(); file.close(); try { fs.unlinkSync(destPath); } catch(ex) {} return reject(new Error('HTTP ' + res.statusCode)); }
+        res.pipe(file);
+        file.on('finish', () => { file.close(() => resolve()); });
+        file.on('error', (e) => { try { fs.unlinkSync(destPath); } catch(ex) {} reject(e); });
+      }).on('error', (e) => { file.close(); reject(e); });
+    };
+    doReq(url, 5);
+  });
+}
+
+async function dlRetry(url, destPath, retries) {
+  retries = retries || 3;
+  for (let i = 0; i <= retries; i++) {
+    try { await dlFileStream(url, destPath); return; }
+    catch (e) { if (i < retries) await new Promise(r => setTimeout(r, 1000 * (i + 1))); else throw e; }
   }
-  return doFetch(GDRIVE_MANIFEST_URL, MAX_REDIRECTS);
+}
+
+function fmtBytes(b) {
+  if (!b) return '0 B';
+  if (b < 1048576) return (b / 1024).toFixed(0) + ' KB';
+  if (b < 1073741824) return (b / 1048576).toFixed(0) + ' MB';
+  return (b / 1073741824).toFixed(1) + ' GB';
 }
 
 ipcMain.handle('download-recursos', async (event) => {
@@ -746,49 +706,145 @@ ipcMain.handle('download-recursos', async (event) => {
   if (!fs.existsSync(spritesDir)) fs.mkdirSync(spritesDir, { recursive: true });
 
   try {
-    webContents.send('download-progress', { status: 'listing', message: 'Fetching file manifest from GitHub...' });
-    const manifest = await fetchManifest();
-    const files = manifest.files || [];
-    const total = files.length;
-    let downloaded = 0;
-    let skipped = 0;
+    let zipManifest = null;
+    try {
+      webContents.send('download-progress', { status: 'listing', message: 'Checking for sprite packs...' });
+      const data = await dlBuffer(SPRITES_ZIP_MANIFEST_URL);
+      zipManifest = JSON.parse(data.toString());
+    } catch (e) { zipManifest = null; }
 
-    webContents.send('download-progress', { status: 'downloading', message: total + ' files to download', current: 0, total });
-
-    const CONCURRENCY = 5;
-    let idx = 0;
-
-    async function downloadNext() {
-      while (idx < files.length) {
-        const file = files[idx++];
-        const filePath = path.join(spritesDir, file.path);
-        if (fs.existsSync(filePath)) { skipped++; downloaded++; continue; }
-        webContents.send('download-progress', { status: 'downloading', message: file.name, current: downloaded, total });
-        try {
-          await gdriveDownloadFile(file.id, filePath);
-          downloaded++;
-        } catch (e) {
-          console.error('[DOWNLOAD] Failed:', file.name, e.message);
-          downloaded++;
-        }
-      }
+    if (zipManifest && zipManifest.zips && zipManifest.zips.length > 0) {
+      return await doZipDownload(webContents, spritesDir, zipManifest);
     }
-
-    const workers = [];
-    for (let i = 0; i < CONCURRENCY; i++) workers.push(downloadNext());
-    await Promise.all(workers);
-
-    webContents.send('download-progress', { status: 'done', message: 'Download complete', current: downloaded, total });
-    _cachedStyles = null;
-    const refreshedStyles = scanSprites(SPRITES_ROOT);
-    webContents.send('styles-refreshed', refreshedStyles);
-    return { success: true, files: downloaded - skipped, skipped };
+    return await doLegacyFastDownload(webContents, spritesDir);
   } catch (e) {
-    console.error('[DOWNLOAD] Recursos download failed:', e.message);
+    console.error('[DOWNLOAD] Failed:', e.message);
     webContents.send('download-progress', { status: 'error', message: e.message });
     return { success: false, error: e.message };
   }
 });
+
+async function doZipDownload(webContents, spritesDir, zipManifest) {
+  const zips = zipManifest.zips;
+  const totalZips = zips.length;
+  let done = 0, totalBytes = 0, dlBytes = 0;
+  for (const z of zips) totalBytes += z.size || 0;
+
+  webContents.send('download-progress', { status: 'downloading', message: totalZips + ' sprite packs to download...', current: 0, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: 0, isZipMode: true });
+
+  const tmpDir = path.join(path.dirname(spritesDir), '_zip_temp');
+  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+
+  for (const zip of zips) {
+    const zipPath = path.join(tmpDir, zip.name);
+    webContents.send('download-progress', { status: 'downloading', message: zip.name + ' (' + fmtBytes(zip.size) + ')', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
+    try {
+      if (!fs.existsSync(zipPath)) await dlRetry(zip.url || (SPRITES_ZIP_BASE_URL + zip.name), zipPath);
+      dlBytes += zip.size || 0;
+      webContents.send('download-progress', { status: 'extracting', message: 'Extracting ' + zip.name + '...', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
+      await extractZip(zipPath, { dir: spritesDir });
+    } catch (e) { console.error('[DOWNLOAD] ZIP failed:', zip.name, e.message); }
+    done++;
+  }
+  try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch(ex) {}
+  webContents.send('download-progress', { status: 'done', message: 'Download complete', current: totalZips, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: totalBytes, isZipMode: true });
+  _cachedStyles = null;
+  webContents.send('styles-refreshed', scanSprites(SPRITES_ROOT));
+  return { success: true, zips: done };
+}
+
+async function doLegacyFastDownload(webContents, spritesDir) {
+  const CONCURRENCY = 50;
+  let ratePause = 0;
+
+  function gdriveDl(fileId, destPath, retries) {
+    retries = retries || 0;
+    return new Promise((resolve, reject) => {
+      const url = GDRIVE_DOWNLOAD_URL + '&id=' + fileId + '&confirm=t';
+      https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, agent: dlAgent }, (res) => {
+        if (res.statusCode >= 301 && res.statusCode <= 308) {
+          const loc = res.headers.location;
+          if (loc && !loc.includes('virus')) {
+            https.get(loc, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent }, (r2) => {
+              handleGdrive(r2, fileId, destPath, retries, resolve, reject);
+            }).on('error', (e) => retryGdrive(fileId, destPath, retries, e, resolve, reject));
+          } else { handleGdrive(res, fileId, destPath, retries, resolve, reject); }
+          return;
+        }
+        handleGdrive(res, fileId, destPath, retries, resolve, reject);
+      }).on('error', (e) => retryGdrive(fileId, destPath, retries, e, resolve, reject));
+    });
+  }
+
+  function handleGdrive(res, fileId, destPath, retries, resolve, reject) {
+    if (res.statusCode === 429 || res.statusCode >= 500) { res.resume(); return retryGdrive(fileId, destPath, retries, new Error('HTTP ' + res.statusCode), resolve, reject); }
+    if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); }
+    if ((res.headers['content-type'] || '').includes('text/html')) {
+      let body = ''; res.setEncoding('utf8');
+      res.on('data', (c) => { body += c; });
+      res.on('end', () => {
+        const cm = body.match(/confirm=([0-9A-Za-z_-]+)/);
+        const um = body.match(/uuid=([0-9A-Za-z_-]+)/);
+        const da = body.match(/action="([^"]+)"/);
+        if (cm || da) {
+          let nu = da ? da[1] : GDRIVE_DOWNLOAD_URL;
+          nu += '&id=' + fileId + '&confirm=' + (cm ? cm[1] : 't');
+          if (um) nu += '&uuid=' + um[1];
+          https.get(nu, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent }, (r2) => {
+            handleGdrive(r2, fileId, destPath, retries, resolve, reject);
+          }).on('error', (e) => retryGdrive(fileId, destPath, retries, e, resolve, reject));
+        } else { retryGdrive(fileId, destPath, retries, new Error('No download link'), resolve, reject); }
+      });
+      return;
+    }
+    const dir = path.dirname(destPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const file = fs.createWriteStream(destPath);
+    res.pipe(file);
+    file.on('finish', () => { file.close(() => resolve()); });
+    file.on('error', (e) => { try { fs.unlinkSync(destPath); } catch(ex) {} reject(e); });
+  }
+
+  function retryGdrive(fileId, destPath, retries, err, resolve, reject) {
+    if (retries < 3) {
+      setTimeout(() => { gdriveDl(fileId, destPath, retries + 1).then(resolve).catch(reject); }, 500 * (retries + 1));
+    } else { reject(err); }
+  }
+
+  webContents.send('download-progress', { status: 'listing', message: 'Fetching file manifest...' });
+  const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
+  const manifest = JSON.parse(mData.toString());
+  const files = manifest.files || [];
+  const total = files.length;
+  let downloaded = 0, skipped = 0, idx = 0;
+
+  webContents.send('download-progress', { status: 'downloading', message: total + ' files (fast mode)...', current: 0, total });
+
+  async function worker() {
+    while (idx < files.length) {
+      const file = files[idx++];
+      const filePath = path.join(spritesDir, file.path);
+      if (fs.existsSync(filePath)) { skipped++; downloaded++; continue; }
+      webContents.send('download-progress', { status: 'downloading', message: file.name, current: downloaded, total });
+      try {
+        await gdriveDl(file.id, filePath);
+        downloaded++;
+      } catch (e) {
+        console.error('[DOWNLOAD] Failed:', file.name, e.message);
+        downloaded++;
+      }
+    }
+  }
+
+  const workers = [];
+  for (let i = 0; i < CONCURRENCY; i++) workers.push(worker());
+  await Promise.all(workers);
+
+  webContents.send('download-progress', { status: 'done', message: 'Download complete', current: downloaded, total });
+  _cachedStyles = null;
+  webContents.send('styles-refreshed', scanSprites(SPRITES_ROOT));
+  return { success: true, files: downloaded - skipped, skipped };
+}
 
 ipcMain.handle('has-recursos', () => {
   const spritesDir = path.join(userDataDir, 'Recursos', 'Sprites');
