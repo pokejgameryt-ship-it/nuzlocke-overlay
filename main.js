@@ -53,7 +53,7 @@ const SPRITES_ROOT = (() => {
 const CONFIG_FILE = path.join(BASE_DIR, 'config.json');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 
-const DEFAULT_SETTINGS = { language: 'es', backgroundMode: true };
+const DEFAULT_SETTINGS = { language: 'es', backgroundMode: true, lastSeenVersion: '' };
 
 let mainWindow = null;
 let settingsWindow = null;
@@ -554,21 +554,22 @@ ipcMain.handle('check-for-updates', async () => {
     const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
     const latestVersion = (release.tag_name || '').replace(/^v/, '');
     const currentVersion = app.getVersion();
-    if (latestVersion && latestVersion !== currentVersion) {
-      const settings = loadSettings();
-      const skippedVersion = settings.skippedVersion || '';
-      return {
-        hasUpdate: true,
-        currentVersion,
-        latestVersion,
-        releaseNotes: release.body || '',
-        releaseUrl: release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
-        skipped: skippedVersion === latestVersion,
-      };
-    }
-    return { hasUpdate: false, currentVersion, latestVersion };
+    const settings = loadSettings();
+    const skippedVersion = settings.skippedVersion || '';
+    const lastSeenVersion = settings.lastSeenVersion || '';
+    const hasUpdate = latestVersion && latestVersion !== currentVersion;
+    const hasChangelog = latestVersion && latestVersion !== lastSeenVersion;
+    return {
+      hasUpdate: !!hasUpdate,
+      currentVersion,
+      latestVersion,
+      releaseNotes: release.body || '',
+      releaseUrl: release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
+      skipped: hasUpdate && skippedVersion === latestVersion,
+      hasChangelog: !!hasChangelog,
+    };
   } catch (e) {
-    return { hasUpdate: false, error: e.message };
+    return { hasUpdate: false, hasChangelog: false, error: e.message };
   }
 });
 
@@ -616,29 +617,9 @@ ipcMain.handle('download-update', async (event, releaseUrl) => {
   }
 });
 
-ipcMain.handle('check-changelog', async () => {
-  try {
-    const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-    const latestVersion = (release.tag_name || '').replace(/^v/, '');
-    const settings = loadSettings();
-    const lastSeenChangelog = settings.lastSeenChangelog || '';
-    if (latestVersion && latestVersion !== lastSeenChangelog) {
-      return {
-        hasChangelog: true,
-        version: latestVersion,
-        releaseNotes: release.body || '',
-        releaseUrl: release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
-      };
-    }
-    return { hasChangelog: false };
-  } catch (e) {
-    return { hasChangelog: false, error: e.message };
-  }
-});
-
 ipcMain.handle('dismiss-changelog', (event, version) => {
   const settings = loadSettings();
-  settings.lastSeenChangelog = version;
+  settings.lastSeenVersion = version;
   saveSettingsToFile(settings);
   return true;
 });

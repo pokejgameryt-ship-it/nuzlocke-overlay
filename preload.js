@@ -39,7 +39,6 @@ window.api = {
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   skipVersion: (version) => ipcRenderer.invoke('skip-version', version),
   downloadUpdate: (releaseUrl) => ipcRenderer.invoke('download-update', releaseUrl),
-  checkChangelog: () => ipcRenderer.invoke('check-changelog'),
   dismissChangelog: (version) => ipcRenderer.invoke('dismiss-changelog', version),
 
   hasRecursos: () => ipcRenderer.invoke('has-recursos'),

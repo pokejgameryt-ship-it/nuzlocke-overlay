@@ -170,7 +170,6 @@
     });
 
     setTimeout(() => {
-      checkChangelog();
       checkForUpdates();
       checkAndDownloadRecursos();
     }, 3000);
@@ -2026,11 +2025,10 @@
     const content = document.getElementById('changelogContent');
     const okBtn = document.getElementById('changelogOk');
     if (!overlay || !content) return;
-    const t = window.t || ((k) => k);
     title.textContent = t('changelogTitle') + ' v' + data.version;
     const notes = data.releaseNotes || '';
     const html = parseChangelog(notes, t);
-    content.innerHTML = html || '<p style="opacity:0.5">No changelog available.</p>';
+    content.innerHTML = html || `<p style="opacity:0.5">${t('changelogNoNotes')}</p>`;
     overlay.style.display = 'flex';
     okBtn.onclick = async () => {
       overlay.style.display = 'none';
@@ -2138,22 +2136,13 @@
   async function checkForUpdates() {
     try {
       const result = await window.api.checkForUpdates();
-      if (result && result.hasUpdate) {
+      if (result.hasChangelog) {
+        showChangelog(result);
+      } else if (result.hasUpdate && !result.skipped) {
         showUpdatePopup(result);
       }
     } catch (e) {
       console.error('[UPDATE] check failed:', e);
-    }
-  }
-
-  async function checkChangelog() {
-    try {
-      const result = await window.api.checkChangelog();
-      if (result && result.hasChangelog) {
-        showChangelog(result);
-      }
-    } catch (e) {
-      console.error('[CHANGELOG] check failed:', e);
     }
   }
 
