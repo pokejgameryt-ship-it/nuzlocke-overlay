@@ -1585,18 +1585,42 @@
       applyLanguage(lang);
       const langSel = $('#settingsLanguage');
       if (langSel) langSel.value = lang;
-      window.api.saveSettings({ ...savedSettings, language: lang });
       overlay.style.display = 'none';
 
-      if (savedSettings.tutorialSeen !== true && projects.length === 0) {
-        setTimeout(() => startTour(), 800);
-        window.api.saveSettings({ ...savedSettings, language: lang, tutorialSeen: true });
+      if (savedSettings.downloadMode) {
+        if (savedSettings.tutorialSeen !== true && projects.length === 0) {
+          setTimeout(() => startTour(), 800);
+          window.api.saveSettings({ ...savedSettings, language: lang, tutorialSeen: true });
+        }
+        return;
       }
+
+      showDownloadModeSelector({ ...savedSettings, language: lang });
     };
 
     overlay.querySelectorAll('.lang-option').forEach(btn => {
       btn.addEventListener('click', () => applyLang(btn.dataset.lang));
     });
+  }
+
+  function showDownloadModeSelector(savedSettings) {
+    const overlay = document.getElementById('downloadModeOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    applyLanguage(currentLang);
+
+    const cleanup = async (mode) => {
+      overlay.style.display = 'none';
+      const newSettings = { ...savedSettings, downloadMode: mode };
+      await window.api.saveSettings(newSettings);
+      if (newSettings.tutorialSeen !== true && projects.length === 0) {
+        setTimeout(() => startTour(), 800);
+        await window.api.saveSettings({ ...newSettings, tutorialSeen: true });
+      }
+    };
+
+    document.getElementById('downloadModeAuto').onclick = () => cleanup('auto');
+    document.getElementById('downloadModeManual').onclick = () => cleanup('manual');
   }
 
   function applyLanguage(lang) {
@@ -2150,6 +2174,8 @@
     try {
       const has = await window.api.hasRecursos();
       if (has) return;
+      const settings = await window.api.getSettings();
+      if (settings.downloadMode === 'manual') return;
       const t = window.t || ((k) => k);
       if (!confirm(t('downloadDesc') || 'Sprites not found. Download from Google Drive?')) return;
       startDownloadRecursos();
