@@ -1509,24 +1509,27 @@
     $('#checkUpdatesBtn').addEventListener('click', async () => {
       const btn = $('#checkUpdatesBtn');
       const t = window.t || ((k) => k);
-      btn.textContent = '...';
+      btn.textContent = t('updateChecking') || '...';
       btn.disabled = true;
       try {
         const result = await window.api.checkForUpdates();
         if (result.hasUpdate) {
           showUpdatePopup(result);
-          btn.textContent = t('checkUpdates');
-          btn.disabled = false;
         } else {
-          btn.textContent = t('upToDate') || 'Up to date!';
-          setTimeout(() => { btn.textContent = t('checkUpdates'); btn.disabled = false; }, 3000);
-          return;
+          const version = result.currentVersion || app.getVersion();
+          showStatusPopup(
+            t('upToDate') || 'Up to date!',
+            `<p>${t('upToDateMessage') || 'Your version is up to date.'}</p><p style="color:#4ecdc4;font-weight:600">v${version}</p>`
+          );
         }
       } catch (e) {
-        btn.textContent = t('updateError') || 'Error';
-        setTimeout(() => { btn.textContent = t('checkUpdates'); btn.disabled = false; }, 3000);
-        return;
+        showStatusPopup(
+          t('updateError') || 'Error',
+          `<p>${e.message || 'Could not check for updates.'}</p>`
+        );
       }
+      btn.textContent = t('checkUpdates');
+      btn.disabled = false;
     });
 
     $('#settingsDownloadSprites').addEventListener('click', () => {
@@ -2049,6 +2052,18 @@
       html += '</ul></div>';
     }
     return html;
+  }
+
+  function showStatusPopup(title, message) {
+    const overlay = document.getElementById('statusOverlay');
+    const titleEl = document.getElementById('statusTitle');
+    const content = document.getElementById('statusContent');
+    const okBtn = document.getElementById('statusOk');
+    if (!overlay) return;
+    titleEl.textContent = title;
+    content.innerHTML = message;
+    overlay.style.display = 'flex';
+    okBtn.onclick = () => { overlay.style.display = 'none'; };
   }
 
   function showUpdatePopup(data) {
