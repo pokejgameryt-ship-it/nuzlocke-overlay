@@ -2242,17 +2242,29 @@
 
     const removeListener = window.api.onDownloadProgress((data) => {
       if (data.status === 'listing') {
-        progress.innerHTML = `<div class="download-progress-message">${data.message}</div>`;
-      } else if (data.status === 'downloading') {
+        progress.innerHTML = '<div class="download-progress-message">' + data.message + '</div>';
+      } else if (data.status === 'downloading' || data.status === 'extracting') {
         if (!startTime) {
           startTime = Date.now();
           lastTime = Date.now();
           lastBytes = 0;
         }
-        renderProgress(data.current, data.total, data.message);
+        if (data.isZipMode) {
+          renderZipProgress(data);
+        } else {
+          renderProgress(data.current, data.total, data.message);
+        }
       } else if (data.status === 'done') {
         const t2 = window.t || ((k) => k);
-        renderProgress(data.total, data.total, t2('downloadDone') || `Done! ${data.total} files downloaded.`);
+        if (data.isZipMode) {
+          renderZipProgress(data);
+          const msg = t2('downloadDone') || 'Done! Sprites downloaded.';
+          progress.innerHTML = '<div class="download-progress-message">' + msg + '</div>' +
+            '<div class="download-progress-stats"><span class="download-progress-percent">100%</span></div>' +
+            '<div class="download-progress-bar-track"><div class="download-progress-bar-fill" style="width:100%"></div></div>';
+        } else {
+          renderProgress(data.total, data.total, t2('downloadDone') || 'Done! ' + data.total + ' files downloaded.');
+        }
         closeBtn.style.display = '';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
@@ -2260,7 +2272,7 @@
           styles = [];
         };
       } else if (data.status === 'error') {
-        progress.innerHTML = `<div class="download-progress-message" style="color:#e94560">Error: ${data.message}</div>`;
+        progress.innerHTML = '<div class="download-progress-message" style="color:#e94560">Error: ' + data.message + '</div>';
         closeBtn.style.display = '';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
@@ -2268,6 +2280,56 @@
         };
       }
     });
+
+    function renderZipProgress(data) {
+      const current = data.current || 0;
+      const total = data.total || 1;
+      const percent = Math.round((current / total) * 100);
+      const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
+      const bytesDone = data.bytesDownloaded || 0;
+      const bytesTotal = data.bytesTotal || 0;
+      const speed = elapsed > 0 ? bytesDone / elapsed : 0;
+      const remaining = speed > 0 ? (bytesTotal - bytesDone) / speed : 0;
+      const isExtracting = data.status === 'extracting';
+
+      let statsHtml = '';
+      if (current > 0 && startTime) {
+        statsHtml = '<div class="download-progress-stats">' +
+          '<span class="download-progress-percent">' + percent + '%</span>' +
+          '<span>' + current + ' / ' + total + ' packs</span>' +
+          '<span>' + formatBytes(bytesDone) + ' / ' + formatBytes(bytesTotal) + '</span>' +
+          '<span class="download-progress-eta">' + (isExtracting ? 'Extracting' : formatSpeed2(speed)) + ' &middot; ' + formatEta2(remaining) + '</span>' +
+          '</div>';
+      }
+
+      const extractIcon = isExtracting ? ' &#x1F4E6;' : '';
+      progress.innerHTML = '<div class="download-progress-message">' + (data.message || '') + extractIcon + '</div>' +
+        statsHtml +
+        '<div class="download-progress-bar-track"><div class="download-progress-bar-fill" style="width:' + percent + '%"></div></div>';
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(0) + ' KB';
+      if (bytes < 1073741824) return (bytes / 1048576).toFixed(0) + ' MB';
+      return (bytes / 1073741824).toFixed(1) + ' GB';
+    }
+
+    function formatEta2(seconds) {
+      if (!seconds || seconds < 0) return '';
+      if (seconds < 60) return Math.ceil(seconds) + 's';
+      const m = Math.floor(seconds / 60);
+      const s = Math.ceil(seconds % 60);
+      return m + 'm ' + s + 's';
+    }
+
+    function formatSpeed2(bytesPerSec) {
+      if (!bytesPerSec) return '';
+      if (bytesPerSec < 1024) return bytesPerSec.toFixed(0) + ' B/s';
+      if (bytesPerSec < 1048576) return (bytesPerSec / 1024).toFixed(0) + ' KB/s';
+      return (bytesPerSec / 1048576).toFixed(1) + ' MB/s';
+    }
 
     window.api.downloadRecursos().catch((e) => {
       progress.innerHTML = `<div class="download-progress-message" style="color:#e94560">Error: ${e.message || 'Download failed'}</div>`;
