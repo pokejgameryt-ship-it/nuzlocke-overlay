@@ -647,7 +647,9 @@ const SPRITES_ZIP_BASE_URL = 'https://github.com/pokejgameryt-ship-it/nuzlocke-o
 const GDRIVE_LEGACY_MANIFEST = 'https://raw.githubusercontent.com/pokejgameryt-ship-it/nuzlocke-overlay/master/public/recursos-manifest.json';
 const GDRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download';
 const extractZip = require('extract-zip');
-const dlAgent = new https.Agent({ keepAlive: true, maxSockets: 60, maxFreeSockets: 20, timeout: 30000 });
+const dlAgent = new https.Agent({ keepAlive: true, maxSockets: 25, maxFreeSockets: 10, timeout: 30000 });
+
+let activeDownload = null;
 
 function dlBuffer(url) {
   return new Promise((resolve, reject) => {
@@ -699,6 +701,15 @@ function fmtBytes(b) {
   return (b / 1073741824).toFixed(1) + ' GB';
 }
 
+function sendDownloadProgress(data) {
+  activeDownload = { ...activeDownload, ...data, _ts: Date.now() };
+  try {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('download-progress', data);
+    }
+  } catch (e) { /* window closed, progress stored in activeDownload */ }
+}
+
 ipcMain.handle('download-recursos', async (event) => {
   const webContents = event.sender;
   const destDir = path.join(userDataDir, 'Recursos');
@@ -708,7 +719,7 @@ ipcMain.handle('download-recursos', async (event) => {
   try {
     let zipManifest = null;
     try {
-      webContents.send('download-progress', { status: 'listing', message: 'Checking for sprite packs...' });
+      sendDownloadProgress({ status: 'listing', message: 'Checking for sprite packs...' });
       const data = await dlBuffer(SPRITES_ZIP_MANIFEST_URL);
       zipManifest = JSON.parse(data.toString());
     } catch (e) { zipManifest = null; }
@@ -716,12 +727,16 @@ ipcMain.handle('download-recursos', async (event) => {
     if (zipManifest && zipManifest.zips && zipManifest.zips.length > 0) {
       return await doZipDownload(webContents, spritesDir, zipManifest);
     }
-      return await doMultiGenDownload(webContents, spritesDir);
+    return await doMultiGenDownload(webContents, spritesDir);
   } catch (e) {
     console.error('[DOWNLOAD] Failed:', e.message);
-    webContents.send('download-progress', { status: 'error', message: e.message });
+    sendDownloadProgress({ status: 'error', message: e.message });
     return { success: false, error: e.message };
   }
+});
+
+ipcMain.handle('get-download-status', () => {
+  return activeDownload || null;
 });
 
 async function doZipDownload(webContents, spritesDir, zipManifest) {
@@ -730,31 +745,56 @@ async function doZipDownload(webContents, spritesDir, zipManifest) {
   let done = 0, totalBytes = 0, dlBytes = 0;
   for (const z of zips) totalBytes += z.size || 0;
 
-  webContents.send('download-progress', { status: 'downloading', message: totalZips + ' sprite packs to download...', current: 0, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: 0, isZipMode: true });
+  sendDownloadProgress({ status: 'downloading', message: totalZips + ' sprite packs to download...', current: 0, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: 0, isZipMode: true });
 
   const tmpDir = path.join(path.dirname(spritesDir), '_zip_temp');
   if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
   for (const zip of zips) {
     const zipPath = path.join(tmpDir, zip.name);
-    webContents.send('download-progress', { status: 'downloading', message: zip.name + ' (' + fmtBytes(zip.size) + ')', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
+    sendDownloadProgress({ status: 'downloading', message: zip.name + ' (' + fmtBytes(zip.size) + ')', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
     try {
       if (!fs.existsSync(zipPath)) await dlRetry(zip.url || (SPRITES_ZIP_BASE_URL + zip.name), zipPath);
       dlBytes += zip.size || 0;
-      webContents.send('download-progress', { status: 'extracting', message: 'Extracting ' + zip.name + '...', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
+      sendDownloadProgress({ status: 'extracting', message: 'Extracting ' + zip.name + '...', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
       await extractZip(zipPath, { dir: spritesDir });
     } catch (e) { console.error('[DOWNLOAD] ZIP failed:', zip.name, e.message); }
     done++;
   }
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch(ex) {}
-  webContents.send('download-progress', { status: 'done', message: 'Download complete', current: totalZips, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: totalBytes, isZipMode: true });
+  sendDownloadProgress({ status: 'done', message: 'Download complete', current: totalZips, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: totalBytes, isZipMode: true });
   _cachedStyles = null;
-  webContents.send('styles-refreshed', scanSprites(SPRITES_ROOT));
+  try {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('styles-refreshed', scanSprites(SPRITES_ROOT));
+    }
+  } catch (e) {}
   return { success: true, zips: done };
 }
 
 async function doMultiGenDownload(webContents, spritesDir) {
-  const MAX_TOTAL_SOCKETS = 80;
+  const MAX_CONCURRENT = 20;
+  let activeCount = 0;
+  const waitQueue = [];
+
+  function acquireSlot() {
+    return new Promise((resolve) => {
+      if (activeCount < MAX_CONCURRENT) {
+        activeCount++;
+        resolve();
+      } else {
+        waitQueue.push(resolve);
+      }
+    });
+  }
+
+  function releaseSlot() {
+    activeCount--;
+    if (waitQueue.length > 0 && activeCount < MAX_CONCURRENT) {
+      activeCount++;
+      waitQueue.shift()();
+    }
+  }
 
   function gdriveDl(fileId, destPath) {
     return new Promise((resolve, reject) => {
@@ -810,12 +850,12 @@ async function doMultiGenDownload(webContents, spritesDir) {
 
   function retryGdrive(fileId, destPath, retries, err, resolve, reject) {
     if (retries < 3) {
-      const delay = err && err.isRateLimit ? 3000 : 500 * (retries + 1);
+      const delay = err && err.isRateLimit ? 2000 : 500 * (retries + 1);
       setTimeout(() => { gdriveDl(fileId, destPath).then(resolve).catch(reject); }, delay);
     } else { reject(err); }
   }
 
-  webContents.send('download-progress', { status: 'listing', message: 'Fetching file manifest...' });
+  sendDownloadProgress({ status: 'listing', message: 'Fetching file manifest...' });
   const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
   const manifest = JSON.parse(mData.toString());
   const allFiles = manifest.files || [];
@@ -842,26 +882,16 @@ async function doMultiGenDownload(webContents, spritesDir) {
     };
   }
 
-  function getWorkersForGen(gen) {
-    const count = filesByGen[gen].length;
-    if (count === 0) return 0;
-    if (count > 10000) return 15;
-    if (count > 5000) return 10;
-    if (count > 2000) return 7;
-    if (count > 1000) return 5;
-    return 3;
-  }
-
   function reportProgress() {
     const now = Date.now();
-    if (now - lastReport < 250) return;
+    if (now - lastReport < 500) return;
     lastReport = now;
     const genProgress = {};
     for (const gen of GENERATION_ORDER) {
       const s = genStates[gen];
       genProgress[gen] = { current: s.current, total: s.total, done: s.done };
     }
-    webContents.send('download-progress', {
+    sendDownloadProgress({
       status: 'downloading',
       message: totalDownloaded + '/' + total + ' files',
       current: totalDownloaded,
@@ -891,6 +921,7 @@ async function doMultiGenDownload(webContents, spritesDir) {
         reportProgress();
         continue;
       }
+      await acquireSlot();
       try {
         await gdriveDl(file.id, filePath);
         state.current++;
@@ -900,35 +931,35 @@ async function doMultiGenDownload(webContents, spritesDir) {
         state.current++;
         totalDownloaded++;
         if (e.isRateLimit) {
-          state.rateLimited = 3;
+          state.rateLimited = 2;
         } else {
           state.failed++;
         }
         reportProgress();
+      } finally {
+        releaseSlot();
       }
     }
     state.done = true;
     reportProgress();
   }
 
-  const totalWorkers = GENERATION_ORDER.reduce((s, g) => s + getWorkersForGen(g), 0);
-  webContents.send('download-progress', {
+  sendDownloadProgress({
     status: 'downloading',
-    message: 'Downloading ' + total + ' files across ' + GENERATION_ORDER.filter(g => filesByGen[g].length > 0).length + ' generations (' + totalWorkers + ' workers)...',
+    message: 'Downloading ' + total + ' files (max ' + MAX_CONCURRENT + ' at a time)...',
     current: 0, total
   });
 
   const allWorkers = [];
   for (const gen of GENERATION_ORDER) {
-    const workers = getWorkersForGen(gen);
-    for (let i = 0; i < workers; i++) {
+    if (filesByGen[gen].length > 0) {
       allWorkers.push(genWorker(gen));
     }
   }
   await Promise.all(allWorkers);
 
   const successCount = totalDownloaded - totalSkipped;
-  webContents.send('download-progress', {
+  sendDownloadProgress({
     status: 'done',
     message: 'Download complete',
     current: totalDownloaded,
@@ -937,7 +968,13 @@ async function doMultiGenDownload(webContents, spritesDir) {
   });
 
   _cachedStyles = null;
-  webContents.send('styles-refreshed', scanSprites(SPRITES_ROOT));
+  sendDownloadProgress({ status: 'refreshing' });
+  const refreshedStyles = scanSprites(SPRITES_ROOT);
+  try {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('styles-refreshed', refreshedStyles);
+    }
+  } catch (e) {}
   return { success: true, files: successCount, skipped: totalSkipped };
 }
 

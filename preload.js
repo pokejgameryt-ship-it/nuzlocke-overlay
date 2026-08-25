@@ -44,6 +44,7 @@ window.api = {
   hasRecursos: () => ipcRenderer.invoke('has-recursos'),
   openRecursosFolder: () => ipcRenderer.invoke('open-recursos-folder'),
   downloadRecursos: () => ipcRenderer.invoke('download-recursos'),
+  getDownloadStatus: () => ipcRenderer.invoke('get-download-status'),
   onDownloadProgress: (callback) => {
     const handler = (e, data) => callback(data);
     ipcRenderer.on('download-progress', handler);

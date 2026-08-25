@@ -2173,18 +2173,26 @@
   async function checkAndDownloadRecursos() {
     try {
       const has = await window.api.hasRecursos();
-      if (has) return;
-      const settings = await window.api.getSettings();
-      if (settings.downloadMode === 'manual') return;
-      const t = window.t || ((k) => k);
-      if (!confirm(t('downloadDesc') || 'Sprites not found. Download from Google Drive?')) return;
-      startDownloadRecursos();
+      if (!has) {
+        const settings = await window.api.getSettings();
+        if (settings.downloadMode !== 'manual') {
+          const t = window.t || ((k) => k);
+          if (confirm(t('downloadDesc') || 'Sprites not found. Download from Google Drive?')) {
+            startDownloadRecursos();
+            return;
+          }
+        }
+      }
+      const status = await window.api.getDownloadStatus();
+      if (status && status.status === 'downloading') {
+        startDownloadRecursos();
+      }
     } catch (e) {
       console.error('[RECURSOS] check failed:', e);
     }
   }
 
-  function startDownloadRecursos() {
+  async function startDownloadRecursos() {
     const overlay = document.getElementById('downloadOverlay');
     const progress = document.getElementById('downloadProgress');
     const closeBtn = document.getElementById('downloadClose');
@@ -2193,6 +2201,8 @@
     const t = window.t || ((k) => k);
     progress.innerHTML = `<div class="download-progress-message">${t('downloadConnecting') || 'Connecting to Google Drive...'}</div>`;
     closeBtn.style.display = 'none';
+    closeBtn.textContent = t('downloadHide') || 'Hide';
+    closeBtn.onclick = () => { overlay.style.display = 'none'; };
 
     let startTime = null;
     let lastBytes = 0;
@@ -2268,6 +2278,7 @@
           renderProgress(data.total, data.total, t2('downloadDone') || 'Done! ' + data.total + ' files downloaded.');
         }
         closeBtn.style.display = '';
+        closeBtn.textContent = t2('downloadClose') || 'Close';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
           if (removeListener) removeListener();
@@ -2276,6 +2287,7 @@
       } else if (data.status === 'error') {
         progress.innerHTML = '<div class="download-progress-message" style="color:#e94560">Error: ' + data.message + '</div>';
         closeBtn.style.display = '';
+        closeBtn.textContent = t('downloadClose') || 'Close';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
           if (removeListener) removeListener();
@@ -2372,14 +2384,19 @@
       return (bytesPerSec / 1048576).toFixed(1) + ' MB/s';
     }
 
-    window.api.downloadRecursos().catch((e) => {
-      progress.innerHTML = `<div class="download-progress-message" style="color:#e94560">Error: ${e.message || 'Download failed'}</div>`;
-      closeBtn.style.display = '';
-      closeBtn.onclick = () => {
-        overlay.style.display = 'none';
-        if (removeListener) removeListener();
-      };
-    });
+    const status = await window.api.getDownloadStatus();
+    const alreadyRunning = status && (status.status === 'downloading' || status.status === 'listing');
+
+    if (!alreadyRunning) {
+      window.api.downloadRecursos().catch((e) => {
+        progress.innerHTML = `<div class="download-progress-message" style="color:#e94560">Error: ${e.message || 'Download failed'}</div>`;
+        closeBtn.style.display = '';
+        closeBtn.onclick = () => {
+          overlay.style.display = 'none';
+          if (removeListener) removeListener();
+        };
+      });
+    }
   }
 
   init();
