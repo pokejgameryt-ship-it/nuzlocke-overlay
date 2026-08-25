@@ -559,6 +559,7 @@ ipcMain.handle('check-for-updates', async () => {
     const lastSeenVersion = settings.lastSeenVersion || '';
     const hasUpdate = latestVersion && latestVersion !== currentVersion;
     const hasChangelog = latestVersion && latestVersion !== lastSeenVersion;
+    console.log('[UPDATE] check:', { currentVersion, latestVersion, lastSeenVersion, hasUpdate, hasChangelog });
     return {
       hasUpdate: !!hasUpdate,
       currentVersion,
@@ -621,6 +622,7 @@ ipcMain.handle('dismiss-changelog', (event, version) => {
   const settings = loadSettings();
   settings.lastSeenVersion = version;
   saveSettingsToFile(settings);
+  console.log('[CHANGELOG] dismissed, saved lastSeenVersion:', version);
   return true;
 });
 

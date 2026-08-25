@@ -2025,14 +2025,14 @@
     const content = document.getElementById('changelogContent');
     const okBtn = document.getElementById('changelogOk');
     if (!overlay || !content) return;
-    title.textContent = t('changelogTitle') + ' v' + data.version;
+    title.textContent = t('changelogTitle') + ' v' + data.latestVersion;
     const notes = data.releaseNotes || '';
     const html = parseChangelog(notes, t);
     content.innerHTML = html || `<p style="opacity:0.5">${t('changelogNoNotes')}</p>`;
     overlay.style.display = 'flex';
     okBtn.onclick = async () => {
       overlay.style.display = 'none';
-      await window.api.dismissChangelog(data.version);
+      await window.api.dismissChangelog(data.latestVersion);
     };
   }
 
