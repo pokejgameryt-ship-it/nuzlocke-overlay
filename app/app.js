@@ -1508,25 +1508,20 @@
 
     $('#checkUpdatesBtn').addEventListener('click', async () => {
       const btn = $('#checkUpdatesBtn');
-      const t = window.t || ((k) => k);
-      btn.textContent = t('updateChecking') || '...';
+      btn.textContent = t('updateChecking');
       btn.disabled = true;
       try {
         const result = await window.api.checkForUpdates();
         if (result.hasUpdate) {
           showUpdatePopup(result);
         } else {
-          const version = result.currentVersion || app.getVersion();
           showStatusPopup(
-            t('upToDate') || 'Up to date!',
-            `<p>${t('upToDateMessage') || 'Your version is up to date.'}</p><p style="color:#4ecdc4;font-weight:600">v${version}</p>`
+            t('upToDate'),
+            `<p>${t('upToDateMessage')}</p><p style="color:#4ecdc4;font-weight:600;font-size:15px">v${result.currentVersion || '1.0.2'}</p>`
           );
         }
       } catch (e) {
-        showStatusPopup(
-          t('updateError') || 'Error',
-          `<p>${e.message || 'Could not check for updates.'}</p>`
-        );
+        showStatusPopup(t('updateError'), `<p>${e.message}</p>`);
       }
       btn.textContent = t('checkUpdates');
       btn.disabled = false;
@@ -1556,6 +1551,7 @@
   function t(key) {
     return (LANG[currentLang] && LANG[currentLang][key]) || (LANG.es && LANG.es[key]) || key;
   }
+  window.t = t;
 
   async function loadAndApplySettings() {
     try {
@@ -1704,41 +1700,71 @@
       id: 'nicknames',
       title: '5. Mostrar/ocultar nicknames',
       _titleKey: 'tourStepNick', _contentKey: 'tourStepNickContent',
-      content: 'Activa o desactiva <span class="tour-highlight">Mostrar nombres / motes</span> para decidir si se muestran los nombres de los Pokemon en el overlay.<br>Puedes personalizar fuente, color y trazo en la seccion de abajo.',
+      content: 'Activa o desactiva <span class="tour-highlight">Mostrar nombres / motes</span> para decidir si se muestran los nombres de los Pokemon en el overlay.',
       target: '#showNames',
+      position: 'bottom',
+      action: 'click',
+      progress: 50
+    },
+    {
+      id: 'placeholder',
+      title: '6. Rellenar slots vacios',
+      _titleKey: 'tourStepPlaceholder', _contentKey: 'tourStepPlaceholderContent',
+      content: 'Activa <span class="tour-highlight">Rellenar slots vacios</span> para que los slots sin Pokemon se muestren con un sprite placeholder en vez de estar vacios.',
+      target: '#usePlaceholder',
       position: 'bottom',
       action: 'click',
       progress: 55
     },
     {
+      id: 'nickname-style',
+      title: '7. Estilo de nickname',
+      _titleKey: 'tourStepNicknameStyle', _contentKey: 'tourStepNicknameStyleContent',
+      content: 'Personaliza el aspecto de los nicknames: <span class="tour-highlight">fuente</span>, <span class="tour-highlight">color</span>, <span class="tour-highlight">trazo</span> y mas en la seccion de Estilo de Nickname.',
+      target: '#nicknameStyleCard',
+      position: 'left',
+      action: 'scroll',
+      progress: 60
+    },
+    {
+      id: 'presets',
+      title: '8. Presets de layout',
+      _titleKey: 'tourStepPresets', _contentKey: 'tourStepPresetsContent',
+      content: 'Guarda y carga configuraciones de layout rapidamente con los <span class="tour-highlight">Presets</span>.<br>Guarda un preset, cargalo en otra ocasion, o elimina los que ya no necesites.',
+      target: '.presets-row',
+      position: 'top',
+      action: 'none',
+      progress: 65
+    },
+    {
       id: 'layout-editor',
-      title: '6. Ajustar el Layout Editor',
+      title: '9. Ajustar el Layout Editor',
       _titleKey: 'tourStep4', _contentKey: 'tourStep4Content',
       content: 'Arrastra los sprites para posicionarlos.<br><span class="tour-action-hint">Clic + arrastrar</span> = Mover<br><span class="tour-action-hint">Esquinas</span> = Redimensionar<br>Usa los botones de alineacion y espaciado arriba',
       target: '#layoutCanvas',
       position: 'top',
       action: 'drag',
-      progress: 65
+      progress: 75
     },
     {
       id: 'obs-setup',
-      title: '7. Configurar en OBS',
+      title: '10. Configurar en OBS',
       _titleKey: 'tourStep5', _contentKey: 'tourStep5Content',
       content: 'Copia la <span class="tour-highlight">URL de OBS</span> (boton Copiar).<br>En OBS Studio: Fuente de Navegador -> Pega URL -> 1920x1080.<br>Los sprites se actualizan solos cada 500ms al guardar.',
       target: '#copyUrlBtn',
       position: 'bottom',
       action: 'click',
-      progress: 80
+      progress: 85
     },
     {
       id: 'camera-setup',
-      title: '8. Camara virtual - Previsualizar layout',
+      title: '11. Camara virtual - Previsualizar layout',
       _titleKey: 'tourStep6', _contentKey: 'tourStep6Content',
       content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para ver tu webcam encima del Layout Editor.<br>Sirve para <span class="tour-highlight">posicionar los sprites</span> sabiendo donde quedara tu cara en OBS/Discord.',
       target: '#cameraToggleBtn',
       position: 'bottom',
       action: 'click',
-      progress: 90
+      progress: 92
     },
     {
       id: 'finished',
@@ -2074,19 +2100,33 @@
     const skipBtn = document.getElementById('updateSkip');
     const goBtn = document.getElementById('updateGo');
     if (!overlay) return;
-    const t = window.t || ((k) => k);
-    msg.textContent = `${t('updateMessage')}`;
+    msg.textContent = t('updateMessage');
     const versionInfo = document.createElement('div');
     versionInfo.className = 'update-version-info';
     versionInfo.innerHTML = `<span class="update-version-current">v${data.currentVersion}</span> <span class="update-version-arrow">&rarr;</span> <span class="update-version-latest">v${data.latestVersion}</span>`;
     msg.parentNode.insertBefore(versionInfo, notes);
     const parsed = parseChangelog(data.releaseNotes || '', t);
-    notes.innerHTML = parsed || `<p style="opacity:0.5">${t('changelogNoNotes') || 'No changelog available.'}</p>`;
+    notes.innerHTML = parsed || '';
     overlay.style.display = 'flex';
-    goBtn.onclick = () => {
-      window.api.openExternal(data.releaseUrl);
+    goBtn.textContent = t('updateGo');
+    goBtn.onclick = async () => {
+      goBtn.textContent = t('updateDownloading') || 'Downloading...';
+      goBtn.disabled = true;
+      const removeProgress = window.api.onDownloadProgress((p) => {
+        if (p.status === 'done') {
+          goBtn.textContent = t('updateGo');
+          goBtn.disabled = false;
+        } else if (p.status === 'error') {
+          goBtn.textContent = t('updateGo');
+          goBtn.disabled = false;
+        }
+      });
+      const result = await window.api.downloadUpdate(data.releaseUrl).catch(() => null);
+      if (removeProgress) removeProgress();
       overlay.style.display = 'none';
       versionInfo.remove();
+      goBtn.textContent = t('updateGo');
+      goBtn.disabled = false;
     };
     skipBtn.onclick = async () => {
       overlay.style.display = 'none';

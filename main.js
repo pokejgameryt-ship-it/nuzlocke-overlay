@@ -579,6 +579,43 @@ ipcMain.handle('skip-version', (event, version) => {
   return true;
 });
 
+ipcMain.handle('download-update', async (event, releaseUrl) => {
+  const webContents = event.sender;
+  try {
+    const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+    const assets = release.assets || [];
+    const installer = assets.find(a => a.name && a.name.endsWith('.exe') && a.name.includes('Setup'));
+    if (!installer) return { success: false, error: 'Installer not found in release assets' };
+
+    const downloadUrl = installer.browser_download_url;
+    const tempDir = app.getPath('temp');
+    const destPath = path.join(tempDir, installer.name);
+
+    webContents.send('download-progress', { status: 'downloading', message: 'Downloading update...', current: 0, total: 100 });
+
+    await new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(destPath);
+      https.get(downloadUrl, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res) => {
+        if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location) {
+          https.get(res.headers.location, { headers: { 'User-Agent': 'NuzlockeOverlay' } }, (res2) => {
+            handleDownloadResponse(res2, installer.id, destPath, 0, resolve, reject);
+          }).on('error', reject);
+          return;
+        }
+        handleDownloadResponse(res, installer.id, destPath, 0, resolve, reject);
+      }).on('error', reject);
+    });
+
+    webContents.send('download-progress', { status: 'done', message: 'Download complete', current: 100, total: 100 });
+    shell.openPath(destPath);
+    return { success: true, path: destPath };
+  } catch (e) {
+    console.error('[UPDATE] Download failed:', e.message);
+    webContents.send('download-progress', { status: 'error', message: e.message });
+    return { success: false, error: e.message };
+  }
+});
+
 ipcMain.handle('check-changelog', async () => {
   try {
     const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
