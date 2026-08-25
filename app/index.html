@@ -47,6 +47,10 @@
         <div class="editor-header">
           <input type="text" id="projectName" class="title-input" data-i18n-placeholder="projectName">
           <div class="header-actions">
+            <button class="btn-icon btn-download-status" id="downloadStatusBtn" style="display:none" title="Downloading sprites...">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4.5 7.5L8 11l3.5-3.5M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="download-badge" id="downloadBadge"></span>
+            </button>
             <button class="btn-danger" id="deleteProjectBtn" data-i18n="delete">Eliminar</button>
           </div>
         </div>

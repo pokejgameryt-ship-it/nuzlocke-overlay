@@ -368,6 +368,55 @@ select {
 
 .btn-danger:hover { background: #e94560; color: #fff; }
 
+.btn-download-status {
+  position: relative;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-download-status:hover { border-color: #e94560; color: #e94560; }
+
+.btn-download-status.active {
+  border-color: #2196f3;
+  color: #2196f3;
+  animation: dlPulse 2s ease-in-out infinite;
+}
+
+@keyframes dlPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.download-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  background: #2196f3;
+  border-radius: 50%;
+  display: none;
+}
+
+.download-badge.active {
+  display: block;
+  animation: dlBadgePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dlBadgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+}
+
 .btn-small {
   padding: 4px 10px;
   background: #2a2a40;

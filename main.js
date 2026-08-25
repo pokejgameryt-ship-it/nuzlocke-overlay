@@ -884,7 +884,7 @@ async function doMultiGenDownload(webContents, spritesDir) {
 
   function reportProgress() {
     const now = Date.now();
-    if (now - lastReport < 500) return;
+    if (now - lastReport < 1000) return;
     lastReport = now;
     const genProgress = {};
     for (const gen of GENERATION_ORDER) {
@@ -905,43 +905,45 @@ async function doMultiGenDownload(webContents, spritesDir) {
     const state = genStates[gen];
     let idx = 0;
 
-    while (idx < files.length) {
-      if (state.rateLimited > 0) {
-        await new Promise(r => setTimeout(r, 500));
-        state.rateLimited--;
-        continue;
-      }
-      const file = files[idx++];
-      const filePath = path.join(spritesDir, file.path);
-      if (fs.existsSync(filePath)) {
-        state.current++;
-        state.skipped++;
-        totalDownloaded++;
-        totalSkipped++;
-        reportProgress();
-        continue;
-      }
-      await acquireSlot();
-      try {
-        await gdriveDl(file.id, filePath);
-        state.current++;
-        totalDownloaded++;
-        reportProgress();
-      } catch (e) {
-        state.current++;
-        totalDownloaded++;
-        if (e.isRateLimit) {
-          state.rateLimited = 2;
-        } else {
-          state.failed++;
+    await acquireSlot();
+    try {
+      while (idx < files.length) {
+        if (state.rateLimited > 0) {
+          await new Promise(r => setTimeout(r, 500));
+          state.rateLimited--;
+          continue;
         }
-        reportProgress();
-      } finally {
-        releaseSlot();
+        const file = files[idx++];
+        const filePath = path.join(spritesDir, file.path);
+        if (fs.existsSync(filePath)) {
+          state.current++;
+          state.skipped++;
+          totalDownloaded++;
+          totalSkipped++;
+          reportProgress();
+          continue;
+        }
+        try {
+          await gdriveDl(file.id, filePath);
+          state.current++;
+          totalDownloaded++;
+          reportProgress();
+        } catch (e) {
+          state.current++;
+          totalDownloaded++;
+          if (e.isRateLimit) {
+            state.rateLimited = 2;
+          } else {
+            state.failed++;
+          }
+          reportProgress();
+        }
       }
+      state.done = true;
+      reportProgress();
+    } finally {
+      releaseSlot();
     }
-    state.done = true;
-    reportProgress();
   }
 
   sendDownloadProgress({

@@ -1449,6 +1449,16 @@
       filterHelpTopics('');
     });
 
+    const dlStatusBtn = document.getElementById('downloadStatusBtn');
+    if (dlStatusBtn) {
+      dlStatusBtn.addEventListener('click', () => {
+        const overlay = document.getElementById('downloadOverlay');
+        if (overlay) {
+          overlay.style.display = overlay.style.display === 'none' ? 'flex' : 'none';
+        }
+      });
+    }
+
     $('#closeHelpBtn').addEventListener('click', () => {
       $('#helpPanel').style.display = 'none';
     });
@@ -2196,13 +2206,17 @@
     const overlay = document.getElementById('downloadOverlay');
     const progress = document.getElementById('downloadProgress');
     const closeBtn = document.getElementById('downloadClose');
+    const dlBtn = document.getElementById('downloadStatusBtn');
+    const dlBadge = document.getElementById('downloadBadge');
     if (!overlay) return;
     overlay.style.display = 'flex';
     const t = window.t || ((k) => k);
     progress.innerHTML = `<div class="download-progress-message">${t('downloadConnecting') || 'Connecting to Google Drive...'}</div>`;
     closeBtn.style.display = 'none';
-    closeBtn.textContent = t('downloadHide') || 'Hide';
+    closeBtn.textContent = t('downloadHide') || 'Ocultar';
     closeBtn.onclick = () => { overlay.style.display = 'none'; };
+    if (dlBtn) { dlBtn.style.display = ''; dlBtn.classList.add('active'); }
+    if (dlBadge) { dlBadge.classList.add('active'); }
 
     let startTime = null;
     let lastBytes = 0;
@@ -2277,8 +2291,10 @@
         } else {
           renderProgress(data.total, data.total, t2('downloadDone') || 'Done! ' + data.total + ' files downloaded.');
         }
+        if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
+        if (dlBadge) { dlBadge.classList.remove('active'); }
         closeBtn.style.display = '';
-        closeBtn.textContent = t2('downloadClose') || 'Close';
+        closeBtn.textContent = t2('downloadClose') || 'Cerrar';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
           if (removeListener) removeListener();
@@ -2286,8 +2302,10 @@
         };
       } else if (data.status === 'error') {
         progress.innerHTML = '<div class="download-progress-message" style="color:#e94560">Error: ' + data.message + '</div>';
+        if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
+        if (dlBadge) { dlBadge.classList.remove('active'); }
         closeBtn.style.display = '';
-        closeBtn.textContent = t('downloadClose') || 'Close';
+        closeBtn.textContent = t('downloadClose') || 'Cerrar';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
           if (removeListener) removeListener();
