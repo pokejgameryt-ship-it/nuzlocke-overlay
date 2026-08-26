@@ -384,6 +384,11 @@ class SaveParser {
           const level = buffer[mp + 0x21] & 0xFF;
           if (level < 1 || level > 100) { matchScore = 0; break; }
 
+          // HP validation — Gen1: +0x01 is current HP (uint16 LE), +0x02 is max HP
+          const curHp = buffer.readUInt16LE(mp + 0x01);
+          const maxHp = buffer.readUInt16LE(mp + 0x02);
+          if (curHp <= 0 || maxHp <= 0 || curHp > maxHp || maxHp > 999) { matchScore = 0; break; }
+
           matchScore += 10;
 
           // Check mon has some non-zero data
@@ -1017,9 +1022,13 @@ class SaveParser {
 
       const species = decrypted.readUInt16LE(8);
       if (species >= 1 && species <= 493) {
-        const level = decrypted.length > 0x8C ? decrypted.readUInt8(0x8C) : 0;
-        if (level >= 1 && level <= 100) {
-          Logger.info('Gen4', `Scan found PK4 at 0x${offset.toString(16)}: species=${species} level=${level}`);
+        // PK4 party stats start at offset 0x88
+        // +0x00: level (uint8), +0x02: curHp (uint16 LE), +0x04: maxHp (uint16 LE)
+        const level = decrypted.length > 0x88 ? decrypted.readUInt8(0x88) : 0;
+        const curHp = decrypted.length > 0x8A ? decrypted.readUInt16LE(0x8A) : 0;
+        const maxHp = decrypted.length > 0x8C ? decrypted.readUInt16LE(0x8C) : 0;
+        if (level >= 1 && level <= 100 && curHp > 0 && maxHp > 0 && curHp <= maxHp && maxHp <= 999) {
+          Logger.info('Gen4', `Scan found PK4 at 0x${offset.toString(16)}: species=${species} level=${level} HP=${curHp}/${maxHp}`);
           return [{
             speciesId: species,
             nickname: '',
@@ -1357,9 +1366,20 @@ class SaveParser {
       const pid = data.readUInt32LE(0x00);
       const speciesCheck = data.readUInt16LE(0x08);
       const nickname = SaveParser.readNdsString(data, 0x40, 12);
-      const level = data.length > 0x88 ? data.readUInt8(0x88) : (data.length > 0x36 ? data.readUInt8(0x36) : 1);
 
+      // Cross-validate species: the species in the Pokemon blob must match the species list
+      if (speciesCheck !== speciesId) continue;
       if (speciesCheck === 0 || speciesCheck > maxSpecies) continue;
+
+      // Level: 3DS Pokemon have level at offset 0x88 in the Pokemon struct
+      const level = data.length > 0x88 ? data.readUInt8(0x88) : 0;
+      if (level < 1 || level > 100) continue;
+
+      // HP validation: check that stats are plausible
+      // In 3DS format, current HP is at offset 0x8A, max HP at 0x8C
+      const curHp = data.length > 0x8A ? data.readUInt16LE(0x8A) : 0;
+      const maxHp = data.length > 0x8C ? data.readUInt16LE(0x8C) : 0;
+      if (curHp <= 0 || maxHp <= 0 || curHp > maxHp || maxHp > 999) continue;
 
       pokemon.push({
         speciesId,
@@ -1703,7 +1723,11 @@ class SaveParser {
     Logger.info('BDSP', `Party count at 0x${COUNT_OFFSET.toString(16)}: ${partyCount}`);
 
     if (partyCount < 1 || partyCount > 6) {
-      Logger.error('BDSP', `Invalid party count: ${partyCount}`);
+      if (partyCount === 0) {
+        Logger.info('BDSP', 'Party count is 0, party is empty');
+      } else {
+        Logger.error('BDSP', `Invalid party count: ${partyCount}`);
+      }
       return [];
     }
 
@@ -1821,8 +1845,32 @@ class SaveParser {
       buffer.copy(data, 0, pokemonOffset, pokemonOffset + pokemonSize);
 
       const pid = data.readUInt32LE(0x00);
-      const level = data.readUInt16LE(0x36);
-      const nickname = SaveParser.readNdsString(data, 0x3E, 12);
+      const speciesCheck = data.readUInt16LE(0x08);
+
+      // Cross-validate species
+      if (speciesCheck !== speciesId) continue;
+
+      // Switch Pokemon use UTF-16LE for nicknames, not NDS encoding
+      let nickname = '';
+      try {
+        const nickBuf = data.slice(0x40, 0x58);
+        for (let j = 0; j < nickBuf.length - 1; j += 2) {
+          const ch = nickBuf.readUInt16LE(j);
+          if (ch === 0 || ch === 0xFFFF) break;
+          if (ch >= 0x0020 && ch <= 0x007E) nickname += String.fromCharCode(ch);
+          else if (ch >= 0xFF01 && ch <= 0xFF5E) nickname += String.fromCharCode(ch - 0xFEE0);
+        }
+      } catch (e) {}
+
+      // Level: Switch PK8/PA8 have level at offset 0x88 (uint8) or 0x148 (uint8 in full PK8)
+      // For compact 260-byte format, try 0x88 first
+      const level = data.length > 0x88 ? data.readUInt8(0x88) : (data.length > 0x36 ? data.readUInt16LE(0x36) : 0);
+      if (level < 1 || level > 100) continue;
+
+      // HP validation
+      const curHp = data.length > 0x8A ? data.readUInt16LE(0x8A) : 0;
+      const maxHp = data.length > 0x8C ? data.readUInt16LE(0x8C) : 0;
+      if (curHp <= 0 || maxHp <= 0 || curHp > maxHp || maxHp > 999) continue;
 
       pokemon.push({
         speciesId,
@@ -1843,7 +1891,18 @@ class SaveParser {
     const speciesId = data.readUInt16LE(0x08);
     const pid = data.readUInt32LE(0x00);
     const level = data.readUInt16LE(0x36);
-    const nickname = SaveParser.readNdsString(data, 0x3E, 12);
+
+    // Switch Pokemon use UTF-16LE for nicknames
+    let nickname = '';
+    try {
+      const nickBuf = data.slice(0x40, 0x58);
+      for (let j = 0; j < nickBuf.length - 1; j += 2) {
+        const ch = nickBuf.readUInt16LE(j);
+        if (ch === 0 || ch === 0xFFFF) break;
+        if (ch >= 0x0020 && ch <= 0x007E) nickname += String.fromCharCode(ch);
+        else if (ch >= 0xFF01 && ch <= 0xFF5E) nickname += String.fromCharCode(ch - 0xFEE0);
+      }
+    } catch (e) {}
 
     if (speciesId === 0 || speciesId > 898) return [];
 

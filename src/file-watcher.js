@@ -6,16 +6,77 @@ const DetectSave = require('./detect-save');
 const { resolveSprite } = require('./sprite-scanner');
 const Logger = require('./logger');
 
-// Check Gen5 party count directly from save file (most reliable empty-party detection)
-function getGen5PartyCount(buffer) {
-  if (buffer.length < 0x20000) return -1;
-  const offsets = [0x18E00, 0x24000 + 0x18E00];
-  for (const off of offsets) {
-    if (off + 8 > buffer.length) continue;
-    const count = buffer.readUInt32LE(off + 4);
-    if (count >= 0 && count <= 6) return count;
+// Check party count directly from save file (most reliable empty-party detection)
+function getPartyCountDirectly(buffer, generation) {
+  if (!buffer || buffer.length < 0x100) return -1;
+  try {
+    switch (generation) {
+      case 1: {
+        // Gen1: party count at known offsets
+        const offsets = [0x2F2C, 0x0F2C, 0x2F2D, 0x0F2D, 0x2F2B, 0x0F2B,
+          0x2F2C + 0x100, 0x0F2C + 0x100, 0x2F2C - 0x100, 0x0F2C - 0x100];
+        for (const off of offsets) {
+          if (off < 0 || off >= buffer.length) continue;
+          const count = buffer[off] & 0xFF;
+          if (count >= 0 && count <= 6) return count;
+        }
+        return -1;
+      }
+      case 2: {
+        // Gen2: party count at known offsets
+        const offsets = [0x288A, 0x10E8, 0x2865, 0x1A65];
+        for (const off of offsets) {
+          if (off < 0 || off >= buffer.length) continue;
+          const count = buffer[off] & 0xFF;
+          if (count >= 0 && count <= 6) return count;
+        }
+        return -1;
+      }
+      case 3: {
+        // Gen3: need sector validation first, then read count
+        if (buffer.length < 0x10000) return -1;
+        // Try RSE offset (Sector1 + 0x234)
+        const rseCount = buffer.readUInt32LE(0x1234);
+        if (rseCount >= 0 && rseCount <= 6) return rseCount;
+        // Try FRLG offset (Sector1 + 0x0034)
+        const frlgCount = buffer[0x1034] & 0xFF;
+        if (frlgCount >= 0 && frlgCount <= 6) return frlgCount;
+        return -1;
+      }
+      case 4: {
+        // Gen4: party count in block A or B
+        const offsets = [
+          // HGSS: count at block+0x94
+          { block: 0x00000, countOff: 0x94 },
+          { block: 0x40000, countOff: 0x94 },
+          // DP/Pt: count at block+0x00 (uint32)
+          { block: 0x00000, countOff: 0x00, size: 4 },
+          { block: 0x40000, countOff: 0x00, size: 4 },
+        ];
+        for (const o of offsets) {
+          const off = o.block + o.countOff;
+          if (off >= buffer.length) continue;
+          const count = o.size === 4 ? buffer.readUInt32LE(off) : (buffer[off] & 0xFF);
+          if (count >= 0 && count <= 6) return count;
+        }
+        return -1;
+      }
+      case 5: {
+        // Gen5: party count at known offsets
+        const offsets = [0x18E00, 0x24000 + 0x18E00];
+        for (const off of offsets) {
+          if (off + 4 >= buffer.length) continue;
+          const count = buffer.readUInt32LE(off + 4);
+          if (count >= 0 && count <= 6) return count;
+        }
+        return -1;
+      }
+      default:
+        return -1;
+    }
+  } catch (e) {
+    return -1;
   }
-  return -1;
 }
 
 let PkHexReader = null;
@@ -100,14 +161,14 @@ class FileWatcher {
         let pkHexHadResults = false;
         let skipPkHex = false;
 
-        // For Gen5 saves, check party count directly before calling PKHeX
+        // Check party count directly before calling PKHeX
         // PKHeX can read wrong offsets in early-game empty-party saves
-        if (PkHexReader && gameInfo && gameInfo.generation === 5) {
+        if (PkHexReader && gameInfo && gameInfo.generation >= 1 && gameInfo.generation <= 5) {
           try {
             const buf = fs.readFileSync(resolvedSavePath);
-            const partyCount = getGen5PartyCount(buf);
+            const partyCount = getPartyCountDirectly(buf, gameInfo.generation);
             if (partyCount === 0) {
-              Logger.info('Watcher', 'Gen5 party count is 0, skipping PKHeX (empty party)');
+              Logger.info('Watcher', `Gen${gameInfo.generation} party count is 0, skipping PKHeX (empty party)`);
               skipPkHex = true;
             }
           } catch (e) {}
