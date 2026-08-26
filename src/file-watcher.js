@@ -12,64 +12,66 @@ function getPartyCountDirectly(buffer, generation) {
   try {
     switch (generation) {
       case 1: {
-        // Gen1: party count at known offsets
         const offsets = [0x2F2C, 0x0F2C, 0x2F2D, 0x0F2D, 0x2F2B, 0x0F2B,
           0x2F2C + 0x100, 0x0F2C + 0x100, 0x2F2C - 0x100, 0x0F2C - 0x100];
+        let anyZero = false;
         for (const off of offsets) {
           if (off < 0 || off >= buffer.length) continue;
           const count = buffer[off] & 0xFF;
-          if (count >= 0 && count <= 6) return count;
+          if (count >= 1 && count <= 6) return count;
+          if (count === 0) anyZero = true;
         }
-        return -1;
+        return anyZero ? 0 : -1;
       }
       case 2: {
-        // Gen2: party count at known offsets
         const offsets = [0x288A, 0x10E8, 0x2865, 0x1A65];
+        let anyZero = false;
         for (const off of offsets) {
           if (off < 0 || off >= buffer.length) continue;
           const count = buffer[off] & 0xFF;
-          if (count >= 0 && count <= 6) return count;
+          if (count >= 1 && count <= 6) return count;
+          if (count === 0) anyZero = true;
         }
-        return -1;
+        return anyZero ? 0 : -1;
       }
       case 3: {
-        // Gen3: need sector validation first, then read count
         if (buffer.length < 0x10000) return -1;
-        // Try RSE offset (Sector1 + 0x234)
+        let anyZero = false;
         const rseCount = buffer.readUInt32LE(0x1234);
-        if (rseCount >= 0 && rseCount <= 6) return rseCount;
-        // Try FRLG offset (Sector1 + 0x0034)
+        if (rseCount >= 1 && rseCount <= 6) return rseCount;
+        if (rseCount === 0) anyZero = true;
         const frlgCount = buffer[0x1034] & 0xFF;
-        if (frlgCount >= 0 && frlgCount <= 6) return frlgCount;
-        return -1;
+        if (frlgCount >= 1 && frlgCount <= 6) return frlgCount;
+        if (frlgCount === 0) anyZero = true;
+        return anyZero ? 0 : -1;
       }
       case 4: {
-        // Gen4: party count in block A or B
         const offsets = [
-          // HGSS: count at block+0x94
           { block: 0x00000, countOff: 0x94 },
           { block: 0x40000, countOff: 0x94 },
-          // DP/Pt: count at block+0x00 (uint32)
           { block: 0x00000, countOff: 0x00, size: 4 },
           { block: 0x40000, countOff: 0x00, size: 4 },
         ];
+        let anyZero = false;
         for (const o of offsets) {
           const off = o.block + o.countOff;
           if (off >= buffer.length) continue;
           const count = o.size === 4 ? buffer.readUInt32LE(off) : (buffer[off] & 0xFF);
-          if (count >= 0 && count <= 6) return count;
+          if (count >= 1 && count <= 6) return count;
+          if (count === 0) anyZero = true;
         }
-        return -1;
+        return anyZero ? 0 : -1;
       }
       case 5: {
-        // Gen5: party count at known offsets
         const offsets = [0x18E00, 0x24000 + 0x18E00];
+        let anyZero = false;
         for (const off of offsets) {
           if (off + 4 >= buffer.length) continue;
           const count = buffer.readUInt32LE(off + 4);
-          if (count >= 0 && count <= 6) return count;
+          if (count >= 1 && count <= 6) return count;
+          if (count === 0) anyZero = true;
         }
-        return -1;
+        return anyZero ? 0 : -1;
       }
       default:
         return -1;
@@ -180,7 +182,7 @@ class FileWatcher {
             Logger.info('Watcher', `[PKHeX] Found ${result.pokemon.length} Pokemon (${result.game} gen${result.generation})`);
             // Validate PKHeX results: reject if any Pokemon has invalid HP/level
             const pkValid = result.pokemon.every(pk => {
-              if (!pk.speciesId || pk.speciesId < 1 || pk.speciesId > 721) return false;
+              if (!pk.speciesId || pk.speciesId < 1 || pk.speciesId > 1025) return false;
               if (pk.level !== undefined && (pk.level < 1 || pk.level > 100)) return false;
               if (pk.currentHp !== undefined && pk.maxHp !== undefined) {
                 if (pk.currentHp <= 0 || pk.maxHp <= 0 || pk.currentHp > pk.maxHp) return false;

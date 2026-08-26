@@ -1201,7 +1201,7 @@ class SaveParser {
         const xorShiny = ((pid >>> 16) ^ (pid & 0xFFFF) ^ tid ^ sid) & 0xFFFF;
         const isShiny = xorShiny < 16;
 
-        if (speciesId === 0 || speciesId > 721) {
+        if (speciesId === 0 || speciesId > 1025) {
           Logger.debug('Gen5', `  PK5 #${i + 1}: invalid species ${speciesId}, skipping`);
           continue;
         }
@@ -1240,7 +1240,7 @@ class SaveParser {
       const ids = [];
       for (let i = 0; i < count; i++) {
         const sid = buffer.readUInt16LE(speciesListOff + (i * 2));
-        if (sid === 0 || sid > 721) { valid = false; break; }
+        if (sid === 0 || sid > 1025) { valid = false; break; }
         ids.push(sid);
       }
       if (!valid || ids.length === 0) continue;
