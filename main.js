@@ -752,17 +752,41 @@ async function doZipDownload(webContents, spritesDir, zipManifest) {
   const tmpDir = path.join(path.dirname(spritesDir), '_zip_temp');
   if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
-  for (const zip of zips) {
-    const zipPath = path.join(tmpDir, zip.name);
-    sendDownloadProgress({ status: 'downloading', message: zip.name + ' (' + fmtBytes(zip.size) + ')', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
-    try {
-      if (!fs.existsSync(zipPath)) await dlRetry(zip.url || (SPRITES_ZIP_BASE_URL + zip.name), zipPath);
-      dlBytes += zip.size || 0;
-      sendDownloadProgress({ status: 'extracting', message: 'Extracting ' + zip.name + '...', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, currentZip: zip.name, isZipMode: true });
-      await extractZip(zipPath, { dir: spritesDir });
-    } catch (e) { console.error('[DOWNLOAD] ZIP failed:', zip.name, e.message); }
-    done++;
+  let idx = 0;
+  let lastReport = 0;
+
+  function reportZipProgress() {
+    const now = Date.now();
+    if (now - lastReport < 500) return;
+    lastReport = now;
+    sendDownloadProgress({ status: 'downloading', message: done + '/' + totalZips + ' packs (' + fmtBytes(dlBytes) + '/' + fmtBytes(totalBytes) + ')', current: done, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: dlBytes, isZipMode: true });
   }
+
+  async function zipWorker() {
+    while (true) {
+      const i = idx++;
+      if (i >= zips.length) break;
+      const zip = zips[i];
+      const zipPath = path.join(tmpDir, zip.name);
+      try {
+        if (!fs.existsSync(zipPath)) await dlFileStream(zip.url || (SPRITES_ZIP_BASE_URL + zip.name), zipPath);
+        dlBytes += zip.size || 0;
+        reportZipProgress();
+        await extractZip(zipPath, { dir: spritesDir });
+        done++;
+        reportZipProgress();
+      } catch (e) {
+        console.error('[DOWNLOAD] ZIP failed:', zip.name, e.message);
+        done++;
+        reportZipProgress();
+      }
+    }
+  }
+
+  const workers = [];
+  for (let i = 0; i < 3; i++) workers.push(zipWorker());
+  await Promise.all(workers);
+
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch(ex) {}
   sendDownloadProgress({ status: 'done', message: 'Download complete', current: totalZips, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: totalBytes, isZipMode: true });
   _cachedStyles = null;
