@@ -2182,8 +2182,8 @@
 
   async function checkAndDownloadRecursos() {
     try {
-      const has = await window.api.hasRecursos();
-      if (!has) {
+      const dlStatus = await window.api.checkRecursosStatus().catch(() => null);
+      if (!dlStatus || dlStatus.status === 'none') {
         const settings = await window.api.getSettings();
         if (settings.downloadMode !== 'manual') {
           const t = window.t || ((k) => k);
@@ -2231,6 +2231,33 @@
       if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
       if (dlBadge) { dlBadge.classList.remove('active'); }
       return;
+    }
+
+    // Check if sprites are already downloaded
+    const t = window.t || ((k) => k);
+    const dlStatus = await window.api.checkRecursosStatus().catch(() => null);
+    if (dlStatus && dlStatus.status === 'done' && dlStatus.downloaded > 0) {
+      overlay.style.display = 'flex';
+      progress.innerHTML = '<div class="download-progress-message">' +
+        (t('spritesAllDownloaded') || 'Los sprites ya están descargados.') + '</div>' +
+        '<div class="download-progress-stats"><span class="download-progress-percent">' +
+        (t('spritesFileCount') || 'Archivos') + ': ' + dlStatus.downloaded + '</span></div>';
+      closeBtn.style.display = '';
+      closeBtn.textContent = t('downloadClose') || 'Cerrar';
+      closeBtn.onclick = () => { overlay.style.display = 'none'; };
+      cancelBtn.style.display = 'none';
+      bgBtn.style.display = 'none';
+      if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
+      if (dlBadge) { dlBadge.classList.remove('active'); }
+      return;
+    }
+    if (dlStatus && dlStatus.status === 'partial' && dlStatus.downloaded > 0) {
+      const missing = dlStatus.total - dlStatus.downloaded;
+      const proceed = await showConfirm(
+        t('spritesPartialTitle') || 'Sprites parcialmente descargados',
+        (t('spritesPartialDesc') || 'Faltan {missing} archivos. ¿Descargar los que faltan?').replace('{missing}', missing)
+      );
+      if (!proceed) return;
     }
 
     overlay.style.display = 'flex';

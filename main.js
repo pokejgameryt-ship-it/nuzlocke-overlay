@@ -797,6 +797,14 @@ async function doZipDownload(webContents, spritesDir, zipManifest) {
   await Promise.all(workers);
 
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch(ex) {}
+  // Write marker with expected file count from legacy manifest
+  try {
+    const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
+    const legacyManifest = JSON.parse(mData.toString());
+    const totalFiles = (legacyManifest.files || []).length;
+    const markerPath = path.join(path.dirname(spritesDir), '.download-marker');
+    fs.writeFileSync(markerPath, JSON.stringify({ total: totalFiles, date: Date.now() }));
+  } catch (e) {}
   sendDownloadProgress({ status: 'done', message: 'Download complete', current: totalZips, total: totalZips, bytesTotal: totalBytes, bytesDownloaded: totalBytes, isZipMode: true });
   _cachedStyles = null;
   try {
@@ -923,6 +931,12 @@ async function doMultiGenDownload(webContents, spritesDir) {
   for (let i = 0; i < WORKERS; i++) workers.push(worker());
   await Promise.all(workers);
 
+  // Write marker with total file count
+  try {
+    const markerPath = path.join(path.dirname(spritesDir), '.download-marker');
+    fs.writeFileSync(markerPath, JSON.stringify({ total, date: Date.now() }));
+  } catch (e) {}
+
   sendDownloadProgress({ status: 'done', message: 'Download complete', current: skipped + downloaded, total, skipped });
 
   _cachedStyles = null;
@@ -938,6 +952,80 @@ async function doMultiGenDownload(webContents, spritesDir) {
 ipcMain.handle('has-recursos', () => {
   const spritesDir = path.join(userDataDir, 'Recursos', 'Sprites');
   return fs.existsSync(spritesDir) && fs.readdirSync(spritesDir).length > 0;
+});
+
+ipcMain.handle('check-recursos-status', async () => {
+  const spritesDir = path.join(userDataDir, 'Recursos', 'Sprites');
+  const markerPath = path.join(userDataDir, 'Recursos', '.download-marker');
+
+  if (!fs.existsSync(spritesDir) || fs.readdirSync(spritesDir).length === 0) {
+    return { total: 0, downloaded: 0, status: 'none' };
+  }
+
+  // Try to read cached total from marker file
+  let expectedTotal = 0;
+  try {
+    const marker = JSON.parse(fs.readFileSync(markerPath, 'utf8'));
+    expectedTotal = marker.total || 0;
+  } catch (e) {}
+
+  if (expectedTotal === 0) {
+    // Fetch manifest to get total
+    try {
+      let manifest = null;
+      try {
+        const data = await dlBuffer(SPRITES_ZIP_MANIFEST_URL);
+        manifest = JSON.parse(data.toString());
+        if (manifest && manifest.zips) {
+          // For zip mode, count files in legacy manifest
+          const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
+          const legacyManifest = JSON.parse(mData.toString());
+          expectedTotal = (legacyManifest.files || []).length;
+        }
+      } catch (e) {}
+
+      if (expectedTotal === 0) {
+        try {
+          const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
+          const legacyManifest = JSON.parse(mData.toString());
+          expectedTotal = (legacyManifest.files || []).length;
+        } catch (e) {}
+      }
+
+      // Write marker
+      if (expectedTotal > 0) {
+        try { fs.writeFileSync(markerPath, JSON.stringify({ total: expectedTotal, date: Date.now() })); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  // Count existing files by scanning a sample of directories
+  let downloaded = 0;
+  try {
+    const regions = fs.readdirSync(spritesDir, { withFileTypes: true }).filter(d => d.isDirectory());
+    for (const region of regions) {
+      const regionPath = path.join(spritesDir, region.name);
+      const countFiles = (dir) => {
+        if (!fs.existsSync(dir)) return;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (['.png', '.gif', '.jpg', '.jpeg', '.webp'].includes(ext)) downloaded++;
+          } else if (entry.isDirectory()) {
+            countFiles(path.join(dir, entry.name));
+          }
+        }
+      };
+      countFiles(regionPath);
+    }
+  } catch (e) {}
+
+  let status = 'done';
+  if (expectedTotal > 0 && downloaded < expectedTotal) status = 'partial';
+  if (downloaded === 0) status = 'none';
+
+  return { total: expectedTotal, downloaded, status };
 });
 
 ipcMain.handle('open-recursos-folder', async () => {

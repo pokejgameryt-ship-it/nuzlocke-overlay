@@ -42,6 +42,7 @@ window.api = {
   dismissChangelog: (version) => ipcRenderer.invoke('dismiss-changelog', version),
 
   hasRecursos: () => ipcRenderer.invoke('has-recursos'),
+  checkRecursosStatus: () => ipcRenderer.invoke('check-recursos-status'),
   openRecursosFolder: () => ipcRenderer.invoke('open-recursos-folder'),
   downloadRecursos: () => ipcRenderer.invoke('download-recursos'),
   cancelDownload: () => ipcRenderer.invoke('cancel-download'),
