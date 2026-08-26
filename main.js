@@ -649,7 +649,7 @@ const SPRITES_ZIP_BASE_URL = 'https://github.com/pokejgameryt-ship-it/nuzlocke-o
 const GDRIVE_LEGACY_MANIFEST = 'https://raw.githubusercontent.com/pokejgameryt-ship-it/nuzlocke-overlay/master/public/recursos-manifest.json';
 const GDRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download';
 const extractZip = require('extract-zip');
-const dlAgent = new https.Agent({ keepAlive: true, maxSockets: 60, maxFreeSockets: 20, timeout: 30000 });
+const dlAgent = new https.Agent({ keepAlive: true, maxSockets: 80, maxFreeSockets: 30, timeout: 30000 });
 
 let activeDownload = null;
 
@@ -775,7 +775,7 @@ async function doZipDownload(webContents, spritesDir, zipManifest) {
 }
 
 async function doMultiGenDownload(webContents, spritesDir) {
-  const WORKERS = 30;
+  const WORKERS = 50;
 
   sendDownloadProgress({ status: 'listing', message: 'Fetching file manifest...' });
   const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
@@ -783,8 +783,17 @@ async function doMultiGenDownload(webContents, spritesDir) {
   const allFiles = manifest.files || [];
   const total = allFiles.length;
 
+  sendDownloadProgress({ status: 'listing', message: 'Checking existing files...' });
+  const existing = new Set();
+  const filesToDownload = [];
+  for (const file of allFiles) {
+    const filePath = path.join(spritesDir, file.path);
+    try { fs.accessSync(filePath, fs.constants.F_OK); existing.add(file.path); } catch (e) { filesToDownload.push(file); }
+  }
+  const skipped = existing.size;
+  const toDownload = filesToDownload.length;
+
   let downloaded = 0;
-  let skipped = 0;
   let failed = 0;
   let idx = 0;
   let lastReport = 0;
@@ -795,8 +804,8 @@ async function doMultiGenDownload(webContents, spritesDir) {
     lastReport = now;
     sendDownloadProgress({
       status: 'downloading',
-      message: downloaded + '/' + total + ' files',
-      current: downloaded,
+      message: (skipped + downloaded) + '/' + total + ' files (' + failed + ' failed)',
+      current: skipped + downloaded,
       total
     });
   }
@@ -804,12 +813,12 @@ async function doMultiGenDownload(webContents, spritesDir) {
   function gdriveDl(fileId, destPath) {
     return new Promise((resolve, reject) => {
       const url = GDRIVE_DOWNLOAD_URL + '&id=' + fileId + '&confirm=t';
-      const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, agent: dlAgent, timeout: 20000 }, (res) => {
+      const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, agent: dlAgent, timeout: 15000 }, (res) => {
         if (res.statusCode >= 301 && res.statusCode <= 308) {
           const loc = res.headers.location;
           res.resume();
           if (loc && !loc.includes('virus')) {
-            https.get(loc, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent, timeout: 20000 }, (r2) => handleGdrive(r2, destPath, resolve, reject)).on('error', (e) => reject(e));
+            https.get(loc, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent, timeout: 15000 }, (r2) => handleGdrive(r2, destPath, resolve, reject)).on('error', (e) => reject(e));
           } else {
             handleGdrive(res, destPath, resolve, reject);
           }
@@ -839,7 +848,7 @@ async function doMultiGenDownload(webContents, spritesDir) {
         let nu = GDRIVE_DOWNLOAD_URL + '&id=' + (idMatch ? idMatch[1] : '') + '&confirm=' + cm[1];
         const um = body.match(/uuid=([0-9A-Za-z_-]+)/);
         if (um) nu += '&uuid=' + um[1];
-        https.get(nu, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent, timeout: 20000 }, (r2) => {
+        https.get(nu, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent, timeout: 15000 }, (r2) => {
           handleGdrive(r2, destPath, resolve, reject);
         }).on('error', reject);
       });
@@ -853,28 +862,25 @@ async function doMultiGenDownload(webContents, spritesDir) {
     file.on('error', (e) => { try { fs.unlinkSync(destPath); } catch(ex) {} reject(e); });
   }
 
-  sendDownloadProgress({ status: 'downloading', message: 'Downloading ' + total + ' files...', current: 0, total });
+  sendDownloadProgress({ status: 'downloading', message: 'Downloading ' + toDownload + ' files (skipped ' + skipped + ')...', current: skipped, total });
 
   async function worker() {
     while (true) {
       const fileIdx = idx++;
-      if (fileIdx >= allFiles.length) break;
-      const file = allFiles[fileIdx];
+      if (fileIdx >= toDownload) break;
+      const file = filesToDownload[fileIdx];
       const filePath = path.join(spritesDir, file.path);
-      if (fs.existsSync(filePath)) {
-        downloaded++;
-        skipped++;
-        reportProgress();
-        continue;
-      }
-      try {
-        await gdriveDl(file.id, filePath);
-        downloaded++;
-        reportProgress();
-      } catch (e) {
-        downloaded++;
-        failed++;
-        reportProgress();
+      let ok = false;
+      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+        try {
+          await gdriveDl(file.id, filePath);
+          ok = true;
+          downloaded++;
+          reportProgress();
+        } catch (e) {
+          if (attempt < 2) await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+          else { downloaded++; failed++; reportProgress(); }
+        }
       }
     }
   }
@@ -883,7 +889,7 @@ async function doMultiGenDownload(webContents, spritesDir) {
   for (let i = 0; i < WORKERS; i++) workers.push(worker());
   await Promise.all(workers);
 
-  sendDownloadProgress({ status: 'done', message: 'Download complete', current: downloaded, total, skipped });
+  sendDownloadProgress({ status: 'done', message: 'Download complete', current: skipped + downloaded, total, skipped });
 
   _cachedStyles = null;
   const refreshedStyles = scanSprites(SPRITES_ROOT);
@@ -892,7 +898,7 @@ async function doMultiGenDownload(webContents, spritesDir) {
       mainWindow.webContents.send('styles-refreshed', refreshedStyles);
     }
   } catch (e) {}
-  return { success: true, files: downloaded - skipped, skipped, failed };
+  return { success: true, files: toDownload - failed, skipped, failed };
 }
 
 ipcMain.handle('has-recursos', () => {
