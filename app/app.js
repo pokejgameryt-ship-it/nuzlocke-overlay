@@ -2206,15 +2206,39 @@
     const overlay = document.getElementById('downloadOverlay');
     const progress = document.getElementById('downloadProgress');
     const closeBtn = document.getElementById('downloadClose');
+    const cancelBtn = document.getElementById('downloadCancel');
+    const bgBtn = document.getElementById('downloadBackground');
     const dlBtn = document.getElementById('downloadStatusBtn');
     const dlBadge = document.getElementById('downloadBadge');
     if (!overlay) return;
+
+    const existingStatus = await window.api.getDownloadStatus().catch(() => null);
+    if (existingStatus && (existingStatus.status === 'downloading' || existingStatus.status === 'listing')) {
+      overlay.style.display = 'flex';
+      return;
+    }
+    if (existingStatus && existingStatus.status === 'done') {
+      overlay.style.display = 'flex';
+      const t2 = window.t || ((k) => k);
+      progress.innerHTML = '<div class="download-progress-message">' + (t2('downloadDone') || 'Completado!') + '</div>' +
+        '<div class="download-progress-stats"><span class="download-progress-percent">100%</span></div>' +
+        '<div class="download-progress-bar-track"><div class="download-progress-bar-fill" style="width:100%"></div></div>';
+      closeBtn.style.display = '';
+      closeBtn.textContent = t2('downloadClose') || 'Cerrar';
+      closeBtn.onclick = () => { overlay.style.display = 'none'; };
+      cancelBtn.style.display = 'none';
+      bgBtn.style.display = 'none';
+      if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
+      if (dlBadge) { dlBadge.classList.remove('active'); }
+      return;
+    }
+
     overlay.style.display = 'flex';
     const t = window.t || ((k) => k);
     progress.innerHTML = `<div class="download-progress-message">${t('downloadConnecting') || 'Connecting to Google Drive...'}</div>`;
     closeBtn.style.display = 'none';
-    closeBtn.textContent = t('downloadHide') || 'Ocultar';
-    closeBtn.onclick = () => { overlay.style.display = 'none'; };
+    cancelBtn.style.display = 'none';
+    bgBtn.style.display = 'none';
     if (dlBtn) { dlBtn.style.display = ''; dlBtn.classList.add('active'); }
     if (dlBadge) { dlBadge.classList.add('active'); }
 
@@ -2267,6 +2291,18 @@
     const removeListener = window.api.onDownloadProgress((data) => {
       if (data.status === 'listing') {
         progress.innerHTML = '<div class="download-progress-message">' + data.message + '</div>';
+        cancelBtn.style.display = '';
+        cancelBtn.textContent = t('downloadCancel') || 'Cancelar';
+        cancelBtn.onclick = async () => {
+          await window.api.cancelDownload().catch(() => {});
+          overlay.style.display = 'none';
+          if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
+          if (dlBadge) { dlBadge.classList.remove('active'); }
+          if (removeListener) removeListener();
+        };
+        bgBtn.style.display = '';
+        bgBtn.textContent = t('downloadBackground') || 'Segundo Plano';
+        bgBtn.onclick = () => { overlay.style.display = 'none'; };
       } else if (data.status === 'downloading' || data.status === 'extracting') {
         if (!startTime) {
           startTime = Date.now();
@@ -2291,17 +2327,20 @@
         }
         if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
         if (dlBadge) { dlBadge.classList.remove('active'); }
+        cancelBtn.style.display = 'none';
+        bgBtn.style.display = 'none';
         closeBtn.style.display = '';
         closeBtn.textContent = t2('downloadClose') || 'Cerrar';
         closeBtn.onclick = () => {
           overlay.style.display = 'none';
           if (removeListener) removeListener();
-          styles = [];
         };
       } else if (data.status === 'error') {
         progress.innerHTML = '<div class="download-progress-message" style="color:#e94560">Error: ' + data.message + '</div>';
         if (dlBtn) { dlBtn.classList.remove('active'); dlBtn.style.display = 'none'; }
         if (dlBadge) { dlBadge.classList.remove('active'); }
+        cancelBtn.style.display = 'none';
+        bgBtn.style.display = 'none';
         closeBtn.style.display = '';
         closeBtn.textContent = t('downloadClose') || 'Cerrar';
         closeBtn.onclick = () => {

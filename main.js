@@ -741,6 +741,14 @@ ipcMain.handle('get-download-status', () => {
   return activeDownload || null;
 });
 
+ipcMain.handle('cancel-download', () => {
+  if (activeDownload) {
+    activeDownload.status = 'cancelled';
+    sendDownloadProgress({ status: 'cancelled', message: 'Download cancelled' });
+  }
+  return { success: true };
+});
+
 async function doZipDownload(webContents, spritesDir, zipManifest) {
   const zips = zipManifest.zips;
   const totalZips = zips.length;
@@ -764,6 +772,7 @@ async function doZipDownload(webContents, spritesDir, zipManifest) {
 
   async function zipWorker() {
     while (true) {
+      if (activeDownload && activeDownload.status === 'cancelled') break;
       const i = idx++;
       if (i >= zips.length) break;
       const zip = zips[i];
@@ -890,6 +899,7 @@ async function doMultiGenDownload(webContents, spritesDir) {
 
   async function worker() {
     while (true) {
+      if (activeDownload && activeDownload.status === 'cancelled') break;
       const fileIdx = idx++;
       if (fileIdx >= toDownload) break;
       const file = filesToDownload[fileIdx];
