@@ -26,15 +26,13 @@ jobs:
       - name: Install dependencies
         run: npm install archiver
 
-      - name: Create sprite ZIPs
-        run: node scripts/create-zips.js
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download sprites from Drive + Create ZIPs
+        run: node scripts/create-zips.js --from-drive
 
       - name: Upload ZIPs to sprites-v1 release
         run: |
           gh release view sprites-v1 --repo ${{ github.repository }} 2>/dev/null || \
-            gh release create sprites-v1 --repo ${{ github.repository }} --title "Sprites v1" --notes "Auto-generated sprite ZIPs" --prerelease
+            gh release create sprites-v1 --repo ${{ github.repository }} --title "_Sprites (auto-generated)" --notes "Auto-generated sprite ZIPs" --prerelease
           gh release upload sprites-v1 sprites-zips/*.zip --repo ${{ github.repository }} --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
