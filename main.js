@@ -58,6 +58,7 @@ const DEFAULT_SETTINGS = { language: 'es', backgroundMode: true, lastSeenVersion
 let mainWindow = null;
 let settingsWindow = null;
 let tray = null;
+let forceQuit = false;
 let overlayServer = null;
 let overlayPort = 19876;
 
@@ -147,7 +148,7 @@ function updateTrayMenu() {
     { label: L.open, click: () => mainWindow.show() },
     { label: L.settings, click: () => createSettingsWindow(mainWindow) },
     { type: 'separator' },
-    { label: L.quit, click: () => { mainWindow.destroy(); app.quit(); } },
+    { label: L.quit, click: () => { forceQuit = true; app.quit(); } },
   ]));
 }
 
@@ -297,6 +298,7 @@ function createWindow() {
   }
 
   mainWindow.on('close', (event) => {
+    if (forceQuit) return;
     if (loadSettings().backgroundMode) {
       event.preventDefault();
       mainWindow.hide();
@@ -952,9 +954,9 @@ if (!gotLock) {
   });
 
   app.on('window-all-closed', () => {
-    if (loadSettings().backgroundMode) {
-      // Keep running in tray
-    } else {
+    if (forceQuit) {
+      app.quit();
+    } else if (!loadSettings().backgroundMode) {
       app.quit();
     }
   });
@@ -969,9 +971,14 @@ if (!gotLock) {
   });
 
   app.on('before-quit', (e) => {
+    if (forceQuit) return;
     if (activeDownload && activeDownload.status === 'downloading') {
       e.preventDefault();
       return;
+    }
+    if (tray && !tray.isDestroyed()) {
+      tray.destroy();
+      tray = null;
     }
     const projects = projectManager.listAll();
     for (const p of projects) {
