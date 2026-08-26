@@ -929,6 +929,26 @@ function migrateFromBaseDir() {
   }
 }
 
+function cleanupBeforeQuit() {
+  for (const [, clients] of sseClients) {
+    for (const res of clients) {
+      try { res.end(); } catch (e) {}
+    }
+  }
+  sseClients.clear();
+  if (overlayServer) {
+    try { overlayServer.close(); } catch (e) {}
+  }
+  if (tray && !tray.isDestroyed()) {
+    tray.destroy();
+    tray = null;
+  }
+  const projects = projectManager.listAll();
+  for (const p of projects) {
+    fileWatcher.stopWatching(p.id);
+  }
+}
+
 // Single instance lock
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -976,13 +996,6 @@ if (!gotLock) {
       e.preventDefault();
       return;
     }
-    if (tray && !tray.isDestroyed()) {
-      tray.destroy();
-      tray = null;
-    }
-    const projects = projectManager.listAll();
-    for (const p of projects) {
-      fileWatcher.stopWatching(p.id);
-    }
+    cleanupBeforeQuit();
   });
 }
