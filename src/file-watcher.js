@@ -163,9 +163,40 @@ class FileWatcher {
         let pkHexHadResults = false;
         let skipPkHex = false;
 
-        // Check party count directly before calling PKHeX
-        // PKHeX can read wrong offsets in early-game empty-party saves
-        if (PkHexReader && gameInfo && gameInfo.generation >= 1 && gameInfo.generation <= 5) {
+        // Gen3: ALWAYS use PKHeX (native parser doesn't work for R/S/E)
+        if (PkHexReader && gameInfo && gameInfo.generation === 3) {
+          try {
+            const result = await PkHexReader.parse(resolvedSavePath);
+            Logger.info('Watcher', `[PKHeX] Gen3: Found ${result.pokemon.length} Pokemon (${result.game})`);
+            pkHexHadResults = result.pokemon.length > 0;
+            team = result.pokemon.map(pk => ({
+              speciesId: pk.speciesId,
+              nickname: pk.nickname || '',
+              isShiny: pk.isShiny,
+              isNicknamed: false,
+              level: pk.level,
+              form: pk.form || 0,
+              gender: pk.gender,
+              heldItem: pk.heldItem,
+              ability: pk.ability,
+              nature: pk.nature,
+              pid: pk.pid,
+              tid: pk.tid,
+              sid: pk.sid,
+              currentHp: pk.currentHp,
+              maxHp: pk.maxHp,
+              move1: pk.move1,
+              move2: pk.move2,
+              move3: pk.move3,
+              move4: pk.move4,
+              otName: pk.otName || '',
+            }));
+          } catch (pkErr) {
+            Logger.error('Watcher', `[PKHeX] Gen3 failed: ${pkErr.message}`);
+            team = [];
+          }
+        // Other gens: check party count first to skip PKHeX for empty parties
+        } else if (PkHexReader && gameInfo && gameInfo.generation >= 1 && gameInfo.generation <= 5) {
           try {
             const buf = fs.readFileSync(resolvedSavePath);
             const partyCount = getPartyCountDirectly(buf, gameInfo.generation);
@@ -176,7 +207,7 @@ class FileWatcher {
           } catch (e) {}
         }
 
-        if (!skipPkHex && PkHexReader) {
+        if (!skipPkHex && PkHexReader && gameInfo && gameInfo.generation !== 3) {
           try {
             const result = await PkHexReader.parse(resolvedSavePath);
             Logger.info('Watcher', `[PKHeX] Found ${result.pokemon.length} Pokemon (${result.game} gen${result.generation})`);
@@ -223,7 +254,7 @@ class FileWatcher {
           }
         }
 
-        if (team.length === 0) {
+        if (team.length === 0 && gameInfo && gameInfo.generation !== 3) {
           Logger.info('Watcher', 'Using built-in parser');
           const buffer = fs.readFileSync(resolvedSavePath);
           let currentGameInfo = gameInfo;
