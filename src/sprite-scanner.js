@@ -69,10 +69,32 @@ function scanSprites(spritesRoot) {
     scanDir(regionPath, regionDir.name, regionDir.name, spritesRoot, results);
   }
 
-  _cachedStyles = results;
+  // Deduplicate styles by name: merge file lists from duplicates
+  const byName = new Map();
+  for (const s of results) {
+    const existing = byName.get(s.name);
+    if (existing) {
+      // Merge: combine file counts, merge genderDirs, keep first style's path
+      existing.fileCount += s.fileCount;
+      if (s.genderDirs) {
+        if (!existing.genderDirs) existing.genderDirs = {};
+        Object.assign(existing.genderDirs, s.genderDirs);
+      }
+      // Merge extensions
+      if (s.extensions) {
+        const extSet = new Set([...(existing.extensions || []), ...s.extensions]);
+        existing.extensions = [...extSet];
+      }
+    } else {
+      byName.set(s.name, s);
+    }
+  }
+  const deduped = [...byName.values()];
+
+  _cachedStyles = deduped;
   _cachedSpritesRoot = spritesRoot;
-  Logger.info('Sprites', `Scanned ${results.length} styles from ${spritesRoot}`);
-  return results;
+  Logger.info('Sprites', `Scanned ${deduped.length} styles from ${spritesRoot} (${results.length} before dedup)`);
+  return deduped;
 }
 
 function invalidateStyleCache() {
