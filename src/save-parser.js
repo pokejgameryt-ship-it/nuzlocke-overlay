@@ -1150,6 +1150,10 @@ class SaveParser {
       const partyCount = buffer.readUInt32LE(c.offset + 4);
       Logger.info('Gen5', `${c.label}: party_count_u32=${partyCount}`);
 
+      if (partyCount === 0) {
+        Logger.info('Gen5', `Party count is 0 at ${c.label}, party is empty`);
+        return [];
+      }
       if (partyCount < 1 || partyCount > 6) continue;
 
       const result = SaveParser.readGen5PartyPK5(buffer, c.offset + 8, partyCount);
@@ -1237,7 +1241,41 @@ class SaveParser {
         if (after !== 0) continue;
       }
 
-      if (count >= 4) {
+      // Validate: check byte before count is 0 (party count marker)
+      if (offset > 0 && buffer[offset - 1] !== 0) continue;
+
+      // Validate full PK5 structure at expected offset
+      // PK5 is 220 bytes (0xDC) per Pokemon, starting 8 bytes after the compact list
+      const pk5Start = speciesListOff + count * 2;
+      // Align to 4 bytes
+      const alignedStart = (pk5Start + 3) & ~3;
+      let structureValid = true;
+
+      for (let i = 0; i < count; i++) {
+        const pOff = alignedStart + (i * 0xDC);
+        if (pOff + 0xDC > buffer.length) { structureValid = false; break; }
+
+        try {
+          const pokemonData = buffer.slice(pOff, pOff + 0xDC);
+          const { decrypted, data } = SaveParser.decryptPK5(pokemonData);
+
+          const pkSpecies = decrypted.readUInt16LE(0);
+          const level = data.length > 0x8C ? data.readUInt8(0x8C) : 0;
+          const curHp = data.length > 0x8F ? data.readUInt16LE(0x8E) : 0;
+          const maxHp = data.length > 0x91 ? data.readUInt16LE(0x90) : 0;
+
+          if (pkSpecies !== ids[i]) { structureValid = false; break; }
+          if (level < 1 || level > 100) { structureValid = false; break; }
+          if (curHp <= 0 || maxHp <= 0 || curHp > maxHp || maxHp > 999) { structureValid = false; break; }
+        } catch (e) {
+          structureValid = false;
+          break;
+        }
+      }
+
+      if (!structureValid) continue;
+
+      if (count >= 1) {
         Logger.info('Gen5', `Scan found party at 0x${offset.toString(16)}: count=${count} species=${JSON.stringify(ids)}`);
         return ids.map(sid => ({
           speciesId: sid, nickname: '', isShiny: false,
