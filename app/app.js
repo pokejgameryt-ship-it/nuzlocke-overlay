@@ -2261,7 +2261,6 @@
     }
 
     overlay.style.display = 'flex';
-    const t = window.t || ((k) => k);
     progress.innerHTML = `<div class="download-progress-message">${t('downloadConnecting') || 'Connecting to Google Drive...'}</div>`;
     closeBtn.style.display = 'none';
     cancelBtn.style.display = 'none';
