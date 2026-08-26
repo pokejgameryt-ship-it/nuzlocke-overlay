@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "createdAt": "2026-08-26T10:55:44.733Z",
+  "totalFiles": 78746,
+  "generations": [
+    {
+      "name": "Gen1",
+      "fileCount": 2869
+    },
+    {
+      "name": "Gen2",
+      "fileCount": 5434
+    },
+    {
+      "name": "Gen3",
+      "fileCount": 7724
+    },
+    {
+      "name": "Gen4",
+      "fileCount": 15763
+    },
+    {
+      "name": "Gen5",
+      "fileCount": 15149
+    },
+    {
+      "name": "Gen6",
+      "fileCount": 4724
+    },
+    {
+      "name": "Gen7",
+      "fileCount": 4544
+    },
+    {
+      "name": "Gen8",
+      "fileCount": 4897
+    },
+    {
+      "name": "Gen9",
+      "fileCount": 16906
+    },
+    {
+      "name": "LEGENDS ARCEUS",
+      "fileCount": 736
+    }
+  ],
+  "zips": [
+    {
+      "name": "Gen1.zip",
+      "generation": "Gen1",
+      "size": 48644519,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 2869,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen1.zip"
+    },
+    {
+      "name": "Gen2.zip",
+      "generation": "Gen2",
+      "size": 4128956,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 5434,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen2.zip"
+    },
+    {
+      "name": "Gen3.zip",
+      "generation": "Gen3",
+      "size": 11355352,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 7724,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen3.zip"
+    },
+    {
+      "name": "Gen4.zip",
+      "generation": "Gen4",
+      "size": 32405697,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 15763,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen4.zip"
+    },
+    {
+      "name": "Gen5.zip",
+      "generation": "Gen5",
+      "size": 111474741,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 15149,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen5.zip"
+    },
+    {
+      "name": "Gen6.zip",
+      "generation": "Gen6",
+      "size": 17889590,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 4724,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen6.zip"
+    },
+    {
+      "name": "Gen7.zip",
+      "generation": "Gen7",
+      "size": 25918310,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 4544,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen7.zip"
+    },
+    {
+      "name": "Gen8.zip",
+      "generation": "Gen8",
+      "size": 348690121,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 4897,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen8.zip"
+    },
+    {
+      "name": "Gen9.zip",
+      "generation": "Gen9",
+      "size": 1432286674,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 16906,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/Gen9.zip"
+    },
+    {
+      "name": "LEGENDS_ARCEUS.zip",
+      "generation": "LEGENDS ARCEUS",
+      "size": 67999485,
+      "partIndex": 0,
+      "totalParts": 1,
+      "fileCount": 736,
+      "url": "https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/download/sprites-v1/LEGENDS_ARCEUS.zip"
+    }
+  ]
+}
