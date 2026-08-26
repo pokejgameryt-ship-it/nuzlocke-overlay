@@ -178,6 +178,13 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results, skipGen
       variantDirs.push(entry);
       continue;
     }
+    // "Back Male Sprites", "Shiny Back Female Sprites" — directional + gender variants, merge into parent
+    const backGenderParsed = parseGenderDirName(entry.name);
+    if (backGenderParsed && lower.includes('back')) {
+      if (!genderGroups[backGenderParsed.base]) genderGroups[backGenderParsed.base] = {};
+      genderGroups[backGenderParsed.base][backGenderParsed.gender] = path.join(dirPath, entry.name);
+      continue;
+    }
     // Everything else is a potential style dir
     styleDirs.push(entry);
   }
@@ -285,6 +292,26 @@ function scanDir(dirPath, regionName, displayName, spritesRoot, results, skipGen
     // If subdirectory has <51 files and no grandchildren, treat as variant (merge into parent)
     // A complete Pokemon set is ~50 files, so <=50 means it's a form-specific subset
     if (subFiles.length < 51 && !hasGrandchildren) {
+      allSpriteFiles.push(...subFiles);
+      if (!variantSourcePath) {
+        variantSourcePath = path.relative(spritesRoot, subPath).replace(/\\/g, "/");
+      }
+      continue;
+    }
+
+    // Detect "form directories" — subdirectories named after Pokemon with alternate forms
+    // (Arceus, Castform, Deoxys, Cherrim, Burmy, Wormadam, Unown, Shellos, Gastrodon, etc.)
+    // These contain form-specific sprites and should be merged into parent, not separate styles.
+    // Also detect "Frame N" directories (animation frames of same sprites).
+    const FORM_DIR_PATTERNS = [
+      /^(arceus|castform|deoxys|cherrim|burmy|wormadam|unown|shellos|gastrodon|rotom|kyurem|calyrex|urshifu|darmanitan|wishiwashi|oricorio|lycanroc|mimikyu|silvally|necrozma|magearna|marshadow|zebra|Meloetta|Genesect|Diancie|Hoopa|Volcanion|Type.? Null|Silvally)$/i,
+      /(?:^|\s)frame\s+\d+$/i,  // "Male Frame 1", "Female Frame 2"
+      /^(male|female)\s+frame\s+\d+$/i,
+      /^shiny\s+(male|female)\s+frame\s+\d+$/i,
+    ];
+    const isFormDir = FORM_DIR_PATTERNS.some(p => p.test(entry.name));
+
+    if (isFormDir && !hasGrandchildren) {
       allSpriteFiles.push(...subFiles);
       if (!variantSourcePath) {
         variantSourcePath = path.relative(spritesRoot, subPath).replace(/\\/g, "/");
