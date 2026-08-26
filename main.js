@@ -773,70 +773,73 @@ async function doZipDownload(webContents, spritesDir, zipManifest) {
 }
 
 async function doMultiGenDownload(webContents, spritesDir) {
-  const MAX_CONCURRENT = 50;
-  let activeCount = 0;
-  const waitQueue = [];
+  const WORKERS = 30;
 
-  function acquireSlot() {
-    return new Promise((resolve) => {
-      if (activeCount < MAX_CONCURRENT) {
-        activeCount++;
-        resolve();
-      } else {
-        waitQueue.push(resolve);
-      }
+  sendDownloadProgress({ status: 'listing', message: 'Fetching file manifest...' });
+  const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
+  const manifest = JSON.parse(mData.toString());
+  const allFiles = manifest.files || [];
+  const total = allFiles.length;
+
+  let downloaded = 0;
+  let skipped = 0;
+  let failed = 0;
+  let idx = 0;
+  let lastReport = 0;
+
+  function reportProgress() {
+    const now = Date.now();
+    if (now - lastReport < 1000) return;
+    lastReport = now;
+    sendDownloadProgress({
+      status: 'downloading',
+      message: downloaded + '/' + total + ' files',
+      current: downloaded,
+      total
     });
-  }
-
-  function releaseSlot() {
-    activeCount--;
-    if (waitQueue.length > 0 && activeCount < MAX_CONCURRENT) {
-      activeCount++;
-      waitQueue.shift()();
-    }
   }
 
   function gdriveDl(fileId, destPath) {
     return new Promise((resolve, reject) => {
       const url = GDRIVE_DOWNLOAD_URL + '&id=' + fileId + '&confirm=t';
-      https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, agent: dlAgent }, (res) => {
+      const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, agent: dlAgent, timeout: 20000 }, (res) => {
         if (res.statusCode >= 301 && res.statusCode <= 308) {
           const loc = res.headers.location;
+          res.resume();
           if (loc && !loc.includes('virus')) {
-            https.get(loc, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent }, (r2) => {
-              handleGdrive(r2, fileId, destPath, resolve, reject);
-            }).on('error', (e) => retryGdrive(fileId, destPath, 0, e, resolve, reject));
-          } else { handleGdrive(res, fileId, destPath, resolve, reject); }
+            https.get(loc, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent, timeout: 20000 }, (r2) => handleGdrive(r2, destPath, resolve, reject)).on('error', (e) => reject(e));
+          } else {
+            handleGdrive(res, destPath, resolve, reject);
+          }
           return;
         }
-        handleGdrive(res, fileId, destPath, resolve, reject);
-      }).on('error', (e) => retryGdrive(fileId, destPath, 0, e, resolve, reject));
+        handleGdrive(res, destPath, resolve, reject);
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
     });
   }
 
-  function handleGdrive(res, fileId, destPath, resolve, reject) {
+  function handleGdrive(res, destPath, resolve, reject) {
     if (res.statusCode === 429 || res.statusCode >= 500) {
       res.resume();
-      const err = new Error('HTTP ' + res.statusCode);
-      err.isRateLimit = res.statusCode === 429;
-      return reject(err);
+      return reject(new Error('HTTP ' + res.statusCode));
     }
     if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); }
     if ((res.headers['content-type'] || '').includes('text/html')) {
-      let body = ''; res.setEncoding('utf8');
+      let body = '';
+      res.setEncoding('utf8');
       res.on('data', (c) => { body += c; });
       res.on('end', () => {
         const cm = body.match(/confirm=([0-9A-Za-z_-]+)/);
+        if (!cm) return reject(new Error('No confirm'));
+        const idMatch = body.match(/id=([0-9A-Za-z_-]+)/);
+        let nu = GDRIVE_DOWNLOAD_URL + '&id=' + (idMatch ? idMatch[1] : '') + '&confirm=' + cm[1];
         const um = body.match(/uuid=([0-9A-Za-z_-]+)/);
-        const da = body.match(/action="([^"]+)"/);
-        if (cm || da) {
-          let nu = da ? da[1] : GDRIVE_DOWNLOAD_URL;
-          nu += '&id=' + fileId + '&confirm=' + (cm ? cm[1] : 't');
-          if (um) nu += '&uuid=' + um[1];
-          https.get(nu, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent }, (r2) => {
-            handleGdrive(r2, fileId, destPath, resolve, reject);
-          }).on('error', (e) => retryGdrive(fileId, destPath, 0, e, resolve, reject));
-        } else { retryGdrive(fileId, destPath, 0, new Error('No download link'), resolve, reject); }
+        if (um) nu += '&uuid=' + um[1];
+        https.get(nu, { headers: { 'User-Agent': 'Mozilla/5.0' }, agent: dlAgent, timeout: 20000 }, (r2) => {
+          handleGdrive(r2, destPath, resolve, reject);
+        }).on('error', reject);
       });
       return;
     }
@@ -848,136 +851,46 @@ async function doMultiGenDownload(webContents, spritesDir) {
     file.on('error', (e) => { try { fs.unlinkSync(destPath); } catch(ex) {} reject(e); });
   }
 
-  function retryGdrive(fileId, destPath, retries, err, resolve, reject) {
-    if (retries < 3) {
-      const delay = err && err.isRateLimit ? 2000 : 500 * (retries + 1);
-      setTimeout(() => { gdriveDl(fileId, destPath).then(resolve).catch(reject); }, delay);
-    } else { reject(err); }
-  }
+  sendDownloadProgress({ status: 'downloading', message: 'Downloading ' + total + ' files...', current: 0, total });
 
-  sendDownloadProgress({ status: 'listing', message: 'Fetching file manifest...' });
-  const mData = await dlBuffer(GDRIVE_LEGACY_MANIFEST);
-  const manifest = JSON.parse(mData.toString());
-  const allFiles = manifest.files || [];
-
-  const GENERATION_ORDER = ['Gen1','Gen2','Gen3','Gen4','Gen5','Gen6','Gen7','Gen8','Gen9','LEGENDS ARCEUS'];
-  const filesByGen = {};
-  for (const gen of GENERATION_ORDER) filesByGen[gen] = [];
-  for (const file of allFiles) {
-    const gen = file.path.split('/')[0];
-    if (filesByGen[gen]) filesByGen[gen].push(file);
-  }
-
-  const total = allFiles.length;
-  const genStates = {};
-  let totalDownloaded = 0;
-  let totalSkipped = 0;
-  let lastReport = 0;
-
-  for (const gen of GENERATION_ORDER) {
-    genStates[gen] = {
-      current: 0, total: filesByGen[gen].length,
-      done: filesByGen[gen].length === 0,
-      rateLimited: 0, failed: 0, skipped: 0
-    };
-  }
-
-  function reportProgress() {
-    const now = Date.now();
-    if (now - lastReport < 1000) return;
-    lastReport = now;
-    const genProgress = {};
-    for (const gen of GENERATION_ORDER) {
-      const s = genStates[gen];
-      genProgress[gen] = { current: s.current, total: s.total, done: s.done };
-    }
-    sendDownloadProgress({
-      status: 'downloading',
-      message: totalDownloaded + '/' + total + ' files',
-      current: totalDownloaded,
-      total,
-      generations: genProgress
-    });
-  }
-
-  async function genWorker(gen) {
-    const files = filesByGen[gen];
-    const state = genStates[gen];
-    let idx = 0;
-
-    await acquireSlot();
-    try {
-      while (idx < files.length) {
-        if (state.rateLimited > 0) {
-          await new Promise(r => setTimeout(r, 500));
-          state.rateLimited--;
-          continue;
-        }
-        const file = files[idx++];
-        const filePath = path.join(spritesDir, file.path);
-        if (fs.existsSync(filePath)) {
-          state.current++;
-          state.skipped++;
-          totalDownloaded++;
-          totalSkipped++;
-          reportProgress();
-          continue;
-        }
-        try {
-          await gdriveDl(file.id, filePath);
-          state.current++;
-          totalDownloaded++;
-          reportProgress();
-        } catch (e) {
-          state.current++;
-          totalDownloaded++;
-          if (e.isRateLimit) {
-            state.rateLimited = 2;
-          } else {
-            state.failed++;
-          }
-          reportProgress();
-        }
+  async function worker() {
+    while (true) {
+      const fileIdx = idx++;
+      if (fileIdx >= allFiles.length) break;
+      const file = allFiles[fileIdx];
+      const filePath = path.join(spritesDir, file.path);
+      if (fs.existsSync(filePath)) {
+        downloaded++;
+        skipped++;
+        reportProgress();
+        continue;
       }
-      state.done = true;
-      reportProgress();
-    } finally {
-      releaseSlot();
+      try {
+        await gdriveDl(file.id, filePath);
+        downloaded++;
+        reportProgress();
+      } catch (e) {
+        downloaded++;
+        failed++;
+        reportProgress();
+      }
     }
   }
 
-  sendDownloadProgress({
-    status: 'downloading',
-    message: 'Downloading ' + total + ' files (max ' + MAX_CONCURRENT + ' at a time)...',
-    current: 0, total
-  });
+  const workers = [];
+  for (let i = 0; i < WORKERS; i++) workers.push(worker());
+  await Promise.all(workers);
 
-  const allWorkers = [];
-  for (const gen of GENERATION_ORDER) {
-    if (filesByGen[gen].length > 0) {
-      allWorkers.push(genWorker(gen));
-    }
-  }
-  await Promise.all(allWorkers);
-
-  const successCount = totalDownloaded - totalSkipped;
-  sendDownloadProgress({
-    status: 'done',
-    message: 'Download complete',
-    current: totalDownloaded,
-    total,
-    skipped: totalSkipped
-  });
+  sendDownloadProgress({ status: 'done', message: 'Download complete', current: downloaded, total, skipped });
 
   _cachedStyles = null;
-  sendDownloadProgress({ status: 'refreshing' });
   const refreshedStyles = scanSprites(SPRITES_ROOT);
   try {
     if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
       mainWindow.webContents.send('styles-refreshed', refreshedStyles);
     }
   } catch (e) {}
-  return { success: true, files: successCount, skipped: totalSkipped };
+  return { success: true, files: downloaded - skipped, skipped, failed };
 }
 
 ipcMain.handle('has-recursos', () => {

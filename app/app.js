@@ -2275,8 +2275,6 @@
         }
         if (data.isZipMode) {
           renderZipProgress(data);
-        } else if (data.generations) {
-          renderMultiGenProgress(data);
         } else {
           renderProgress(data.current, data.total, data.message);
         }
