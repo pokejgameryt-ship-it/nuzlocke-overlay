@@ -151,13 +151,15 @@ class FileWatcher {
       interval: 500,
     });
 
-    let generation = 0;
+    let generation = gameInfo ? gameInfo.generation || 0 : 0;
     const DEBOUNCE_MS = 600;
+
+    Logger.info('Watcher', `Config: generation=${generation}, gameInfo=${JSON.stringify(gameInfo)}, PKHeX=${!!PkHexReader}`);
 
     const parseAndBroadcast = async (gen) => {
       if (gen !== generation) return;
       try {
-        Logger.info('Watcher', `Parsing save for project ${projectId}`);
+        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader}, gameInfo.generation=${gameInfo ? gameInfo.generation : 'null'})`);
 
         let team = [];
         let pkHexHadResults = false;

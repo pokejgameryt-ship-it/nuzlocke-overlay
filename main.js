@@ -493,11 +493,10 @@ ipcMain.handle('get-system-fonts', async () => {
     fs.writeFileSync(tmpScript, psScript, 'utf8');
     const out = execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tmpScript], { timeout: 15000, encoding: 'utf8' });
     try { fs.unlinkSync(tmpScript); } catch(e) {}
-    const skipPattern = /\b(bold|italic|cursiva|negrita|light|black|demi|narrow|condensed|regular|semibold|extrabold|ultrabold|thin|medium|heavy|ultralight|semilight|oblique|roman)\b/i;
-    const skipExact = /^(modern|roman|script|symbol|sans serif collection)$/i;
+    const skipExact = /^(modern|roman|script|symbol|sans serif collection|font|fonts)$/i;
     const fonts = out.split(/\r?\n/)
       .map(s => s.trim().replace(/^"|"$/g, ''))
-      .filter(f => f && f.length > 1 && !skipPattern.test(f) && !skipExact.test(f))
+      .filter(f => f && f.length > 1 && !skipExact.test(f))
       .sort((a, b) => a.localeCompare(b));
     _systemFontsCache = fonts.length > 0 ? fonts : getDefaultFonts();
     return _systemFontsCache;
