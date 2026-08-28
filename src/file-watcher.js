@@ -156,108 +156,52 @@ class FileWatcher {
 
     Logger.info('Watcher', `Config: generation=${generation}, gameInfo=${JSON.stringify(gameInfo)}, PKHeX=${!!PkHexReader}`);
 
+    const mapPkHeXTeam = (pokemon) => pokemon.map(pk => ({
+      speciesId: pk.speciesId,
+      nickname: pk.nickname || '',
+      isShiny: pk.isShiny,
+      isNicknamed: false,
+      level: pk.level,
+      form: pk.form || 0,
+      gender: pk.gender,
+      heldItem: pk.heldItem,
+      ability: pk.ability,
+      nature: pk.nature,
+      pid: pk.pid,
+      tid: pk.tid,
+      sid: pk.sid,
+      currentHp: pk.currentHp,
+      maxHp: pk.maxHp,
+      move1: pk.move1,
+      move2: pk.move2,
+      move3: pk.move3,
+      move4: pk.move4,
+      otName: pk.otName || '',
+    }));
+
     const parseAndBroadcast = async (gen) => {
       if (gen !== generation) return;
       try {
-        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader}, gameInfo.generation=${gameInfo ? gameInfo.generation : 'null'})`);
+        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader})`);
 
         let team = [];
-        let pkHexHadResults = false;
-        let skipPkHex = false;
 
-        // Gen3: ALWAYS use PKHeX (native parser doesn't work for R/S/E)
-        if (PkHexReader && gameInfo && gameInfo.generation === 3) {
-          try {
-            const result = await PkHexReader.parse(resolvedSavePath);
-            Logger.info('Watcher', `[PKHeX] Gen3: Found ${result.pokemon.length} Pokemon (${result.game})`);
-            pkHexHadResults = result.pokemon.length > 0;
-            team = result.pokemon.map(pk => ({
-              speciesId: pk.speciesId,
-              nickname: pk.nickname || '',
-              isShiny: pk.isShiny,
-              isNicknamed: false,
-              level: pk.level,
-              form: pk.form || 0,
-              gender: pk.gender,
-              heldItem: pk.heldItem,
-              ability: pk.ability,
-              nature: pk.nature,
-              pid: pk.pid,
-              tid: pk.tid,
-              sid: pk.sid,
-              currentHp: pk.currentHp,
-              maxHp: pk.maxHp,
-              move1: pk.move1,
-              move2: pk.move2,
-              move3: pk.move3,
-              move4: pk.move4,
-              otName: pk.otName || '',
-            }));
-          } catch (pkErr) {
-            Logger.error('Watcher', `[PKHeX] Gen3 failed: ${pkErr.message}`);
-            team = [];
-          }
-        // Other gens: check party count first to skip PKHeX for empty parties
-        } else if (PkHexReader && gameInfo && gameInfo.generation >= 1 && gameInfo.generation <= 5) {
-          try {
-            const buf = fs.readFileSync(resolvedSavePath);
-            const partyCount = getPartyCountDirectly(buf, gameInfo.generation);
-            if (partyCount === 0) {
-              Logger.info('Watcher', `Gen${gameInfo.generation} party count is 0, skipping PKHeX (empty party)`);
-              skipPkHex = true;
-            }
-          } catch (e) {}
-        }
-
-        if (!skipPkHex && PkHexReader && gameInfo && gameInfo.generation !== 3) {
+        // ALWAYS use PKHeX first — it handles all generations and save formats correctly
+        if (PkHexReader) {
           try {
             const result = await PkHexReader.parse(resolvedSavePath);
             Logger.info('Watcher', `[PKHeX] Found ${result.pokemon.length} Pokemon (${result.game} gen${result.generation})`);
-            // Validate PKHeX results: reject if any Pokemon has invalid HP/level
-            const pkValid = result.pokemon.every(pk => {
-              if (!pk.speciesId || pk.speciesId < 1 || pk.speciesId > 1025) return false;
-              if (pk.level !== undefined && (pk.level < 1 || pk.level > 100)) return false;
-              if (pk.currentHp !== undefined && pk.maxHp !== undefined) {
-                if (pk.currentHp <= 0 || pk.maxHp <= 0 || pk.currentHp > pk.maxHp) return false;
-              }
-              return true;
-            });
-            if (!pkValid && result.pokemon.length > 0) {
-              Logger.warn('Watcher', `[PKHeX] Invalid Pokemon detected, falling back to native parser`);
-              team = [];
-            } else {
-              pkHexHadResults = result.pokemon.length > 0;
-              team = result.pokemon.map(pk => ({
-                speciesId: pk.speciesId,
-                nickname: pk.nickname || '',
-                isShiny: pk.isShiny,
-                isNicknamed: false,
-                level: pk.level,
-                form: pk.form || 0,
-                gender: pk.gender,
-                heldItem: pk.heldItem,
-                ability: pk.ability,
-                nature: pk.nature,
-                pid: pk.pid,
-                tid: pk.tid,
-                sid: pk.sid,
-                currentHp: pk.currentHp,
-                maxHp: pk.maxHp,
-                move1: pk.move1,
-                move2: pk.move2,
-                move3: pk.move3,
-                move4: pk.move4,
-                otName: pk.otName || '',
-              }));
-            }
+            team = mapPkHeXTeam(result.pokemon);
           } catch (pkErr) {
             Logger.error('Watcher', `[PKHeX] Failed: ${pkErr.message}`);
-            team = [];
           }
+        } else {
+          Logger.warn('Watcher', 'PkHexReader not available');
         }
 
-        if (team.length === 0 && gameInfo && gameInfo.generation !== 3) {
-          Logger.info('Watcher', 'Using built-in parser');
+        // Fallback to native parser only if PKHeX is not available
+        if (team.length === 0 && !PkHexReader && gameInfo && gameInfo.generation !== 3) {
+          Logger.info('Watcher', 'PKHeX unavailable, using built-in parser');
           const buffer = fs.readFileSync(resolvedSavePath);
           let currentGameInfo = gameInfo;
           if (gameInfo && gameInfo.version === 'auto') {
@@ -265,17 +209,10 @@ class FileWatcher {
             if (detected) {
               currentGameInfo = detected;
               Logger.info('Watcher', `Auto-detected: ${detected.name}`);
-            } else {
-              Logger.warn('Watcher', 'Auto-detection failed, using manual game or skipping built-in parser');
             }
           }
           if (currentGameInfo && currentGameInfo.generation > 0 && !currentGameInfo.encrypted) {
             team = SaveParser.parse(buffer, currentGameInfo);
-            // If native parser found nothing but PKHeX found something, trust native
-            // (PKHeX can read wrong offsets in early-game empty-party saves)
-            if (team.length === 0 && pkHexHadResults) {
-              Logger.warn('Watcher', 'Native parser found 0 Pokemon, overriding PKHeX result (likely false positive)');
-            }
           }
         }
 
