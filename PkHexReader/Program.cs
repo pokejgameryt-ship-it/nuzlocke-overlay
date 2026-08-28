@@ -86,25 +86,69 @@ static string SanitizeString(string s)
 static byte[] TrimDsv(byte[] data)
 {
     if (data.Length < 128) return data;
-    if (data.Length > 0x80000 && data.Length <= 0x81000)
+    
+    // Check for DSV footer in the last 512 bytes
+    int checkStart = Math.Max(0, data.Length - 512);
+    int checkLen = data.Length - checkStart;
+    var tail = System.Text.Encoding.ASCII.GetString(data, checkStart, checkLen);
+    int snipIdx = tail.IndexOf("|<--", StringComparison.Ordinal);
+    if (snipIdx >= 0)
     {
-        // Check for DSV footer
-        var tail = System.Text.Encoding.ASCII.GetString(data, Math.Max(0, data.Length - 256), Math.Min(256, data.Length));
-        int snipIdx = tail.IndexOf("|<--", StringComparison.Ordinal);
-        if (snipIdx >= 0)
+        int trimTo = checkStart + snipIdx;
+        if (trimTo > 0 && trimTo < data.Length)
         {
-            int trimTo = data.Length - 256 + snipIdx;
+            var trimmed = new byte[trimTo];
+            Array.Copy(data, trimmed, trimTo);
+            Console.Error.WriteLine($"[PkHexReader] Trimmed DSV footer: {data.Length} -> {trimTo} bytes");
+            return trimmed;
+        }
+    }
+    
+    // Check for standard sizes that might have hidden footer
+    // Gen 4/5 NDS: 512KB (0x80000) or 512KB + footer
+    if (data.Length >= 0x80000 && data.Length <= 0x81000)
+    {
+        // Check if it's a clean 512KB save (no footer needed)
+        if (data.Length == 0x80000) return data;
+        
+        // Try to find footer in last 256 bytes
+        var tail2 = System.Text.Encoding.ASCII.GetString(data, data.Length - 256, 256);
+        int snipIdx2 = tail2.IndexOf("|<--", StringComparison.Ordinal);
+        if (snipIdx2 >= 0)
+        {
+            int trimTo = data.Length - 256 + snipIdx2;
             if (trimTo > 0 && trimTo < data.Length)
             {
                 var trimmed = new byte[trimTo];
                 Array.Copy(data, trimmed, trimTo);
+                Console.Error.WriteLine($"[PkHexReader] Trimmed DSV footer (fallback): {data.Length} -> {trimTo} bytes");
                 return trimmed;
             }
         }
-        // Fallback: trim to 512KB
-        var fallback = new byte[0x80000];
-        Array.Copy(data, fallback, 0x80000);
-        return fallback;
+        // Fallback: assume 512KB raw save
+        if (data.Length > 0x80000)
+        {
+            Console.Error.WriteLine($"[PkHexReader] Trimming to 512KB: {data.Length} -> 0x80000 bytes");
+            var fallback = new byte[0x80000];
+            Array.Copy(data, fallback, 0x80000);
+            return fallback;
+        }
     }
+    
+    // Gen 3 GBA: 128KB (0x20000) or 256KB (0x40000)
+    if ((data.Length >= 0x20000 && data.Length <= 0x21000) || (data.Length >= 0x40000 && data.Length <= 0x41000))
+    {
+        if (data.Length == 0x20000 || data.Length == 0x40000) return data;
+        // Trim to clean size
+        int targetSize = data.Length <= 0x30000 ? 0x20000 : 0x40000;
+        if (data.Length > targetSize)
+        {
+            Console.Error.WriteLine($"[PkHexReader] Trimming GBA save: {data.Length} -> {targetSize} bytes");
+            var trimmed = new byte[targetSize];
+            Array.Copy(data, trimmed, targetSize);
+            return trimmed;
+        }
+    }
+    
     return data;
 }

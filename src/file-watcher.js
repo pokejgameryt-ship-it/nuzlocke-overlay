@@ -145,6 +145,9 @@ class FileWatcher {
 
     Logger.info('Watcher', `Save file exists: ${resolvedSavePath} (${fs.statSync(resolvedSavePath).size} bytes)`);
 
+    // Log gameInfo details
+    Logger.info('Watcher', `gameInfo: ${JSON.stringify(gameInfo)}`);
+
     const watcher = chokidar.watch(resolvedSavePath, {
       ignoreInitial: false,
       usePolling: true,
@@ -182,18 +185,19 @@ class FileWatcher {
     const parseAndBroadcast = async (gen) => {
       if (gen !== generation) return;
       try {
-        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader})`);
+        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader}, resolvedPath=${resolvedSavePath})`);
 
         let team = [];
 
         // ALWAYS use PKHeX first — it handles all generations and save formats correctly
         if (PkHexReader) {
           try {
+            Logger.info('Watcher', `[PKHeX] Calling parse on: ${resolvedSavePath}`);
             const result = await PkHexReader.parse(resolvedSavePath);
-            Logger.info('Watcher', `[PKHeX] Found ${result.pokemon.length} Pokemon (${result.game} gen${result.generation})`);
+            Logger.info('Watcher', `[PKHeX] Result: game=${result.game}, gen=${result.generation}, partyCount=${result.partyCount}, pokemon=${result.pokemon.length}`);
             team = mapPkHeXTeam(result.pokemon);
           } catch (pkErr) {
-            Logger.error('Watcher', `[PKHeX] Failed: ${pkErr.message}`);
+            Logger.error('Watcher', `[PKHeX] Failed for ${resolvedSavePath}: ${pkErr.message}`);
           }
         } else {
           Logger.warn('Watcher', 'PkHexReader not available');
