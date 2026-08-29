@@ -33,19 +33,19 @@
     ],
     "extraResources": [
       {
-        "from": "PkHexReader/bin/Release/net8.0/PkHexReader.dll",
+        "from": "resources/pkhex/PkHexReader.dll",
         "to": "PkHexReader.dll"
       },
       {
-        "from": "PkHexReader/bin/Release/net8.0/PKHeX.Core.dll",
+        "from": "resources/pkhex/PKHeX.Core.dll",
         "to": "PKHeX.Core.dll"
       },
       {
-        "from": "PkHexReader/bin/Release/net8.0/PkHexReader.runtimeconfig.json",
+        "from": "resources/pkhex/PkHexReader.runtimeconfig.json",
         "to": "PkHexReader.runtimeconfig.json"
       },
       {
-        "from": "PkHexReader/bin/Release/net8.0/PkHexReader.deps.json",
+        "from": "resources/pkhex/PkHexReader.deps.json",
         "to": "PkHexReader.deps.json"
       }
     ],

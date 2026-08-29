@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const http = require('http');
+const { execFileSync, execFile } = require('child_process');
 
 const Logger = require('./src/logger');
 const { scanSprites, resolveSprite, getPreviewSprite } = require('./src/sprite-scanner');
@@ -12,6 +13,46 @@ const DetectSave = require('./src/detect-save');
 const ProjectManager = require('./src/project-manager');
 const PresetManager = require('./src/preset-manager');
 const FileWatcher = require('./src/file-watcher');
+
+function checkDotnetRuntime() {
+  const userDotnet = path.join(process.env['USERPROFILE'] || '', '.dotnet', 'dotnet.exe');
+  if (fs.existsSync(userDotnet)) return userDotnet;
+  const localDotnet = path.join(process.env['LOCALAPPDATA'] || '', '.dotnet', 'dotnet.exe');
+  if (fs.existsSync(localDotnet)) return localDotnet;
+  try {
+    const where = process.platform === 'win32' ? 'where' : 'which';
+    const result = execFileSync(where, ['dotnet'], { stdio: 'pipe', timeout: 5000 }).toString().trim();
+    const firstLine = result.split('\n')[0].trim();
+    if (firstLine && fs.existsSync(firstLine)) return firstLine;
+  } catch (e) {}
+  return null;
+}
+
+function showDotnetMissingDialog() {
+  const message = [
+    'Se requiere .NET 8.0 Runtime para leer los archivos de guardado de Pokemon.',
+    '',
+    'La app usa PKHeX (librería oficial) que necesita .NET para funcionar.',
+    '',
+    'Opciones:',
+    '1. Instala .NET 8.0 Desktop Runtime desde: https://dotnet.microsoft.com/en-us/download/dotnet/8.0',
+    '2. Reinicia la app después de instalar',
+    '',
+    '¿Quieres abrir la página de descarga ahora?'
+  ].join('\n');
+  const { response } = dialog.showMessageBoxSync(mainWindow || null, {
+    type: 'warning',
+    title: '.NET 8.0 Runtime no encontrado',
+    message,
+    buttons: ['Descargar .NET', 'Cancelar'],
+    defaultId: 0,
+    cancelId: 1
+  });
+  if (response === 0) {
+    shell.openExternal('https://dotnet.microsoft.com/en-us/download/dotnet/8.0');
+  }
+  return false;
+}
 
 function resolveBaseDir() {
   if (process.env.PORTABLE_EXECUTABLE_DIR) {
@@ -1090,6 +1131,16 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    // Check for .NET 8.0 Runtime required for PKHeX
+    const dotnetPath = checkDotnetRuntime();
+    if (!dotnetPath) {
+      Logger.error('Main', '.NET 8.0 Runtime not found - PKHeX will not work');
+      // We still create the window but show a dialog after
+      setTimeout(() => showDotnetMissingDialog(), 1000);
+    } else {
+      Logger.info('Main', `.NET 8.0 Runtime found at: ${dotnetPath}`);
+    }
+
     migrateFromBaseDir();
     startOverlayServer();
     createWindow();

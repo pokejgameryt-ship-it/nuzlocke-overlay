@@ -91,10 +91,17 @@ class PkHexReader {
       Logger.info('PkHexReader', `[v${CODE_VERSION}] dll=${dllPath || 'NOT FOUND'}`);
 
       if (!dotnetPath) {
-        return reject(new Error('dotnet runtime not found'));
+        return reject(new Error(
+          '.NET 8.0 Runtime no encontrado. PKHeX requiere .NET 8.0 para funcionar.\n' +
+          'Descarga desde: https://dotnet.microsoft.com/en-us/download/dotnet/8.0\n' +
+          'Instala "Desktop Runtime 8.0.x" y reinicia la app.'
+        ));
       }
       if (!dllPath) {
-        return reject(new Error('PkHexReader.dll not found'));
+        return reject(new Error(
+          'PkHexReader.dll no encontrado. Los archivos de PKHeX no se instalaron correctamente.\n' +
+          'Reinstala la app o contacta al desarrollador.'
+        ));
       }
       if (!fs.existsSync(filePath)) {
         return reject(new Error(`File not found: ${filePath}`));
