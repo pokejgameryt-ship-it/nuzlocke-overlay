@@ -244,62 +244,68 @@
             <h3 class="help-topic-title" data-i18n="helpObs">Configurar en OBS</h3>
             <div class="help-topic-content">
               <ol>
-                <li>En OBS, haz clic en <b>+</b> en Fuentes</li>
-                <li>Selecciona <b>Navegador</b></li>
-                <li>Pega la <b>URL de OBS</b> que aparece en la app (seccion "URL de OBS")</li>
-                <li>Establece el ancho a <b>1920</b> y el alto a <b>1080</b></li>
-                <li>En Opciones del navegador, marca <b>"Cerrar fuente cuando no sea visible"</b> (desmarcar si necesitas que siempre este visible)</li>
-                <li>Los sprites se actualizan <b>automaticamente</b> cada 500ms cuando cambias de Pokemon</li>
+                <li>En la app, haz clic en <b>Examinar</b> y selecciona tu save file o carpeta del emulador</li>
+                <li>La app detecta el juego y genera una URL local (<code>http://127.0.0.1:19876/overlay/...</code>)</li>
+                <li>Haz clic en <b>Copiar URL</b></li>
+                <li>En OBS Studio: click derecho en Fuentes > <b>Agregar</b> > <b>Navegador</b></li>
+                <li>Pega la URL copiada</li>
+                <li>Establece ancho: <b>1920</b>, alto: <b>1080</b></li>
+                <li>Marca <b>"Controlar el URL via JavaScript"</b></li>
+                <li>Ajusta la posicion de los sprites en el <b>Layout Editor</b> de la app</li>
               </ol>
+              <p><b>Tip:</b> La app monitoriza el save cada 500ms. Guarda en el juego y el overlay se actualiza solo.</p>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="proyecto save file guardado ruta crear nuevo">
+          <div class="help-topic" data-keywords="proyecto save file guardado ruta crear nuevo examinar">
             <h3 class="help-topic-title" data-i18n="helpProject">Crear un proyecto</h3>
             <div class="help-topic-content">
               <ol>
                 <li>Haz clic en el boton <b>+</b> de la barra lateral</li>
                 <li>Escribe un nombre para el proyecto</li>
-                <li>Haz clic en <b>Examinar</b> y selecciona tu archivo de guardado</li>
-                <li>La app detecta automaticamente la generacion y version del juego</li>
+                <li>Haz clic en <b>Examinar</b> y selecciona tu archivo de guardado o carpeta del emulador</li>
+                <li>Si seleccionas una carpeta, se abre un segundo dialogo para elegir el archivo save especifico</li>
+                <li>La app detecta automaticamente la generacion y juego</li>
                 <li>Selecciona un <b>estilo de sprite</b></li>
                 <li>Ajusta la posicion de los sprites en el <b>Layout Editor</b></li>
-                <li>Copia la URL de OBS y pegala en un fuente de navegador en OBS</li>
+                <li>Copia la URL de OBS y pegala en una fuente de navegador en OBS</li>
               </ol>
-              <p><b>Tip:</b> La deteccion es automatica pero puedes forzar el juego manualmente si falla.</p>
+              <p><b>Tip:</b> La deteccion es automatica pero puedes forzar el juego manualmente en el selector.</p>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="parser pkhex save lectura decrypt desencriptar generacion gen1 gen2 gen3 gen4 gen5 gen6 gen7 gen8 gen9">
+          <div class="help-topic" data-keywords="parser pkhex save lectura decrypt desencriptar generacion gen1 gen2 gen3 gen4 gen5 gen6 gen7 gen8 gen9 saves .net dotnet">
             <h3 class="help-topic-title" data-i18n="helpSaves">Lectura de saves (PKHeX)</h3>
             <div class="help-topic-content">
-              <p>La app usa <b>PKHeX</b> (la libreria estandar de Pokemon) para leer los saves. Esto garantiza compatibilidad con casi todos los emuladores y formatos.</p>
+              <p>La app usa <b>PKHeX</b> (la libreria estandar de Pokemon) para leer los saves de todas las generaciones. Requiere <b>.NET 8.0 Runtime</b> instalado en el sistema.</p>
               <p><b>Juegos soportados (Gen 1 - Gen 9):</b></p>
               <ul>
-                <li><b>Gen 1:</b> Rojo, Azul, Amarillo (GB) - VisualBoyAdvance, BGB</li>
-                <li><b>Gen 2:</b> Oro, Plata, Cristal (GBC) - VisualBoyAdvance, SameBoy</li>
-                <li><b>Gen 3:</b> Rubi, Zafiro, Esmeralda, Rojo Fuego, Verde Hoja (GBA) - mGBA, VBA, VisualBoyAdvance-M</li>
+                <li><b>Gen 1:</b> Rojo, Azul, Amarillo (GB) - BGB, SameBoy, VisualBoyAdvance-M</li>
+                <li><b>Gen 2:</b> Oro, Plata, Cristal (GBC) - SameBoy, VisualBoyAdvance-M</li>
+                <li><b>Gen 3:</b> Rubi, Zafiro, Esmeralda, Rojo Fuego, Verde Hoja (GBA) - <b>mGBA</b>, VisualBoyAdvance-M</li>
                 <li><b>Gen 4:</b> Diamante, Perla, Platino, HeartGold, SoulSilver (NDS) - DeSmuME, melonDS</li>
                 <li><b>Gen 5:</b> Blanco, Negro, Blanco 2, Negro 2 (NDS) - DeSmuME, melonDS</li>
                 <li><b>Gen 6:</b> X, Y, Rubi Omega, Zafiro Alfa (3DS) - Citra</li>
                 <li><b>Gen 7:</b> Sol, Luna, Ultra Sol, Ultra Luna (3DS) - Citra</li>
-                <li><b>Gen 8:</b> Espada, Escudo, Brilliant Diamond, Shining Pearl (Switch) - Yuzu, Ryujinx</li>
-                <li><b>Gen 9:</b> Escarlata, Violeta (Switch) - Yuzu, Ryujinx</li>
+                <li><b>Gen 8:</b> Espada, Escudo, Brilliant Diamond, Shining Pearl, Leyendas Arceus (Switch) - Yuzu, Ryujinx, Sudachi, Suyu</li>
+                <li><b>Gen 9:</b> Escarlata, Purpura, Leyendas Z-A (Switch) - Yuzu, Ryujinx, Sudachi, Suyu</li>
               </ul>
-              <p>Si PKHeX falla, la app usa un parser nativo como respaldo.</p>
+              <p>La deteccion del juego es automatica. Si falla, selecciona el juego manualmente en el selector de la izquierda.</p>
+              <p><b>Nota:</b> Para Switch exporta el save con <b>Checkpoint</b> o <b>JKSM</b> desde la consola. Ryujinx guarda encriptado, usa Checkpoint para obtener una copia legible.</p>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="sprite estilo carpeta recursos imagen png gif">
+          <div class="help-topic" data-keywords="sprite estilo carpeta recursos imagen png gif descarga download">
             <h3 class="help-topic-title" data-i18n="helpSprites">Estilos de sprite</h3>
             <div class="help-topic-content">
-              <p>Los sprites se cargan automaticamente de la carpeta <b>Recursos/Sprites/</b>.</p>
-              <p>Para anadir un nuevo estilo:</p>
+              <p>Los sprites se cargan de <code>%APPDATA%\nuzlocke-overlay\Recursos\Sprites\</code>, organizados por generacion.</p>
+              <p><b>Descarga automatica:</b> Al iniciar la app por primera vez sin sprites, pregunta si quieres descargarlos desde GitHub. Tambien puedes descargarlos desde <b>Configuracion > Recursos</b>.</p>
+              <p><b>Agregar estilos propios:</b></p>
               <ol>
-                <li>Crea una subcarpeta dentro de <b>Recursos/Sprites/</b> (ej: <code>MiEstilo</code>)</li>
-                <li>Pon los sprites PNG o GIF dentro, nombrados por numero de Pokedex (ej: <code>025.png</code> para Pikachu)</li>
+                <li>Crea una subcarpeta en <code>Recursos\Sprites\GenX\</code> (ej: <code>MiEstilo</code>)</li>
+                <li>Pon los sprites PNG o GIF, nombrados por numero de Pokedex (ej: <code>025.png</code> para Pikachu)</li>
                 <li>Puedes usar subcarpetas para formas regionales (ej: <code>shiny/</code>, <code>alola/</code>)</li>
-                <li>En la app, selecciona el estilo en el selector de estilos</li>
+                <li>Selecciona el estilo en el selector de estilos de la app</li>
               </ol>
               <p><b>Formatos de nombre soportados:</b></p>
               <ul>
@@ -308,7 +314,7 @@
                 <li><code>25-alola.png</code> (formas regionales)</li>
                 <li><code>BT025.png</code> (Battle Trozei)</li>
               </ul>
-              <p><b>Formato recomendado:</b> PNG con fondo transparente, 96x96 o 128x128 pixeles.</p>
+              <p><b>Formato recomendado:</b> PNG con fondo transparente, 96x96 o 128x128 px.</p>
             </div>
           </div>
 
@@ -318,42 +324,42 @@
               <p>Si tu equipo tiene menos de 6 Pokemon, puedes rellenar los slots vacios con un sprite placeholder.</p>
               <ul>
                 <li>Activa la opcion <b>"Rellenar slots vacios"</b> en la seccion Opciones</li>
-                <li>Se usara automaticamente el sprite por defecto del estilo (generalmente un huevo o interrogante)</li>
-                <li>Los placeholders se actualizan automaticamente cuando cambias de estilo</li>
+                <li>Se usara automaticamente el sprite por defecto del estilo (huevo o interrogacion)</li>
+                <li>Los placeholders se actualizan cuando cambias de estilo</li>
               </ul>
-              <p>Esto es util para que el overlay siempre muestre 6 slots, incluso al principio de una run.</p>
+              <p>Util para que el overlay siempre muestre 6 slots, incluso al principio de una run.</p>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="nickname mote apodo nombre texto fuente color stroke trazo">
+          <div class="help-topic" data-keywords="nickname mote apodo nombre texto fuente color stroke trazo bold italic negrita cursiva">
             <h3 class="help-topic-title" data-i18n="helpNicknames">Personalizar nicknames</h3>
             <div class="help-topic-content">
               <p>En la seccion <b>"Estilo de Nickname"</b> puedes configurar:</p>
               <ul>
-                <li><b>Fuente:</b> Selecciona la tipografia del texto</li>
+                <li><b>Fuente:</b> Buscador con preview de todas las fuentes del sistema</li>
                 <li><b>Negrita / Cursiva:</b> Estilo del texto</li>
                 <li><b>Color:</b> Solido, degradado lineal o radial</li>
                 <li><b>Trazo:</b> Borde del texto (exterior, centrado o interior)</li>
               </ul>
-              <p>Los nicknames son slots independientes en el layout. Puedes moverlos y redimensionarlos por separado de los sprites.</p>
+              <p>Los nicknames son slots independientes. Puedes moverlos y redimensionarlos por separado de los sprites.</p>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="layout editor canvas posicion tamano drag drop mover snap guia alinear">
+          <div class="help-topic" data-keywords="layout editor canvas posicion tamano drag drop mover snap guia alinear escala scale">
             <h3 class="help-topic-title" data-i18n="helpLayout">Layout Editor</h3>
             <div class="help-topic-content">
-              <p>El editor de layout te permite posicionar los sprites y nicknames en un lienzo de 1920x1080.</p>
+              <p>Editor de layout en un lienzo de 1920x1080.</p>
               <ul>
-                <li><b>Arrastrar:</b> Haz clic y arrastra para mover</li>
+                <li><b>Arrastrar:</b> Haz clic y arrastra para mover slots</li>
                 <li><b>Redimensionar:</b> Arrastra las esquinas</li>
-                <li><b>Multi-seleccion:</b> Ctrl+Click para seleccionar varios, Shift+Click para rango, Ctrl+A para todos</li>
-                <li><b>Snap:</b> Las guias magneticas ayudan a alinear (puedes desactivar con el checkbox "Snap")</li>
-                <li><b>Propiedades:</b> Selecciona un slot para editar X, Y, W, H, Scale directamente</li>
+                <li><b>Multi-seleccion:</b> Ctrl+Click (seleccion individual), Shift+Click (rango), Ctrl+A (todos)</li>
+                <li><b>Snap:</b> Guias magneticas de alineacion (checkbox "Snap")</li>
+                <li><b>Propiedades:</b> Selecciona un slot para editar X, Y, W, H, Scale</li>
                 <li><b>Des/Hacer:</b> Ctrl+Z / Ctrl+Shift+Z</li>
                 <li><b>Reset:</b> Vuelve a la disposicion por defecto</li>
-                <li><b>Espaciado:</b> Distribuye los slots seleccionados uniformemente</li>
-                <li><b>Alineacion:</b> Alinea izquierda, centro, derecha, arriba, abajo</li>
-                <li><b>Camara virtual:</b> Previsualiza tu webcam encima del Layout Editor para saber donde quedara tu cara en OBS/Discord. Sirve para <b>posicionar los sprites</b> sin que tapen tu camara. Selecciona tu camara real en el selector; los sprites se veran por encima.</li>
+                <li><b>Espaciado:</b> Distribuye slots uniformemente</li>
+                <li><b>Alineacion:</b> Izquierda, centro, derecha, arriba, abajo</li>
+                <li><b>Camara virtual:</b> Boton "Cam" para previsualizar tu webcam sobre el layout. Util para posicionar sprites sin que tapen tu cara en OBS/Discord</li>
               </ul>
             </div>
           </div>
@@ -367,85 +373,149 @@
                 <li><b>Cargar:</b> Selecciona un preset de la lista y haz clic en "Cargar"</li>
                 <li><b>Eliminar:</b> Selecciona un preset y haz clic en "Eliminar"</li>
               </ul>
-              <p>Util para cambiar rapidamente entre diferentes configuraciones de overlay.</p>
+              <p>Util para cambiar rapido entre diferentes configuraciones de overlay.</p>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="configuracion settings idioma modo segundo plano background tray">
+          <div class="help-topic" data-keywords="configuracion settings idioma modo segundo plano background tray social recursos recusrso download descarga">
             <h3 class="help-topic-title" data-i18n="helpSettings">Configuracion</h3>
             <div class="help-topic-content">
               <p>Haz clic en el icono de engranaje para acceder a la configuracion:</p>
               <ul>
-                <li><b>Idioma:</b> Cambia entre Espanol e English</li>
+                <li><b>Idioma:</b> 6 idiomas disponibles (Espanol, English, Francais, Deutsch, Nihongo, Russkiy)</li>
                 <li><b>Modo segundo plano:</b> La app se minimiza a la bandeja del sistema al cerrar (como Discord)</li>
+                <li><b>Recursos:</b> Boton "Descargar Sprites" para obtener los sprites desde GitHub. Boton "Abrir carpeta" para gestionarlos</li>
+                <li><b>Social links:</b> Acceso rapido a Twitch, YouTube, TikTok, Discord y GitHub</li>
               </ul>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="error problema no detecta no funciona bug troubleshoot solucionar">
+          <div class="help-topic" data-keywords="actualizar update version changelog notas nuevo">
+            <h3 class="help-topic-title" data-i18n="helpUpdates">Actualizaciones</h3>
+            <div class="help-topic-content">
+              <p>La app comprueba nuevas versiones al iniciar. Si hay una actualizacion:</p>
+              <ul>
+                <li>Aparece un <b>popup de notificacion</b> con el boton "Descargar"</li>
+                <li>El <b>Changelog</b> se muestra al instalar una version nueva</li>
+                <li>Puedes usar <b>"Omitir esta version"</b> para no volver a verla</li>
+              </ul>
+              <p>Las actualizaciones se descargan desde GitHub y se ejecutan automaticamente.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="error problema no detecta no funciona bug troubleshoot solucionar crash .net dotnet pkhex camera camara">
             <h3 class="help-topic-title" data-i18n="helpTroubleshoot">Solucion de problemas</h3>
             <div class="help-topic-content">
               <div class="help-faq">
-                <p><b>"No se detecta el equipo"</b></p>
+
+                <p><b>"Sin equipo detectado"</b></p>
                 <ul>
                   <li>Verifica que la ruta del save file sea correcta</li>
-                  <li>Intenta seleccionar el juego manualmente en el selector</li>
-                  <li>Asegurate de que el save no este corrupto</li>
-                  <li>Algunos emuladores guardan en formatos diferentes - prueba con otro emulador</li>
+                  <li>Selecciona el juego manualmente en el selector de la izquierda</li>
+                  <li>Guarda en el juego (Ctrl+S en el emulador) y espera 1-2 segundos</li>
                   <li>Para Gen 1-2: usa BGB o SameBoy para mejores resultados</li>
-                  <li>Para Gen 3: usa mGBA (mejor compatibilidad que VBA)</li>
+                  <li>Para Gen 3: usa <b>mGBA</b> (mejor compatibilidad que VBA-M)</li>
                   <li>Para Gen 4-5: usa DeSmuME o melonDS</li>
+                  <li>Para Switch: exporta el save con <b>Checkpoint</b> o <b>JKSM</b> desde la consola</li>
+                  <li>Consulta los logs en <code>%APPDATA%\nuzlocke-overlay\logs\</code> para ver errores detallados</li>
                 </ul>
+
                 <p><b>"Los sprites no aparecen"</b></p>
                 <ul>
-                  <li>Verifica que la carpeta <code>Recursos/Sprites/</code> exista junto al ejecutable</li>
-                  <li>Asegurate de tener al menos un estilo de sprite instalado</li>
+                  <li>Verifica que la carpeta <code>Recursos/Sprites/</code> exista</li>
+                  <li>Descarga los sprites desde <b>Configuracion > Recursos > Descargar Sprites</b></li>
                   <li>Selecciona un estilo en el selector de estilos</li>
                 </ul>
+
                 <p><b>"OBS muestra pantalla negra"</b></p>
                 <ul>
-                  <li>Verifica que la URL sea correcta (debe empezar con http://127.0.0.1:)</li>
+                  <li>Verifica que la URL empiece con <code>http://127.0.0.1:</code></li>
                   <li>Asegurate de que la app este abierta</li>
-                  <li>Prueba abriendo la URL en un navegador normal primero</li>
-                  <li>En OBS, desmarca "Cerrar fuente cuando no sea visible"</li>
+                  <li>Abre la URL en un navegador normal para verificar que funciona</li>
+                  <li>En OBS, marca <b>"Controlar el URL via JavaScript"</b> en las propiedades del Browser Source</li>
                 </ul>
+
                 <p><b>"El equipo no se actualiza"</b></p>
                 <ul>
                   <li>La app detecta cambios cada 500ms automaticamente</li>
-                  <li>Verifica que el save file se este guardando correctamente</li>
-                  <li>Algunos emuladores necesitan que guardes manualmente (Ctrl+S)</li>
+                  <li>Guarda en el juego (Ctrl+S) y espera 1-2 segundos</li>
+                  <li>Algunos emuladores como Ryujinx guardan encriptado; usa Checkpoint en la consola para exportar una copia legible</li>
                 </ul>
+
+                <p><b>"La camara virtual no funciona"</b></p>
+                <ul>
+                  <li>OBS: Herramientas > Iniciar Camara Virtual primero</li>
+                  <li>Haz clic en "Cam" de nuevo para re-enumerar dispositivos</li>
+                  <li>Permite el permiso de camara cuando el navegador lo pida</li>
+                  <li>Si dice "No se encontro camara", verifica que OBS Virtual Camera este instalado</li>
+                </ul>
+
+                <p><b>"La app no abre / crashea"</b></p>
+                <ul>
+                  <li>Borra <code>%APPDATA%\nuzlocke-overlay\config.json</code> y reabre la app</li>
+                  <li>Verifica que .NET 8.0 Runtime este instalado</li>
+                  <li>Revisa los logs en <code>%APPDATA%\nuzlocke-overlay\logs\</code></li>
+                </ul>
+
+                <p><b>"No encuentra .NET o PKHeX"</b></p>
+                <ul>
+                  <li>La app muestra un dialogo con boton "Descargar .NET" si falta el runtime</li>
+                  <li>Instala <b>.NET 8.0 Desktop Runtime</b> desde <code>dotnet.microsoft.com/download/dotnet/8.0</code></li>
+                  <li>Reinicia la app despues de instalar .NET</li>
+                </ul>
+
               </div>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="atajo teclado keyboard shortcut hotkey ctrl">
+          <div class="help-topic" data-keywords="atajo teclado keyboard shortcut hotkey ctrl arrow flechas">
             <h3 class="help-topic-title" data-i18n="helpShortcuts">Atajos de teclado</h3>
             <div class="help-topic-content">
+              <p>Atajos disponibles en el <b>Layout Editor</b>:</p>
               <table class="help-shortcuts">
                 <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Deshacer</td></tr>
                 <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Rehacer</td></tr>
                 <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>Seleccionar todos los slots</td></tr>
-                <tr><td><kbd>Ctrl</kbd>+Click</td><td>Multi-seleccionar</td></tr>
-                <tr><td><kbd>Shift</kbd>+Click</td><td>Seleccionar rango</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+Click</td><td>Multi-seleccion</td></tr>
+                <tr><td><kbd>Shift</kbd>+Click</td><td>Rango de seleccion</td></tr>
                 <tr><td><kbd>Escape</kbd></td><td>Deseleccionar</td></tr>
+                <tr><td>Flechas</td><td>Mover seleccion (1px)</td></tr>
+                <tr><td><kbd>Shift</kbd>+Flechas</td><td>Mover seleccion (10px)</td></tr>
               </table>
             </div>
           </div>
 
-          <div class="help-topic" data-keywords="emulador emulator mGBA VBA desmume melonDS citra yuzu ryujinx">
+          <div class="help-topic" data-keywords="emulador emulator mGBA VBA desmume melonDS citra yuzu ryujinx sudachi suyu">
             <h3 class="help-topic-title" data-i18n="helpEmulators">Emuladores recomendados</h3>
             <div class="help-topic-content">
-              <p>Para mejores resultados, usa estos emuladores:</p>
+              <p>Emuladores testados y compatibles:</p>
               <table class="help-shortcuts">
-                <tr><td><b>Gen 1 (GB)</b></td><td>VisualBoyAdvance, BGB</td></tr>
-                <tr><td><b>Gen 2 (GBC)</b></td><td>VisualBoyAdvance, SameBoy</td></tr>
-                <tr><td><b>Gen 3 (GBA)</b></td><td>mGBA (recomendado), VisualBoyAdvance-M</td></tr>
+                <tr><td><b>Gen 1 (GB)</b></td><td>BGB, SameBoy, VisualBoyAdvance-M</td></tr>
+                <tr><td><b>Gen 2 (GBC)</b></td><td>SameBoy, VisualBoyAdvance-M</td></tr>
+                <tr><td><b>Gen 3 (GBA)</b></td><td><b>mGBA</b> (recomendado), VisualBoyAdvance-M</td></tr>
                 <tr><td><b>Gen 4-5 (NDS)</b></td><td>DeSmuME, melonDS</td></tr>
                 <tr><td><b>Gen 6-7 (3DS)</b></td><td>Citra</td></tr>
-                <tr><td><b>Gen 8-9 (Switch)</b></td><td>Yuzu, Ryujinx</td></tr>
+                <tr><td><b>Gen 8-9 (Switch)</b></td><td>Yuzu, Ryujinx, Sudachi, Suyu</td></tr>
               </table>
-              <p><b>Configuracion mGBA:</b> En Preferences ^gt; Saving, deja "Save game path" vacio para guardar en la misma carpeta que la ROM.</p>
+              <p><b>mGBA:</b> En Preferences > Saving, deja "Save game path" <b>vacio</b> para guardar junto a la ROM. Verifica que <code>vbaBugCompat=1</code> y <code>gba.forceGbp=1</code> esten en <code>mGBA.ini</code>.</p>
+              <p><b>Citra:</b> Selecciona la carpeta <code>00000001</code> y la app te deja elegir el archivo <code>main</code>.</p>
+              <p><b>Switch:</b> Exporta el save con <b>Checkpoint</b> o <b>JKSM</b> desde la consola. Ryujinx guarda encriptado, necesita Checkpoint.</p>
+            </div>
+          </div>
+
+          <div class="help-topic" data-keywords="logs debug depuracion archivo log fallo crash error">
+            <h3 class="help-topic-title" data-i18n="helpLogs">Logs y depuracion</h3>
+            <div class="help-topic-content">
+              <p>Los logs diarios se guardan en:</p>
+              <p><code>%APPDATA%\nuzlocke-overlay\logs\nuzlocke-YYYY-MM-DD.log</code></p>
+              <p>Busca lineas utiles para diagnosticar problemas:</p>
+              <ul>
+                <li><code>[Watcher] PKHeX available: true/false</code> — si PKHeX esta disponible</li>
+                <li><code>[PKHeX] Found X Pokemon</code> — resultado de la lectura del equipo</li>
+                <li><code>[Camera] Devices found:</code> — dispositivos de camara detectados</li>
+                <li><code>resolvedSavePath:</code> — ruta final del save que se esta leyendo</li>
+              </ul>
+              <p>Envia el log al desarrollador si necesitas soporte.</p>
             </div>
           </div>
         </div>
