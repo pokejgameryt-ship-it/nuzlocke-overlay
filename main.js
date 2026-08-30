@@ -1140,8 +1140,10 @@ if (!gotLock) {
     // Check PKHeX DLLs exist
     const pkhexDll = path.join(process.resourcesPath || '', 'PkHexReader.dll');
     const pkhexCore = path.join(process.resourcesPath || '', 'PKHeX.Core.dll');
-    Logger.info('Main', `PKHeX DLL in resources: ${fs.existsSync(pkhexDll)} (${pkhexDll})`);
-    Logger.info('Main', `PKHeX.Core in resources: ${fs.existsSync(pkhexCore)} (${pkhexCore})`);
+    const pkhexDllExists = fs.existsSync(pkhexDll);
+    const pkhexCoreExists = fs.existsSync(pkhexCore);
+    Logger.info('Main', `PKHeX DLL in resources: ${pkhexDllExists} (${pkhexDll})`);
+    Logger.info('Main', `PKHeX.Core in resources: ${pkhexCoreExists} (${pkhexCore})`);
 
     // Check for .NET 8.0 Runtime required for PKHeX
     const dotnetPath = checkDotnetRuntime();
@@ -1150,6 +1152,31 @@ if (!gotLock) {
       setTimeout(() => showDotnetMissingDialog(), 1000);
     } else {
       Logger.info('Main', `.NET 8.0 Runtime found at: ${dotnetPath}`);
+      // Pre-validate: try to copy DLLs now so parsing works when user opens a save
+      try {
+        const PkHexReader = require('./src/pkhex-reader');
+        Logger.info('Main', 'PkHexReader module loaded OK');
+      } catch (e) {
+        Logger.error('Main', `PkHexReader module failed to load: ${e.message}`);
+        if (!pkhexDllExists) {
+          Logger.error('Main', 'CRITICAL: PkHexReader.dll NOT FOUND in resources directory!');
+          Logger.error('Main', `Expected at: ${pkhexDll}`);
+          Logger.error('Main', `process.resourcesPath = ${process.resourcesPath}`);
+          setTimeout(() => {
+            dialog.showMessageBox(mainWindow || null, {
+              type: 'error',
+              title: 'PKHeX no disponible',
+              message: 'Los archivos de PKHeX no se encontraron.\n\n' +
+                'Esto puede pasar si:\n' +
+                '1. La instalacion se corrompio\n' +
+                '2. Los archivos fueron eliminados\n\n' +
+                `Ruta busqueda: ${process.resourcesPath}\n\n` +
+                'Intenta reinstalar la app desde GitHub Releases.',
+              buttons: ['OK']
+            });
+          }, 1500);
+        }
+      }
     }
 
     migrateFromBaseDir();
