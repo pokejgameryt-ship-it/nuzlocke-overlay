@@ -1559,6 +1559,13 @@
       await window.api.openRecursosFolder();
     });
 
+    $('#settingsExportLogs').addEventListener('click', async () => {
+      const result = await window.api.exportDiagnosticZip();
+      if (result) {
+        alert(`Logs exportados a:\n${result.path}\n\nTamano: ${(result.size / 1024).toFixed(1)} KB`);
+      }
+    });
+
     window.api.onSettingsChanged((settings) => {
       currentLang = settings.language || 'es';
       applyLanguage(currentLang);

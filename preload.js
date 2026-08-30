@@ -53,6 +53,11 @@ window.api = {
     return () => ipcRenderer.removeListener('download-progress', handler);
   },
 
+  getLogInfo: () => ipcRenderer.invoke('get-log-info'),
+  readLogFile: (filename) => ipcRenderer.invoke('read-log-file', filename),
+  getRecentErrors: (lines) => ipcRenderer.invoke('get-recent-errors', lines),
+  exportDiagnosticZip: () => ipcRenderer.invoke('export-diagnostic-zip'),
+
   onSettingsChanged: (callback) => {
     const handler = (e, settings) => callback(settings);
     ipcRenderer.on('settings-changed', handler);

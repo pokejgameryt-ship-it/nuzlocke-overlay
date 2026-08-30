@@ -1076,6 +1076,63 @@ ipcMain.handle('open-recursos-folder', async () => {
   return true;
 });
 
+// === LOG EXPORT ===
+
+ipcMain.handle('get-log-info', () => {
+  return Logger.getExportData();
+});
+
+ipcMain.handle('read-log-file', (event, filename) => {
+  return Logger.readLogContent(filename);
+});
+
+ipcMain.handle('get-recent-errors', (event, lines) => {
+  return Logger.readRecentJsonl(lines || 200);
+});
+
+ipcMain.handle('export-diagnostic-zip', async () => {
+  const data = Logger.getExportData();
+  const { filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Exportar diagnosticos',
+    defaultPath: `nuzlocke-diagnostics-${new Date().toISOString().slice(0, 10)}.zip`,
+    filters: [{ name: 'ZIP', extensions: ['zip'] }],
+  });
+  if (!filePath) return null;
+
+  try {
+    const archiver = require('archiver');
+    const output = fs.createWriteStream(filePath);
+    const archive = archiver('zip', { zlib: { level: 6 } });
+
+    return new Promise((resolve, reject) => {
+      output.on('close', () => resolve({ path: filePath, size: archive.pointer() }));
+      archive.on('error', reject);
+      archive.pipe(output);
+
+      if (data.sessionMeta) {
+        archive.append(JSON.stringify(data.sessionMeta, null, 2), { name: 'session-info.json' });
+      }
+
+      for (const file of data.files) {
+        if (fs.existsSync(file.path)) {
+          archive.file(file.path, { name: `logs/${file.name}` });
+        }
+      }
+
+      const projects = projectManager.listAll();
+      archive.append(JSON.stringify(projects, null, 2), { name: 'projects.json' });
+
+      archive.append(JSON.stringify(loadConfig(), null, 2), { name: 'config.json' });
+      archive.append(JSON.stringify(loadSettings(), null, 2), { name: 'settings.json' });
+
+      archive.finalize();
+    });
+  } catch (e) {
+    Logger.error('Export', `Failed to create diagnostic zip: ${e.message}`);
+    return null;
+  }
+});
+
 // === APP LIFECYCLE ===
 
 function migrateFromBaseDir() {
@@ -1131,6 +1188,10 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    // Initialize logging session
+    const pkg = require('./package.json');
+    Logger.initSession(pkg.version);
+
     // Log environment details for debugging
     Logger.info('Main', `process.resourcesPath=${process.resourcesPath || 'undefined'}`);
     Logger.info('Main', `__dirname=${__dirname}`);

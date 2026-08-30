@@ -110,19 +110,29 @@ class FileWatcher {
     const parseAndBroadcast = async (gen) => {
       if (gen !== generation) return;
       try {
-        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader}, resolvedPath=${resolvedSavePath})`);
+        let saveSize = 0;
+        try { saveSize = fs.statSync(resolvedSavePath).size; } catch (e) {}
+
+        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader}, resolvedPath=${resolvedSavePath}, size=${saveSize})`);
 
         let team = [];
+        let pkhexError = null;
+        let pkhexResult = null;
+        let nativeError = null;
+        let nativeTeamLength = 0;
 
-        // ALWAYS use PKHeX first — it handles all generations and save formats correctly
+        // ALWAYS use PKHeX first
         if (PkHexReader) {
           try {
             Logger.info('Watcher', `[PKHeX] Calling parse on: ${resolvedSavePath}`);
-            const result = await PkHexReader.parse(resolvedSavePath);
-            Logger.info('Watcher', `[PKHeX] Result: game=${result.game}, gen=${result.generation}, partyCount=${result.partyCount}, pokemon=${result.pokemon.length}`);
-            team = mapPkHeXTeam(result.pokemon);
+            pkhexResult = await PkHexReader.parse(resolvedSavePath);
+            Logger.info('Watcher', `[PKHeX] Result: game=${pkhexResult.game}, gen=${pkhexResult.generation}, partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
+            Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
+            team = mapPkHeXTeam(pkhexResult.pokemon);
           } catch (pkErr) {
+            pkhexError = pkErr.message;
             Logger.error('Watcher', `[PKHeX] Failed for ${resolvedSavePath}: ${pkErr.message}`);
+            Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
           }
         } else {
           Logger.warn('Watcher', 'PkHexReader not available');
@@ -143,17 +153,29 @@ class FileWatcher {
             }
             if (currentGameInfo && currentGameInfo.generation > 0 && !currentGameInfo.encrypted) {
               const nativeTeam = SaveParser.parse(buffer, currentGameInfo);
+              nativeTeamLength = nativeTeam.length;
               if (nativeTeam.length > 0) {
                 Logger.info('Watcher', `Native parser found ${nativeTeam.length} Pokemon (fallback)`);
+                Logger.logNativeParserResult(resolvedSavePath, saveSize, currentGameInfo, nativeTeam.length, null);
                 team = nativeTeam;
               } else {
                 Logger.warn('Watcher', 'Native parser also returned empty team');
+                Logger.logNativeParserResult(resolvedSavePath, saveSize, currentGameInfo, 0, null);
               }
             }
           } catch (nativeErr) {
+            nativeError = nativeErr.message;
             Logger.error('Watcher', `Native parser fallback failed: ${nativeErr.message}`);
+            Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
           }
         }
+
+        Logger.logSaveParse(resolvedSavePath, saveSize, gameInfo, {
+          game: pkhexResult?.game || gameInfo?.version,
+          generation: pkhexResult?.generation || gameInfo?.generation,
+          partyCount: pkhexResult?.partyCount || team.length,
+          pokemon: team,
+        }, team.length === 0 ? (pkhexError || nativeError || 'No Pokemon found') : null);
 
         Logger.info('Watcher', `Parsed ${team.length} Pokemon for project ${projectId}`);
 
