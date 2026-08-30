@@ -1370,16 +1370,22 @@
 
     async function enumerateCameras() {
       const sel = $('#cameraSelect');
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind === 'videoinput');
-      sel.innerHTML = '';
-      videoDevices.forEach((d, i) => {
-        const opt = document.createElement('option');
-        opt.value = d.deviceId;
-        opt.textContent = d.label || `Cam ${i + 1}`;
-        sel.appendChild(opt);
-      });
-      return videoDevices;
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        console.log('[Camera] Devices found:', videoDevices.map(d => ({ label: d.label, id: d.deviceId })));
+        sel.innerHTML = '';
+        videoDevices.forEach((d, i) => {
+          const opt = document.createElement('option');
+          opt.value = d.deviceId;
+          opt.textContent = d.label || `Cam ${i + 1}`;
+          sel.appendChild(opt);
+        });
+        return videoDevices;
+      } catch (err) {
+        console.error('[Camera] enumerateDevices failed:', err);
+        return [];
+      }
     }
 
     async function startCamera(deviceId) {
@@ -1396,6 +1402,7 @@
       try {
         const constraints = { video: { width: { ideal: 1920 }, height: { ideal: 1080 } } };
         if (deviceId) constraints.video.deviceId = { exact: deviceId };
+        console.log('[Camera] Starting with constraints:', JSON.stringify(constraints));
         cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = cameraStream;
         video.classList.add('active');
@@ -1405,11 +1412,19 @@
         const track = cameraStream.getVideoTracks()[0];
         currentCameraId = track.getSettings().deviceId || deviceId;
         sel.value = currentCameraId;
+        console.log('[Camera] Started:', track.getSettings());
       } catch (err) {
-        console.warn('Camera not available:', err.message);
+        console.error('[Camera] getUserMedia failed:', err.name, err.message);
         video.classList.remove('active');
         btn.classList.remove('active');
         sel.style.display = 'none';
+        if (err.name === 'NotAllowedError') {
+          alert('Permiso de camara denegado. Permite el acceso en la configuracion del navegador.');
+        } else if (err.name === 'NotFoundError') {
+          alert('No se encontro ninguna camara. Verifica que OBS Virtual Camera este instalado y corriendo.');
+        } else if (err.name === 'OverconstrainedError') {
+          alert('La camara no soporta la resolucion solicitada (1920x1080).');
+        }
       }
     }
 
