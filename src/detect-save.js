@@ -70,7 +70,7 @@ class DetectSave {
           let valid = true;
           for (let i = 0; i < count; i++) {
             const sp = buffer.readUInt16LE(abs + 0x68 + i * 2);
-            if (sp === 0 || sp > 493) { valid = false; break; }
+            if (sp === 0 || sp > 1025) { valid = false; break; }
           }
           if (valid) {
             log(`Gen4 NDS detected at offset 0x${abs.toString(16)}`);
@@ -88,7 +88,7 @@ class DetectSave {
       const COUNT_MAIN = 14;
       const GBA_MAGIC = 0x08012025;
 
-      function hasValidSectorStructure(slot) {
+      function hasValidSectorStructure(slot, strict) {
         const start = slot * SIZE_MAIN;
         if (start + SIZE_MAIN > size) return false;
         let bitTrack = 0;
@@ -97,15 +97,21 @@ class DetectSave {
           if (ofs + 0xFFC > size) return false;
           const id = buffer.readUInt16LE(ofs + 0xFF4);
           const magic = buffer.readUInt32LE(ofs + 0xFF8);
-          if (id >= COUNT_MAIN) return false;
-          if (magic !== GBA_MAGIC) return false;
+          if (strict) {
+            if (id >= COUNT_MAIN) return false;
+            if (magic !== GBA_MAGIC) return false;
+          } else {
+            if (id >= 20) return false;
+          }
           bitTrack |= (1 << id);
           sectorCount++;
         }
-        return sectorCount === COUNT_MAIN && bitTrack === 0x3FFF;
+        if (strict) return sectorCount === COUNT_MAIN && bitTrack === 0x3FFF;
+        return sectorCount >= 10;
       }
 
-      if (hasValidSectorStructure(0) || hasValidSectorStructure(1)) {
+      if (hasValidSectorStructure(0, true) || hasValidSectorStructure(1, true) ||
+          hasValidSectorStructure(0, false) || hasValidSectorStructure(1, false)) {
         // Determine RSE vs FRLG by checking team count at both offset sets
         function findSector1(slot) {
           const start = slot * SIZE_MAIN;
@@ -180,7 +186,7 @@ class DetectSave {
         let valid = true;
         for (let i = 0; i < count2; i++) {
           const sid = buffer[pcOffset + 1 + i] & 0xFF;
-          if (sid === 0 || sid > 251) { valid = false; break; }
+          if (sid === 0 || sid > 255) { valid = false; break; }
         }
         // Verify with 0xFF terminator
         if (valid && buffer[pcOffset + 1 + count2] === 0xFF) {
@@ -201,7 +207,7 @@ class DetectSave {
           let valid = true;
           for (let i = 0; i < count1; i++) {
             const sid = buffer[g1PartyOff + 1 + i] & 0xFF;
-            if (sid === 0 || sid > 151) { valid = false; break; }
+            if (sid === 0 || sid > 255) { valid = false; break; }
           }
           if (valid) {
             log('Gen1 detected at Bulbapedia offset 0x2F2C');
@@ -217,7 +223,7 @@ class DetectSave {
         const spList = [];
         for (let j = 0; j < count1; j++) {
           const sid = buffer[i + 1 + j] & 0xFF;
-          if (sid === 0 || sid > 151) { valid = false; break; }
+          if (sid === 0 || sid > 255) { valid = false; break; }
           spList.push(sid);
         }
         if (!valid) continue;

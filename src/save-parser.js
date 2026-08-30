@@ -291,7 +291,7 @@ class SaveParser {
     const internalIds = [];
     for (let i = 0; i < partyCount; i++) {
       const sid = buffer[off + 1 + i] & 0xFF;
-      if (sid === 0 || sid > 190) return [];
+      if (sid === 0 || sid > 255) return [];
       internalIds.push(sid);
     }
 
@@ -489,7 +489,7 @@ class SaveParser {
     const speciesIds = [];
     for (let i = 0; i < partyCount; i++) {
       const sid = buffer[off.speciesList + i] & 0xFF;
-      if (sid === 0 || sid > 251) return [];
+      if (sid === 0 || sid > 255) return [];
       speciesIds.push(sid);
     }
     // Gen2 mon struct is 48 bytes: species(1) + item(1) + moves(4) + OTID(2) + Exp(3) + ... + level at +0x1F
@@ -668,7 +668,7 @@ class SaveParser {
     function buildPokemonResult(pokemonFileOfs, monData, i) {
       const { speciesId, level, curHp, maxHp, pid, otId, isShiny: _ } = monData;
 
-      if (speciesId === 0 || speciesId > 386) {
+      if (speciesId === 0 || speciesId > 1025) {
         Logger.debug('Gen3', `  Pokemon ${i}: invalid species ${speciesId}, skipping`);
         return null;
       }
@@ -971,7 +971,7 @@ class SaveParser {
 
       const pid = decrypted.readUInt32LE(0);
       const species = decrypted.readUInt16LE(8);
-      if (species === 0 || species > 493) continue;
+      if (species === 0 || species > 1025) continue;
 
       // Level from party stats: at offset SIZE_4STORED + 8 = 0x90
       const level = decrypted.length > 0x90 ? decrypted.readUInt8(0x90) : 1;
@@ -1021,7 +1021,7 @@ class SaveParser {
       if (!decrypted) continue;
 
       const species = decrypted.readUInt16LE(8);
-      if (species >= 1 && species <= 493) {
+      if (species >= 1 && species <= 1025) {
         // PK4 party stats start at offset 0x88
         // +0x00: level (uint8), +0x02: curHp (uint16 LE), +0x04: maxHp (uint16 LE)
         const level = decrypted.length > 0x88 ? decrypted.readUInt8(0x88) : 0;

@@ -128,20 +128,30 @@ class FileWatcher {
           Logger.warn('Watcher', 'PkHexReader not available');
         }
 
-        // Fallback to native parser only if PKHeX is not available
-        if (team.length === 0 && !PkHexReader && gameInfo && gameInfo.generation !== 3) {
-          Logger.info('Watcher', 'PKHeX unavailable, using built-in parser');
-          const buffer = fs.readFileSync(resolvedSavePath);
-          let currentGameInfo = gameInfo;
-          if (gameInfo && gameInfo.version === 'auto') {
-            const detected = DetectSave.detect(buffer);
-            if (detected) {
-              currentGameInfo = detected;
-              Logger.info('Watcher', `Auto-detected: ${detected.name}`);
+        // Fallback to native parser if PKHeX returned empty (hackroms, unsupported saves)
+        if (team.length === 0 && gameInfo && gameInfo.generation !== 3) {
+          Logger.info('Watcher', 'PKHeX returned empty team, trying built-in parser as fallback');
+          try {
+            const buffer = fs.readFileSync(resolvedSavePath);
+            let currentGameInfo = gameInfo;
+            if (gameInfo && gameInfo.version === 'auto') {
+              const detected = DetectSave.detect(buffer);
+              if (detected) {
+                currentGameInfo = detected;
+                Logger.info('Watcher', `Auto-detected: ${detected.name}`);
+              }
             }
-          }
-          if (currentGameInfo && currentGameInfo.generation > 0 && !currentGameInfo.encrypted) {
-            team = SaveParser.parse(buffer, currentGameInfo);
+            if (currentGameInfo && currentGameInfo.generation > 0 && !currentGameInfo.encrypted) {
+              const nativeTeam = SaveParser.parse(buffer, currentGameInfo);
+              if (nativeTeam.length > 0) {
+                Logger.info('Watcher', `Native parser found ${nativeTeam.length} Pokemon (fallback)`);
+                team = nativeTeam;
+              } else {
+                Logger.warn('Watcher', 'Native parser also returned empty team');
+              }
+            }
+          } catch (nativeErr) {
+            Logger.error('Watcher', `Native parser fallback failed: ${nativeErr.message}`);
           }
         }
 
