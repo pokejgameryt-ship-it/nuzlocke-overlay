@@ -1131,11 +1131,22 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    // Log environment details for debugging
+    Logger.info('Main', `process.resourcesPath=${process.resourcesPath || 'undefined'}`);
+    Logger.info('Main', `__dirname=${__dirname}`);
+    Logger.info('Main', `PORTABLE_EXECUTABLE_DIR=${process.env.PORTABLE_EXECUTABLE_DIR || 'undefined'}`);
+    Logger.info('Main', `LOCALAPPDATA=${process.env.LOCALAPPDATA || 'undefined'}`);
+
+    // Check PKHeX DLLs exist
+    const pkhexDll = path.join(process.resourcesPath || '', 'PkHexReader.dll');
+    const pkhexCore = path.join(process.resourcesPath || '', 'PKHeX.Core.dll');
+    Logger.info('Main', `PKHeX DLL in resources: ${fs.existsSync(pkhexDll)} (${pkhexDll})`);
+    Logger.info('Main', `PKHeX.Core in resources: ${fs.existsSync(pkhexCore)} (${pkhexCore})`);
+
     // Check for .NET 8.0 Runtime required for PKHeX
     const dotnetPath = checkDotnetRuntime();
     if (!dotnetPath) {
       Logger.error('Main', '.NET 8.0 Runtime not found - PKHeX will not work');
-      // We still create the window but show a dialog after
       setTimeout(() => showDotnetMissingDialog(), 1000);
     } else {
       Logger.info('Main', `.NET 8.0 Runtime found at: ${dotnetPath}`);

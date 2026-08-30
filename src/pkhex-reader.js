@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const Logger = require('./logger');
 
-const CODE_VERSION = '4.0';
+const CODE_VERSION = '5.0';
 const FIXED_DLL_DIR = path.join(
   process.env.LOCALAPPDATA || process.env.USERPROFILE || '',
   '.nuzlocke-pkhex'
@@ -23,59 +23,108 @@ function findDotnet() {
     if (firstLine && fs.existsSync(firstLine)) return firstLine;
   } catch (e) {}
 
+  const systemDotnet = 'C:\\Program Files\\dotnet\\dotnet.exe';
+  if (fs.existsSync(systemDotnet)) return systemDotnet;
+
   return null;
 }
 
+function getSourceDirCandidates() {
+  const candidates = [];
+
+  if (process.resourcesPath) {
+    candidates.push(process.resourcesPath);
+  }
+
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    candidates.push(process.env.PORTABLE_EXECUTABLE_DIR);
+  }
+
+  candidates.push(__dirname);
+  candidates.push(path.join(__dirname, '..'));
+  candidates.push(path.join(__dirname, '..', '..'));
+  candidates.push(path.join(__dirname, '..', '..', 'resources'));
+
+  if (process.resourcesPath) {
+    candidates.push(path.join(process.resourcesPath, 'app'));
+    candidates.push(path.join(process.resourcesPath, 'app', 'src'));
+  }
+
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    const exeDir = process.env.PORTABLE_EXECUTABLE_DIR;
+    candidates.push(path.join(exeDir, 'resources'));
+    candidates.push(path.join(exeDir, 'resources', 'app'));
+    candidates.push(path.join(exeDir, 'resources', 'app', 'src'));
+  }
+
+  return [...new Set(candidates)];
+}
+
 function ensureDllsInFixedDir() {
-  if (!fs.existsSync(FIXED_DLL_DIR)) {
-    fs.mkdirSync(FIXED_DLL_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(FIXED_DLL_DIR)) {
+      fs.mkdirSync(FIXED_DLL_DIR, { recursive: true });
+    }
+  } catch (e) {
+    Logger.error('PkHexReader', `Cannot create ${FIXED_DLL_DIR}: ${e.message}`);
+    return FIXED_DLL_DIR;
   }
 
   const dllFiles = ['PkHexReader.dll', 'PkHexReader.runtimeconfig.json', 'PkHexReader.deps.json', 'PKHeX.Core.dll'];
-  const sourceDir = process.resourcesPath || __dirname;
+  const sourceDirs = getSourceDirCandidates();
 
+  let copied = 0;
   for (const file of dllFiles) {
     const dest = path.join(FIXED_DLL_DIR, file);
-    if (!fs.existsSync(dest)) {
-      const candidates = [
-        path.join(sourceDir, file),
-        path.join(__dirname, file),
-        path.join(__dirname, '..', 'PkHexReader', 'bin', 'Release', 'net8.0', file),
-      ];
-      for (const src of candidates) {
+    if (fs.existsSync(dest)) {
+      copied++;
+      continue;
+    }
+    let found = false;
+    for (const srcDir of sourceDirs) {
+      const src = path.join(srcDir, file);
+      try {
         if (fs.existsSync(src)) {
           fs.copyFileSync(src, dest);
-          Logger.info('PkHexReader', `[v${CODE_VERSION}] Copied ${file} -> ${FIXED_DLL_DIR}`);
+          Logger.info('PkHexReader', `[v${CODE_VERSION}] Copied ${file} from ${srcDir}`);
+          copied++;
+          found = true;
           break;
         }
+      } catch (e) {
+        Logger.warn('PkHexReader', `Failed to copy ${file} from ${srcDir}: ${e.message}`);
       }
+    }
+    if (!found) {
+      Logger.warn('PkHexReader', `Source not found: ${file} in any of ${sourceDirs.length} directories`);
     }
   }
 
+  Logger.info('PkHexReader', `[v${CODE_VERSION}] ensureDlls: ${copied}/${dllFiles.length} files ready in ${FIXED_DLL_DIR}`);
   return FIXED_DLL_DIR;
 }
 
 function findDll() {
   const name = 'PkHexReader.dll';
+  const sourceDirs = getSourceDirCandidates();
 
   const fixedDll = path.join(FIXED_DLL_DIR, name);
-  if (fs.existsSync(fixedDll)) return fixedDll;
-
-  if (process.resourcesPath) {
-    const p = path.join(process.resourcesPath, name);
-    if (fs.existsSync(p)) return p;
+  if (fs.existsSync(fixedDll)) {
+    Logger.info('PkHexReader', `[v${CODE_VERSION}] DLL found at FIXED_DIR: ${fixedDll}`);
+    return fixedDll;
   }
 
-  if (process.env.PORTABLE_EXECUTABLE_DIR) {
-    const p = path.join(process.env.PORTABLE_EXECUTABLE_DIR, name);
-    if (fs.existsSync(p)) return p;
+  for (const dir of sourceDirs) {
+    const p = path.join(dir, name);
+    if (fs.existsSync(p)) {
+      Logger.info('PkHexReader', `[v${CODE_VERSION}] DLL found at: ${p}`);
+      return p;
+    }
   }
 
-  const p3 = path.join(__dirname, name);
-  if (fs.existsSync(p3)) return p3;
-
-  const p4 = path.join(__dirname, '..', 'PkHexReader', 'bin', 'Release', 'net8.0', name);
-  if (fs.existsSync(p4)) return p4;
+  Logger.warn('PkHexReader', `[v${CODE_VERSION}] DLL NOT FOUND in any location. Searched:`);
+  Logger.warn('PkHexReader', `  FIXED_DIR: ${fixedDll}`);
+  sourceDirs.forEach(d => Logger.warn('PkHexReader', `  ${d}`));
 
   return null;
 }
@@ -89,6 +138,9 @@ class PkHexReader {
 
       Logger.info('PkHexReader', `[v${CODE_VERSION}] dotnet=${dotnetPath || 'NOT FOUND'}`);
       Logger.info('PkHexReader', `[v${CODE_VERSION}] dll=${dllPath || 'NOT FOUND'}`);
+      Logger.info('PkHexReader', `[v${CODE_VERSION}] resourcesPath=${process.resourcesPath || 'undefined'}`);
+      Logger.info('PkHexReader', `[v${CODE_VERSION}] __dirname=${__dirname}`);
+      Logger.info('PkHexReader', `[v${CODE_VERSION}] PORTABLE_EXECUTABLE_DIR=${process.env.PORTABLE_EXECUTABLE_DIR || 'undefined'}`);
 
       if (!dotnetPath) {
         return reject(new Error(
@@ -116,8 +168,9 @@ class PkHexReader {
         env: { ...process.env }
       }, (error, stdout, stderr) => {
         if (error) {
-          Logger.error('PkHexReader', `[v${CODE_VERSION}] error: ${error.message}`);
-          if (stderr) Logger.error('PkHexReader', `[v${CODE_VERSION}] stderr: ${stderr.substring(0, 500)}`);
+          Logger.error('PkHexReader', `[v${CODE_VERSION}] EXEC ERROR: ${error.message}`);
+          if (stderr) Logger.error('PkHexReader', `[v${CODE_VERSION}] stderr: ${stderr.substring(0, 1000)}`);
+          if (stdout) Logger.error('PkHexReader', `[v${CODE_VERSION}] stdout: ${stdout.substring(0, 500)}`);
           return reject(error);
         }
         try {
@@ -132,7 +185,7 @@ class PkHexReader {
           }
           resolve(result);
         } catch (e) {
-          reject(new Error(`Parse error: ${e.message}`));
+          reject(new Error(`Parse error: ${e.message}. stdout: ${(stdout || '').substring(0, 500)}`));
         }
       });
 
