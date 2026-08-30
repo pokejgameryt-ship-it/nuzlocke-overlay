@@ -499,13 +499,18 @@ ipcMain.handle('save-config', (event, config) => {
 
 // Settings
 ipcMain.handle('get-settings', () => loadSettings());
-ipcMain.handle('save-settings', (event, settings) => {
-  saveSettingsToFile(settings);
+ipcMain.handle('save-settings', (event, newSettings) => {
+  const oldSettings = loadSettings();
+  saveSettingsToFile(newSettings);
+  if (newSettings.logEndpoint !== oldSettings.logEndpoint) {
+    Logger.setLogEndpoint(newSettings.logEndpoint || null);
+    Logger.info('Main', `Log endpoint changed: ${newSettings.logEndpoint || 'disabled'}`);
+  }
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('settings-changed', settings);
+    mainWindow.webContents.send('settings-changed', newSettings);
     updateTrayMenu();
   }
-  return settings;
+  return newSettings;
 });
 
 let _systemFontsCache = null;
@@ -1190,7 +1195,8 @@ if (!gotLock) {
   app.whenReady().then(() => {
     // Initialize logging session
     const pkg = require('./package.json');
-    Logger.initSession(pkg.version);
+    const settings = loadSettings();
+    Logger.initSession(pkg.version, settings.logEndpoint || null);
 
     // Log environment details for debugging
     Logger.info('Main', `process.resourcesPath=${process.resourcesPath || 'undefined'}`);

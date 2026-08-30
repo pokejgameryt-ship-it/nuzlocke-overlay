@@ -1566,6 +1566,20 @@
       }
     });
 
+    const logEndpointInput = $('#settingsLogEndpoint');
+    if (logEndpointInput) {
+      window.api.getSettings().then(s => { logEndpointInput.value = s.logEndpoint || ''; });
+      let saveTimeout = null;
+      logEndpointInput.addEventListener('input', () => {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(async () => {
+          const s = await window.api.getSettings();
+          s.logEndpoint = logEndpointInput.value.trim();
+          await window.api.saveSettings(s);
+        }, 500);
+      });
+    }
+
     window.api.onSettingsChanged((settings) => {
       currentLang = settings.language || 'es';
       applyLanguage(currentLang);

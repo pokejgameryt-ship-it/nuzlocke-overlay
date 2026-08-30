@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const LogUploader = require('./log-uploader');
 
 let LOG_DIR = null;
 
@@ -25,6 +26,7 @@ let logFile = null;
 let jsonlFile = null;
 let sessionId = null;
 let sessionMeta = null;
+const uploader = new LogUploader();
 
 function ensureLogDir() {
   const dir = getLogDir();
@@ -49,7 +51,50 @@ function getSessionId() {
   return sessionId;
 }
 
-function initSession(appVersion) {
+function cleanOldLogs(currentVersion) {
+  const settingsPath = path.join(
+    process.env.APPDATA || process.env.USERPROFILE || '',
+    'nuzlocke-overlay', 'settings.json'
+  );
+  let lastVersion = null;
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      lastVersion = s.lastLogVersion || null;
+    }
+  } catch (e) {}
+
+  if (lastVersion && lastVersion !== currentVersion) {
+    const dir = getLogDir();
+    try {
+      const files = fs.readdirSync(dir);
+      let cleaned = 0;
+      for (const f of files) {
+        if (f.endsWith('.log') || f.endsWith('.jsonl')) {
+          try {
+            fs.unlinkSync(path.join(dir, f));
+            cleaned++;
+          } catch (e) {}
+        }
+      }
+      if (cleaned > 0) {
+        console.log(`[Logger] Cleaned ${cleaned} old log files (v${lastVersion} -> v${currentVersion})`);
+      }
+    } catch (e) {}
+  }
+
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      s.lastLogVersion = currentVersion;
+      fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2));
+    }
+  } catch (e) {}
+}
+
+function initSession(appVersion, logEndpoint) {
+  cleanOldLogs(appVersion);
+
   sessionMeta = {
     sessionId: getSessionId(),
     appVersion: appVersion || 'unknown',
@@ -72,8 +117,14 @@ function initSession(appVersion) {
     sessionMeta.dotnetPath = 'NOT FOUND';
   }
 
+  uploader.configure(logEndpoint, sessionMeta);
+
   writeLog('INFO', 'Session', '=== Session started ===', sessionMeta);
   return sessionMeta;
+}
+
+function setLogEndpoint(endpoint) {
+  uploader.configure(endpoint, sessionMeta);
 }
 
 function writeLog(level, category, message, data) {
@@ -102,6 +153,7 @@ function writeLog(level, category, message, data) {
 const Logger = {
   setLogDir,
   initSession,
+  setLogEndpoint,
 
   info(category, message, data) {
     writeLog('INFO', category, message, data);
@@ -144,6 +196,7 @@ const Logger = {
       timestamp: timestamp(),
     };
     writeLog('INFO', 'SaveParse', `Parsed ${result?.pokemon?.length || 0} Pokemon from ${path.basename(filePath)}`, entry);
+    uploader.sendNow(entry);
   },
 
   logPkHexResult(filePath, fileSize, gameInfo, result, error) {
@@ -161,6 +214,7 @@ const Logger = {
       timestamp: timestamp(),
     };
     writeLog(error ? 'ERROR' : 'INFO', 'PKHeX', error || `PKHeX returned ${result?.pokemon?.length || 0} Pokemon`, entry);
+    uploader.sendNow(entry);
   },
 
   logNativeParserResult(filePath, fileSize, gameInfo, teamLength, error) {
@@ -175,6 +229,7 @@ const Logger = {
       timestamp: timestamp(),
     };
     writeLog(error ? 'ERROR' : 'INFO', 'NativeParser', error || `Native parser returned ${teamLength} Pokemon`, entry);
+    uploader.sendNow(entry);
   },
 
   getExportData() {
