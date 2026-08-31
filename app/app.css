@@ -1849,6 +1849,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: visible;
 }
 .manual-slot {
   display: flex;
@@ -1858,6 +1859,8 @@ kbd {
   border-radius: 6px;
   padding: 6px 8px;
   border: 1px solid #2a2a40;
+  position: relative;
+  overflow: visible;
 }
 .manual-slot-num {
   font-size: 11px;
@@ -1867,20 +1870,24 @@ kbd {
   text-align: center;
   flex-shrink: 0;
 }
-.manual-slot select {
-  flex: 1;
-  min-width: 0;
-  background: #0f0f1a;
-  color: #e0e0e0;
-  border: 1px solid #2a2a40;
-  border-radius: 4px;
-  padding: 5px 6px;
-  font-size: 12px;
+.manual-sprite-preview {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.manual-sprite-preview img {
+  max-width: 28px;
+  max-height: 28px;
+  image-rendering: pixelated;
 }
 .species-search-wrapper {
   flex: 1;
   min-width: 0;
   position: relative;
+  z-index: 10;
 }
 .species-search-input {
   width: 100%;
@@ -1905,8 +1912,21 @@ kbd {
   background: #1a1a2e;
   border: 1px solid #2a2a40;
   border-radius: 0 0 4px 4px;
-  z-index: 100;
+  z-index: 1000;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.species-search-group {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #e94560;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #12121e;
+  border-top: 1px solid #2a2a40;
+}
+.species-search-group:first-child {
+  border-top: none;
 }
 .species-search-item {
   padding: 5px 8px;
@@ -1921,6 +1941,15 @@ kbd {
 .species-search-item.selected {
   background: #e94560;
   color: #fff;
+}
+.species-search-add-fakemon {
+  color: #4ecdc4;
+  font-style: italic;
+  border-top: 1px solid #2a2a40;
+}
+.species-search-add-fakemon:hover {
+  background: #2a2a40;
+  color: #4ecdc4;
 }
 .species-search-id {
   color: #888;

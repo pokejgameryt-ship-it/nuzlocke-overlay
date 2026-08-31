@@ -341,6 +341,10 @@
     if (!project) return;
     if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
 
+    const fakemonList = await window.api.getFakemonList().catch(() => []);
+    const specialOptions = allSpecies.filter(sp => sp.id === 0 || sp.id === -1 || sp.id === -2);
+    const officialSpecies = allSpecies.filter(sp => sp.id > 0);
+
     grid.innerHTML = '';
     for (let i = 0; i < 6; i++) {
       const entry = project.manualTeam[i] || { speciesId: 0, nickname: '' };
@@ -362,8 +366,9 @@
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'species-search-input';
-      const selectedSp = allSpecies.find(sp => sp.id === entry.speciesId);
-      input.value = selectedSp ? `#${selectedSp.id} ${selectedSp.name}` : '';
+      const allEntries = [...specialOptions, ...officialSpecies, ...fakemonList.map(f => ({id: f.id, name: f.name}))];
+      const selectedSp = allEntries.find(sp => sp.id === entry.speciesId);
+      input.value = selectedSp ? (selectedSp.id < 0 && selectedSp.id > -1000 ? `${selectedSp.name}` : `#${selectedSp.id} ${selectedSp.name}`) : '';
       input.placeholder = t('searchPokemon') || 'Buscar Pokemon...';
       input.setAttribute('autocomplete', 'off');
 
@@ -374,23 +379,20 @@
       function renderDropdown(filter) {
         dropdown.innerHTML = '';
         const q = (filter || '').toLowerCase().trim();
-        let list = allSpecies;
-        if (q) {
-          list = allSpecies.filter(sp => {
-            const idStr = String(sp.id);
-            return sp.name.toLowerCase().includes(q) || idStr.startsWith(q) || idStr === q;
-          });
-        }
-        const shown = list.slice(0, 50);
-        for (const sp of shown) {
+
+        const isFakemonSelected = entry.speciesId <= -2000;
+        const isSpecialSelected = entry.speciesId === 0 || entry.speciesId === -1 || entry.speciesId === -2;
+
+        function addItem(sp, groupId) {
           const item = document.createElement('div');
           item.className = 'species-search-item';
           if (sp.id === entry.speciesId) item.classList.add('selected');
-          item.innerHTML = `<span class="species-search-id">#${sp.id}</span> ${sp.name}`;
+          const prefix = sp.id < 0 && sp.id > -1000 ? '' : (sp.id <= -2000 ? `<span class="species-search-id">${sp.idLabel || 'F???'}</span> ` : `<span class="species-search-id">#${sp.id}</span> `);
+          item.innerHTML = prefix + sp.name;
           item.addEventListener('mousedown', (e) => {
             e.preventDefault();
             project.manualTeam[i].speciesId = sp.id;
-            input.value = `#${sp.id} ${sp.name}`;
+            input.value = sp.id < 0 && sp.id > -1000 ? sp.name : (sp.id <= -2000 ? `${sp.idLabel || 'F???'} ${sp.name}` : `#${sp.id} ${sp.name}`);
             dropdown.style.display = 'none';
             updateManualSlotPreview(preview, sp.id);
             saveProject();
@@ -398,7 +400,52 @@
           });
           dropdown.appendChild(item);
         }
-        if (!shown.length) {
+
+        let filteredSpecial = specialOptions;
+        let filteredOfficial = officialSpecies;
+        let filteredFakemon = fakemonList;
+
+        if (q) {
+          filteredSpecial = specialOptions.filter(sp => sp.name.toLowerCase().includes(q));
+          filteredOfficial = officialSpecies.filter(sp => sp.name.toLowerCase().includes(q) || String(sp.id).startsWith(q));
+          filteredFakemon = fakemonList.filter(f => f.name.toLowerCase().includes(q) || (f.idLabel || '').toLowerCase().includes(q));
+        }
+
+        if (filteredSpecial.length) {
+          const grp = document.createElement('div');
+          grp.className = 'species-search-group';
+          grp.textContent = t('specialOptions') || 'Especiales';
+          dropdown.appendChild(grp);
+          filteredSpecial.forEach(sp => addItem(sp, 'special'));
+        }
+
+        if (filteredOfficial.length) {
+          const grp = document.createElement('div');
+          grp.className = 'species-search-group';
+          grp.textContent = t('pokemonOfficial') || 'Pokemon Oficiales';
+          dropdown.appendChild(grp);
+          filteredOfficial.slice(0, 50).forEach(sp => addItem(sp, 'official'));
+        }
+
+        if (filteredFakemon.length) {
+          const grp = document.createElement('div');
+          grp.className = 'species-search-group';
+          grp.textContent = t('fakemonGroup') || 'Fakemon';
+          dropdown.appendChild(grp);
+          filteredFakemon.forEach(f => addItem({id: f.id, name: f.name, idLabel: f.idLabel}, 'fakemon'));
+        }
+
+        const addFakemonItem = document.createElement('div');
+        addFakemonItem.className = 'species-search-item species-search-add-fakemon';
+        addFakemonItem.textContent = '+ ' + (t('addFakemon') || 'Crear Fakemon...');
+        addFakemonItem.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          dropdown.style.display = 'none';
+          importFakemon(i);
+        });
+        dropdown.appendChild(addFakemonItem);
+
+        if (!filteredSpecial.length && !filteredOfficial.length && !filteredFakemon.length) {
           const empty = document.createElement('div');
           empty.className = 'species-search-empty';
           empty.textContent = t('noResults') || 'Sin resultados';
@@ -410,12 +457,10 @@
         renderDropdown(input.value);
         dropdown.style.display = 'block';
       });
-
       input.addEventListener('input', () => {
         renderDropdown(input.value);
         dropdown.style.display = 'block';
       });
-
       input.addEventListener('blur', () => {
         setTimeout(() => { dropdown.style.display = 'none'; }, 150);
       });
@@ -445,8 +490,45 @@
     }
   }
 
+  async function importFakemon(slotIndex) {
+    const result = await window.api.importFakemon();
+    if (!result) return;
+    const project = projects.find(p => p.id === currentId);
+    if (!project) return;
+    if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
+    project.manualTeam[slotIndex].speciesId = result.id;
+    await saveProject();
+    await sendManualTeam();
+    await renderManualTeamGrid();
+  }
+
   async function updateManualSlotPreview(previewEl, speciesId) {
-    if (!speciesId) { previewEl.innerHTML = ''; return; }
+    if (!speciesId || speciesId === -1) { previewEl.innerHTML = ''; return; }
+    if (speciesId === -2) {
+      const project = projects.find(p => p.id === currentId);
+      if (!project) return;
+      try {
+        const url = await window.api.resolveSprite(project.spriteStylePath, 0, {
+          spritesRoot: await window.api.getBaseDir() ? (await window.api.getBaseDir() + '/Recursos/Sprites') : '',
+          styleId: project.spriteStyle
+        });
+        if (url) {
+          const port = await window.api.getPort();
+          previewEl.innerHTML = `<img src="http://127.0.0.1:${port}${url}" onerror="this.parentElement.innerHTML=''">`;
+        } else { previewEl.innerHTML = ''; }
+      } catch (e) { previewEl.innerHTML = ''; }
+      return;
+    }
+    if (speciesId <= -2000) {
+      try {
+        const fakemonPath = await window.api.getFakemonSprite(speciesId);
+        if (fakemonPath) {
+          const port = await window.api.getPort();
+          previewEl.innerHTML = `<img src="http://127.0.0.1:${port}${fakemonPath}" onerror="this.parentElement.innerHTML=''">`;
+        } else { previewEl.innerHTML = ''; }
+      } catch (e) { previewEl.innerHTML = ''; }
+      return;
+    }
     const project = projects.find(p => p.id === currentId);
     if (!project) return;
     try {
@@ -457,12 +539,8 @@
       if (url) {
         const port = await window.api.getPort();
         previewEl.innerHTML = `<img src="http://127.0.0.1:${port}${url}" onerror="this.parentElement.innerHTML=''">`;
-      } else {
-        previewEl.innerHTML = '';
-      }
-    } catch (e) {
-      previewEl.innerHTML = '';
-    }
+      } else { previewEl.innerHTML = ''; }
+    } catch (e) { previewEl.innerHTML = ''; }
   }
 
   async function sendManualTeam() {
@@ -1723,13 +1801,14 @@
       btn.textContent = t('updateChecking');
       btn.disabled = true;
       try {
-        const result = await window.api.checkForUpdates();
+        const s = await window.api.getSettings();
+        const result = await window.api.checkForUpdates(s.includeBetas === true);
         if (result.hasUpdate) {
           showUpdatePopup(result);
         } else {
           showStatusPopup(
             t('upToDate'),
-            `<p>${t('upToDateMessage')}</p><p style="color:#4ecdc4;font-weight:600;font-size:15px">v${result.currentVersion || '1.0.2'}</p>`
+            `<p>${t('upToDateMessage')}</p><p style="color:#4ecdc4;font-weight:600;font-size:15px">v${result.currentVersion || '1.0.3'}</p>`
           );
         }
       } catch (e) {
@@ -1765,6 +1844,16 @@
           s.logEndpoint = logEndpointInput.value.trim();
           await window.api.saveSettings(s);
         }, 500);
+      });
+    }
+
+    const betaToggle = $('#settingsIncludeBetas');
+    if (betaToggle) {
+      window.api.getSettings().then(s => { betaToggle.checked = s.includeBetas === true; });
+      betaToggle.addEventListener('change', async () => {
+        const s = await window.api.getSettings();
+        s.includeBetas = betaToggle.checked;
+        await window.api.saveSettings(s);
       });
     }
 
@@ -2435,7 +2524,8 @@
 
   async function checkForUpdates() {
     try {
-      const result = await window.api.checkForUpdates();
+      const s = await window.api.getSettings();
+      const result = await window.api.checkForUpdates(s.includeBetas === true);
       if (result.hasUpdate && !result.skipped) {
         showUpdatePopup(result);
       } else if (result.hasChangelog) {

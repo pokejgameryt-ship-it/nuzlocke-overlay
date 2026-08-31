@@ -220,6 +220,7 @@ function startOverlayServer() {
   expressApp.use('/css', express.static(path.join(APP_DIR, 'public', 'css')));
   expressApp.use('/js', express.static(path.join(APP_DIR, 'public', 'js')));
   expressApp.use('/sprites', express.static(SPRITES_ROOT));
+  expressApp.use('/fakemon', express.static(FAKEMON_DIR));
 
   expressApp.get('/', (req, res) => {
     res.sendFile(path.join(APP_DIR, 'public', 'overlay.html'));
@@ -393,13 +394,22 @@ ipcMain.handle('get-team', (event, projectId) => {
   if (project && project.inputMode === 'manual') {
     const { resolveSprite } = require('./src/sprite-scanner');
     const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
+    const fakemonMeta = loadFakemonMeta();
     const team = (project.manualTeam || []).map(entry => {
       if (!entry) return null;
       const speciesId = entry.speciesId || 0;
-      const spriteUrl = speciesId ? resolveSprite(absStylePath, speciesId, {
-        spritesRoot: SPRITES_ROOT,
-        styleId: project.spriteStyle
-      }) : null;
+      let spriteUrl = null;
+      if (speciesId <= -2000) {
+        const f = fakemonMeta.find(e => e.id === speciesId);
+        if (f && f.spriteFile) {
+          spriteUrl = `/fakemon/${encodeURIComponent(f.spriteFile)}`;
+        }
+      } else if (speciesId !== 0 && speciesId !== -1) {
+        spriteUrl = resolveSprite(absStylePath, speciesId === -2 ? 0 : speciesId, {
+          spritesRoot: SPRITES_ROOT,
+          styleId: project.spriteStyle
+        });
+      }
       return {
         speciesId,
         nickname: entry.nickname || '',
@@ -442,14 +452,23 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
 
   const { resolveSprite } = require('./src/sprite-scanner');
   const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
+  const fakemonMeta = loadFakemonMeta();
 
   const team = manualTeam.map(entry => {
     if (!entry) return null;
     const speciesId = entry.speciesId || 0;
-    const spriteUrl = speciesId ? resolveSprite(absStylePath, speciesId, {
-      spritesRoot: SPRITES_ROOT,
-      styleId: project.spriteStyle
-    }) : null;
+    let spriteUrl = null;
+    if (speciesId <= -2000) {
+      const f = fakemonMeta.find(e => e.id === speciesId);
+      if (f && f.spriteFile) {
+        spriteUrl = `/fakemon/${encodeURIComponent(f.spriteFile)}`;
+      }
+    } else if (speciesId !== 0 && speciesId !== -1) {
+      spriteUrl = resolveSprite(absStylePath, speciesId === -2 ? 0 : speciesId, {
+        spritesRoot: SPRITES_ROOT,
+        styleId: project.spriteStyle
+      });
+    }
     return {
       speciesId,
       nickname: entry.nickname || '',
@@ -479,6 +498,102 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
 
 ipcMain.handle('get-species-list', () => {
   return require('./src/species-list');
+});
+
+const FAKEMON_DIR = path.join(app.getPath('userData'), 'Fakemon');
+function ensureFakemonDir() { if (!fs.existsSync(FAKEMON_DIR)) fs.mkdirSync(FAKEMON_DIR, {recursive: true}); }
+function getFakemonMetaPath() { return path.join(FAKEMON_DIR, 'fakemon.json'); }
+function loadFakemonMeta() {
+  const p = getFakemonMetaPath();
+  if (fs.existsSync(p)) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch(e) {} }
+  return [];
+}
+function saveFakemonMeta(list) {
+  ensureFakemonDir();
+  fs.writeFileSync(getFakemonMetaPath(), JSON.stringify(list, null, 2), 'utf8');
+}
+
+ipcMain.handle('get-fakemon-list', () => loadFakemonMeta());
+
+ipcMain.handle('get-fakemon-sprite', (event, fakemonId) => {
+  const meta = loadFakemonMeta();
+  const f = meta.find(e => e.id === fakemonId);
+  if (!f || !f.spriteFile) return null;
+  const fullPath = path.join(FAKEMON_DIR, f.spriteFile);
+  if (!fs.existsSync(fullPath)) return null;
+  return `/fakemon/${encodeURIComponent(f.spriteFile)}`;
+});
+
+ipcMain.handle('import-fakemon', async (event) => {
+  const { dialog, BrowserWindow } = require('electron');
+  const win = BrowserWindow.getFocusedWindow();
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Seleccionar sprite del Fakemon',
+    filters: [{name: 'Images', extensions: ['png','gif','jpg','jpeg','webp']}],
+    properties: ['openFile']
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  const srcPath = result.filePaths[0];
+  const meta = loadFakemonMeta();
+  const nextNum = meta.length + 1;
+  const idLabel = 'F' + String(nextNum).padStart(3, '0');
+  const ext = path.extname(srcPath) || '.png';
+  const filename = `fakemon_${nextNum}${ext}`;
+  ensureFakemonDir();
+  const destPath = path.join(FAKEMON_DIR, filename);
+  fs.copyFileSync(srcPath, destPath);
+
+  const nameResult = await dialog.showMessageBox(win, {
+    type: 'question',
+    buttons: ['Cancelar', 'Guardar'],
+    defaultId: 1,
+    title: 'Nombre del Fakemon',
+    message: `Nombre para ${idLabel}:`,
+    cancelId: 0
+  });
+  let fakemonName = idLabel;
+  if (nameResult.response === 1) {
+    const inputWin = new BrowserWindow({
+      width: 360, height: 160, parent: win, modal: true,
+      webPreferences: { nodeIntegration: true, contextIsolation: false },
+      resizable: false, autoHideMenuBar: true
+    });
+    inputWin.setMenu(null);
+    const inputHtml = `<!DOCTYPE html><html><head><style>
+      body{background:#1a1a2e;color:#e0e0e0;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;margin:0;padding:16px;}
+      input{background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;font-size:14px;width:260px;margin:8px 0;}
+      button{background:#e94560;color:#fff;border:none;border-radius:4px;padding:8px 20px;font-size:13px;cursor:pointer;}
+      button:hover{background:#c73550;}
+      label{font-size:13px;margin-bottom:4px;}
+    </style></head><body>
+      <label>Nombre para ${idLabel}:</label>
+      <input id="fName" type="text" placeholder="${idLabel}" autofocus>
+      <button id="fOk">Guardar</button>
+      <script>document.getElementById('fOk').onclick=()=>{const n=document.getElementById('fName').value.trim();require('electron').ipcRenderer.send('fakemon-name-result',n||'${idLabel}');window.close();};</script>
+    </body></html>`;
+    inputWin.loadURL('data:text/html,' + encodeURIComponent(inputHtml));
+    fakemonName = await new Promise(resolve => {
+      const {ipcMain: im} = require('electron');
+      im.once('fakemon-name-result', (e, name) => resolve(name));
+    });
+  }
+
+  const entry = {id: -2000 - nextNum, idLabel, name: fakemonName, spriteFile: filename};
+  meta.push(entry);
+  saveFakemonMeta(meta);
+  return entry;
+});
+
+ipcMain.handle('delete-fakemon', (event, fakemonId) => {
+  const meta = loadFakemonMeta();
+  const idx = meta.findIndex(e => e.id === fakemonId);
+  if (idx === -1) return false;
+  const entry = meta[idx];
+  const filePath = path.join(FAKEMON_DIR, entry.spriteFile);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  meta.splice(idx, 1);
+  saveFakemonMeta(meta);
+  return true;
 });
 
 // Overlay URL
@@ -691,7 +806,7 @@ function fetchJSON(url) {
   });
 }
 
-ipcMain.handle('check-for-updates', async () => {
+ipcMain.handle('check-for-updates', async (event, includeBetas) => {
   try {
     const releases = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases`);
     const allReleases = (Array.isArray(releases) ? releases : []).filter(r => !r.draft);
@@ -701,6 +816,7 @@ ipcMain.handle('check-for-updates', async () => {
     const settings = loadSettings();
     const skippedVersion = settings.skippedVersion || '';
     const lastSeenVersion = settings.lastSeenVersion || '';
+    const wantBetas = includeBetas || settings.includeBetas || false;
 
     const parseVer = (v) => v.split('.').map(Number);
     const cur = parseVer(currentVersion);
@@ -721,7 +837,7 @@ ipcMain.handle('check-for-updates', async () => {
         targetRelease = stableRelease;
       }
     }
-    if (!targetRelease && betaRelease) {
+    if (!targetRelease && wantBetas && betaRelease) {
       const betaVer = (betaRelease.tag_name || '').replace(/^v/, '');
       if (compareVer(betaVer, currentVersion) > 0) {
         targetRelease = betaRelease;

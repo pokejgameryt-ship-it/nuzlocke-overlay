@@ -40,7 +40,7 @@ window.api = {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   openSettingsWindow: () => ipcRenderer.send('open-settings'),
 
-  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  checkForUpdates: (includeBetas) => ipcRenderer.invoke('check-for-updates', includeBetas),
   skipVersion: (version) => ipcRenderer.invoke('skip-version', version),
   downloadUpdate: (releaseUrl) => ipcRenderer.invoke('download-update', releaseUrl),
   dismissChangelog: (version) => ipcRenderer.invoke('dismiss-changelog', version),
@@ -76,5 +76,10 @@ window.api = {
     const handler = (e, newStyles) => callback(newStyles);
     ipcRenderer.on('styles-refreshed', handler);
     return () => ipcRenderer.removeListener('styles-refreshed', handler);
-  }
+  },
+
+  getFakemonList: () => ipcRenderer.invoke('get-fakemon-list'),
+  getFakemonSprite: (fakemonId) => ipcRenderer.invoke('get-fakemon-sprite', fakemonId),
+  importFakemon: () => ipcRenderer.invoke('import-fakemon'),
+  deleteFakemon: (fakemonId) => ipcRenderer.invoke('delete-fakemon', fakemonId),
 };

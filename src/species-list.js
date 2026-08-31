@@ -1,5 +1,6 @@
 const SPECIES = [
   {id:0,name:'(Vacío)'},
+  {id:-1,name:'Ninguno'},{id:-2,name:'Huevo'},
   // Gen 1 (1-151)
   {id:1,name:'Bulbasaur'},{id:2,name:'Ivysaur'},{id:3,name:'Venusaur'},
   {id:4,name:'Charmander'},{id:5,name:'Charmeleon'},{id:6,name:'Charizard'},
