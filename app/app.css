@@ -1849,7 +1849,6 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow: visible;
 }
 .manual-slot {
   display: flex;
@@ -1860,7 +1859,6 @@ kbd {
   padding: 6px 8px;
   border: 1px solid #2a2a40;
   position: relative;
-  overflow: visible;
 }
 .manual-slot-num {
   font-size: 11px;
@@ -1884,13 +1882,14 @@ kbd {
   image-rendering: pixelated;
 }
 .species-search-wrapper {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: 120px;
   position: relative;
-  z-index: 10;
 }
 .species-search-input {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   background: #0f0f1a;
   color: #e0e0e0;
   border: 1px solid #2a2a40;
@@ -1968,23 +1967,11 @@ kbd {
 .manual-nick-input {
   width: 100px;
   flex-shrink: 0;
+  box-sizing: border-box;
   background: #0f0f1a;
   color: #e0e0e0;
   border: 1px solid #2a2a40;
   border-radius: 4px;
   padding: 5px 6px;
   font-size: 12px;
-}
-.manual-slot .manual-sprite-preview {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.manual-slot .manual-sprite-preview img {
-  max-width: 28px;
-  max-height: 28px;
-  image-rendering: pixelated;
 }
