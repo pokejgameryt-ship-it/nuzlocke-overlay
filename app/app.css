@@ -17,6 +17,43 @@ body {
   height: 100vh;
 }
 
+.net-warning-banner {
+  background: #d32f2f;
+  color: #fff;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+.net-warning-banner .net-warning-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.net-warning-banner a {
+  color: #ffcdd2;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.net-warning-banner a:hover {
+  color: #fff;
+}
+.net-warning-banner .net-warning-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #ffcdd2;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.net-warning-banner .net-warning-close:hover {
+  color: #fff;
+}
+
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: 240px;
@@ -1764,4 +1801,92 @@ kbd {
   margin-top: -8px; 
   border-bottom: none; 
   border-left: none; 
+}
+
+/* ===== MODE TOGGLE ===== */
+.mode-toggle {
+  display: flex;
+  gap: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #2a2a40;
+}
+.mode-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  color: #888;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.mode-btn:hover {
+  background: #222240;
+  color: #aaa;
+}
+.mode-btn.active {
+  background: #e60012;
+  color: #fff;
+}
+
+/* ===== MANUAL TEAM ===== */
+.manual-team-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.manual-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a1a2e;
+  border-radius: 6px;
+  padding: 6px 8px;
+  border: 1px solid #2a2a40;
+}
+.manual-slot-num {
+  font-size: 11px;
+  color: #666;
+  font-weight: 700;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.manual-slot select {
+  flex: 1;
+  min-width: 0;
+  background: #0f0f1a;
+  color: #e0e0e0;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 12px;
+}
+.manual-slot input[type="text"] {
+  width: 100px;
+  flex-shrink: 0;
+  background: #0f0f1a;
+  color: #e0e0e0;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 12px;
+}
+.manual-slot input[type="text"]::placeholder {
+  color: #555;
+}
+.manual-slot .manual-sprite-preview {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.manual-slot .manual-sprite-preview img {
+  max-width: 28px;
+  max-height: 28px;
+  image-rendering: pixelated;
 }

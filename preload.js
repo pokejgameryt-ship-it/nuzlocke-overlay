@@ -2,6 +2,8 @@ const { ipcRenderer } = require('electron');
 
 window.api = {
   getBaseDir: () => ipcRenderer.invoke('get-base-dir'),
+  getDotnetStatus: () => ipcRenderer.invoke('get-dotnet-status'),
+  stopWatching: (projectId) => ipcRenderer.invoke('stop-watching', projectId),
 
   listProjects: () => ipcRenderer.invoke('list-projects'),
   getProject: (id) => ipcRenderer.invoke('get-project', id),
@@ -10,6 +12,8 @@ window.api = {
   deleteProject: (id) => ipcRenderer.invoke('delete-project', id),
 
   getTeam: (projectId) => ipcRenderer.invoke('get-team', projectId),
+  setManualTeam: (projectId, manualTeam) => ipcRenderer.invoke('set-manual-team', projectId, manualTeam),
+  getSpeciesList: () => ipcRenderer.invoke('get-species-list'),
   getOverlayUrl: (projectId) => ipcRenderer.invoke('get-overlay-url', projectId),
   getPort: () => ipcRenderer.invoke('get-port'),
 

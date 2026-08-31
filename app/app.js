@@ -16,6 +16,7 @@
   let currentLang = 'es';
   let projectSearchQuery = '';
   let projectSortMode = 'name-asc';
+  let allSpecies = [];
 
   function showModal(title, defaultValue) {
     return new Promise(resolve => {
@@ -173,6 +174,23 @@
       checkForUpdates();
       checkAndDownloadRecursos();
     }, 3000);
+
+    try {
+      const dotnet = await window.api.getDotnetStatus();
+      if (!dotnet.available) {
+        const banner = document.getElementById('netWarningBanner');
+        if (banner) banner.style.display = 'flex';
+        const link = document.getElementById('netWarningLink');
+        if (link) link.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.api.openExternal('https://dotnet.microsoft.com/en-us/download/dotnet/8.0');
+        });
+        const closeBtn = document.getElementById('netWarningClose');
+        if (closeBtn) closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
+      }
+    } catch (e) {
+      console.error('[INIT] getDotnetStatus failed:', e);
+    }
   }
 
   function renderProjectList() {
@@ -253,12 +271,29 @@
     $('#showNames').checked = project.showNames !== false;
     $('#usePlaceholder').checked = project.usePlaceholder || false;
 
+    const mode = project.inputMode || 'auto';
+    document.querySelectorAll('#modeToggle .mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    const saveCard = $('#saveFileCard');
+    const manualCard = $('#manualTeamCard');
+    if (mode === 'manual') {
+      saveCard.style.display = 'none';
+      manualCard.style.display = 'block';
+    } else {
+      saveCard.style.display = 'block';
+      manualCard.style.display = 'none';
+    }
+
     populateGameSelect(project.game);
     populateStyleSelect(project.spriteStyle);
     updateSpritePreview(project.spriteStyle, project.spriteStylePath);
     loadNicknameStyle(project.nicknameStyle);
     updateObsUrl();
     await refreshTeam();
+    if (mode === 'manual') {
+      await renderManualTeamGrid();
+    }
     if (!project.slots) project.slots = getDefaultSlots();
     if (!project.nicknameSlots) project.nicknameSlots = getDefaultNicknameSlots(project.slots);
     renderCanvasSlots(project.slots, project.nicknameSlots);
@@ -286,6 +321,106 @@
       }).join(', ');
       el.textContent = `${currentTeam.length} Pokemon: ${names}`;
       el.className = 'team-status found';
+    }
+  }
+
+  async function loadSpeciesList() {
+    if (allSpecies.length > 0) return;
+    try {
+      allSpecies = await window.api.getSpeciesList();
+    } catch (e) {
+      console.error('[MANUAL] getSpeciesList failed:', e);
+    }
+  }
+
+  async function renderManualTeamGrid() {
+    const grid = $('#manualTeamGrid');
+    if (!grid) return;
+    await loadSpeciesList();
+    const project = projects.find(p => p.id === currentId);
+    if (!project) return;
+    if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
+
+    grid.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+      const entry = project.manualTeam[i] || { speciesId: 0, nickname: '' };
+      const row = document.createElement('div');
+      row.className = 'manual-slot';
+
+      const num = document.createElement('span');
+      num.className = 'manual-slot-num';
+      num.textContent = (i + 1);
+      row.appendChild(num);
+
+      const preview = document.createElement('div');
+      preview.className = 'manual-sprite-preview';
+      row.appendChild(preview);
+
+      const sel = document.createElement('select');
+      allSpecies.forEach(sp => {
+        const opt = document.createElement('option');
+        opt.value = sp.id;
+        opt.textContent = `#${sp.id} ${sp.name}`;
+        if (sp.id === entry.speciesId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', async () => {
+        project.manualTeam[i].speciesId = parseInt(sel.value) || 0;
+        updateManualSlotPreview(preview, project.manualTeam[i].speciesId);
+        await saveProject();
+        await sendManualTeam();
+      });
+      row.appendChild(sel);
+
+      const nick = document.createElement('input');
+      nick.type = 'text';
+      nick.placeholder = t('nickname') || 'Mote';
+      nick.value = entry.nickname || '';
+      let nickTimeout = null;
+      nick.addEventListener('input', () => {
+        clearTimeout(nickTimeout);
+        nickTimeout = setTimeout(async () => {
+          project.manualTeam[i].nickname = nick.value;
+          await saveProject();
+          await sendManualTeam();
+        }, 400);
+      });
+      row.appendChild(nick);
+
+      grid.appendChild(row);
+      updateManualSlotPreview(preview, entry.speciesId);
+    }
+  }
+
+  async function updateManualSlotPreview(previewEl, speciesId) {
+    if (!speciesId) { previewEl.innerHTML = ''; return; }
+    const project = projects.find(p => p.id === currentId);
+    if (!project) return;
+    try {
+      const url = await window.api.resolveSprite(project.spriteStylePath, speciesId, {
+        spritesRoot: await window.api.getBaseDir() ? (await window.api.getBaseDir() + '/Recursos/Sprites') : '',
+        styleId: project.spriteStyle
+      });
+      if (url) {
+        const port = await window.api.getPort();
+        previewEl.innerHTML = `<img src="http://127.0.0.1:${port}${url}" onerror="this.parentElement.innerHTML=''">`;
+      } else {
+        previewEl.innerHTML = '';
+      }
+    } catch (e) {
+      previewEl.innerHTML = '';
+    }
+  }
+
+  async function sendManualTeam() {
+    if (!currentId) return;
+    const project = projects.find(p => p.id === currentId);
+    if (!project || project.inputMode !== 'manual') return;
+    const team = await window.api.setManualTeam(currentId, project.manualTeam);
+    if (team) {
+      currentTeam = team;
+      updateTeamStatus();
+      renderCanvasSlots(project.slots, project.nicknameSlots);
     }
   }
 
@@ -1587,6 +1722,35 @@
       const bgToggle = $('#settingsBackground');
       if (langSel) langSel.value = currentLang;
       if (bgToggle) bgToggle.checked = settings.backgroundMode !== false;
+    });
+
+    // ===== MODE TOGGLE =====
+    document.querySelectorAll('#modeToggle .mode-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        document.querySelectorAll('#modeToggle .mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.dataset.mode;
+        const project = projects.find(p => p.id === currentId);
+        if (!project) return;
+        project.inputMode = mode;
+
+        const saveCard = $('#saveFileCard');
+        const manualCard = $('#manualTeamCard');
+        if (mode === 'manual') {
+          saveCard.style.display = 'none';
+          manualCard.style.display = 'block';
+          if (!project.manualTeam) {
+            project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
+          }
+          await window.api.stopWatching(currentId);
+          await renderManualTeamGrid();
+        } else {
+          saveCard.style.display = 'block';
+          manualCard.style.display = 'none';
+          await window.api.stopWatching(currentId);
+        }
+        await saveProject();
+      });
     });
   }
 

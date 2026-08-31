@@ -76,9 +76,28 @@ function ensureDllsInFixedDir() {
   let copied = 0;
   for (const file of dllFiles) {
     const dest = path.join(FIXED_DLL_DIR, file);
+    let destExists = false;
     if (fs.existsSync(dest)) {
-      copied++;
-      continue;
+      destExists = true;
+      let foundNewer = false;
+      for (const srcDir of sourceDirs) {
+        const src = path.join(srcDir, file);
+        try {
+          if (fs.existsSync(src)) {
+            const srcStat = fs.statSync(src);
+            const destStat = fs.statSync(dest);
+            if (srcStat.size !== destStat.size || srcStat.mtimeMs > destStat.mtimeMs) {
+              foundNewer = true;
+              Logger.info('PkHexReader', `[v${CODE_VERSION}] ${file} outdated (${destStat.size}b vs ${srcStat.size}b), updating`);
+            }
+            break;
+          }
+        } catch (e) {}
+      }
+      if (!foundNewer) {
+        copied++;
+        continue;
+      }
     }
     let found = false;
     for (const srcDir of sourceDirs) {

@@ -7,6 +7,12 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
+  <div class="net-warning-banner" id="netWarningBanner" style="display:none">
+    <span class="net-warning-icon">&#9888;</span>
+    <span data-i18n="netWarning">.NET 8.0 Runtime no encontrado. PKHeX no puede leer los saves de Pokemon.</span>
+    <a href="#" id="netWarningLink" data-i18n="netWarningInstall">Instalar .NET 8.0</a>
+    <button class="net-warning-close" id="netWarningClose">&times;</button>
+  </div>
   <div class="app">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
@@ -58,6 +64,14 @@
         <div class="editor-body">
           <div class="panel-left">
             <section class="card">
+              <h3 data-i18n="inputMode">Modo de entrada</h3>
+              <div class="mode-toggle" id="modeToggle">
+                <button class="mode-btn active" data-mode="auto" data-i18n="modeAuto">Automatico</button>
+                <button class="mode-btn" data-mode="manual" data-i18n="modeManual">Manual</button>
+              </div>
+            </section>
+
+            <section class="card" id="saveFileCard">
               <h3 data-i18n="saveFile">Guardar</h3>
               <div class="field">
                 <label data-i18n="saveFileLabel">Ruta del save file</label>
@@ -70,6 +84,11 @@
                 <label data-i18n="gameGen">Juego / Generacion</label>
                 <select id="gameSelect"></select>
               </div>
+            </section>
+
+            <section class="card" id="manualTeamCard" style="display:none">
+              <h3 data-i18n="manualTeamTitle">Equipo Manual</h3>
+              <div class="manual-team-grid" id="manualTeamGrid"></div>
             </section>
 
             <section class="card">

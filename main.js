@@ -25,6 +25,8 @@ function checkDotnetRuntime() {
     const firstLine = result.split('\n')[0].trim();
     if (firstLine && fs.existsSync(firstLine)) return firstLine;
   } catch (e) {}
+  const systemDotnet = 'C:\\Program Files\\dotnet\\dotnet.exe';
+  if (fs.existsSync(systemDotnet)) return systemDotnet;
   return null;
 }
 
@@ -67,6 +69,9 @@ function resolveBaseDir() {
   }
   return __dirname;
 }
+
+let dotnetAvailable = false;
+let dotnetPath = null;
 
 const BASE_DIR = resolveBaseDir();
 const APP_DIR = app.isPackaged ? app.getAppPath() : __dirname;
@@ -350,6 +355,8 @@ function createWindow() {
 // === IPC HANDLERS ===
 
 ipcMain.handle('get-base-dir', () => BASE_DIR);
+ipcMain.handle('get-dotnet-status', () => ({ available: dotnetAvailable, path: dotnetPath || null }));
+ipcMain.handle('stop-watching', (event, projectId) => { fileWatcher.stopWatching(projectId); return true; });
 
 // Projects
 ipcMain.handle('list-projects', () => projectManager.listAll());
@@ -366,7 +373,7 @@ ipcMain.handle('update-project', (event, id, data) => {
       usePlaceholder: updated.usePlaceholder || false
     });
     fileWatcher.stopWatching(id);
-    if (updated.savePath) startWatching(updated);
+    if (updated.inputMode !== 'manual' && updated.savePath) startWatching(updated);
     const clients = sseClients.get(id) || new Set();
     for (const client of clients) {
       client.write(`event: config-updated\ndata: ${JSON.stringify(updated)}\n\n`);
@@ -382,8 +389,73 @@ ipcMain.handle('delete-project', (event, id) => {
 
 // Team
 ipcMain.handle('get-team', (event, projectId) => {
+  const project = projectManager.get(projectId);
+  if (project && project.inputMode === 'manual') {
+    const { resolveSprite } = require('./src/sprite-scanner');
+    const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
+    const team = (project.manualTeam || []).map(entry => {
+      if (!entry || !entry.speciesId) return null;
+      const spriteUrl = resolveSprite(absStylePath, entry.speciesId, {
+        spritesRoot: SPRITES_ROOT,
+        styleId: project.spriteStyle
+      });
+      return {
+        speciesId: entry.speciesId,
+        nickname: entry.nickname || '',
+        isShiny: false,
+        level: 0,
+        form: 0,
+        spriteUrl: spriteUrl ? `http://127.0.0.1:${overlayPort}${spriteUrl}` : null
+      };
+    }).filter(Boolean);
+    return team;
+  }
   const team = fileWatcher.getCachedTeam(projectId);
   return team.map(p => p.spriteUrl ? { ...p, spriteUrl: `http://127.0.0.1:${overlayPort}${p.spriteUrl}` } : p);
+});
+
+ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
+  const project = projectManager.get(projectId);
+  if (!project || project.inputMode !== 'manual') return null;
+
+  const { resolveSprite } = require('./src/sprite-scanner');
+  const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
+
+  const team = manualTeam.map(entry => {
+    if (!entry || !entry.speciesId) return null;
+    const spriteUrl = resolveSprite(absStylePath, entry.speciesId, {
+      spritesRoot: SPRITES_ROOT,
+      styleId: project.spriteStyle
+    });
+    return {
+      speciesId: entry.speciesId,
+      nickname: entry.nickname || '',
+      isShiny: false,
+      level: 0,
+      form: 0,
+      spriteUrl
+    };
+  }).filter(Boolean);
+
+  const prefixed = team.map(p => p.spriteUrl
+    ? { ...p, spriteUrl: `http://127.0.0.1:${overlayPort}${p.spriteUrl}` }
+    : p);
+
+  const clients = sseClients.get(projectId) || new Set();
+  const eventData = JSON.stringify({ team: prefixed });
+  for (const client of clients) {
+    client.write(`data: ${eventData}\n\n`);
+  }
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('team-updated', projectId, prefixed, null);
+  }
+
+  return prefixed;
+});
+
+ipcMain.handle('get-species-list', () => {
+  return require('./src/species-list');
 });
 
 // Overlay URL
@@ -598,21 +670,32 @@ function fetchJSON(url) {
 
 ipcMain.handle('check-for-updates', async () => {
   try {
-    const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-    const latestVersion = (release.tag_name || '').replace(/^v/, '');
+    const releases = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases`);
+    const stableRelease = (Array.isArray(releases) ? releases : []).find(r => !r.prerelease && !r.draft);
+    if (!stableRelease) return { hasUpdate: false, hasChangelog: false };
+    const latestVersion = (stableRelease.tag_name || '').replace(/^v/, '');
     const currentVersion = app.getVersion();
     const settings = loadSettings();
     const skippedVersion = settings.skippedVersion || '';
     const lastSeenVersion = settings.lastSeenVersion || '';
-    const hasUpdate = latestVersion && latestVersion !== currentVersion;
-    const hasChangelog = latestVersion && latestVersion !== lastSeenVersion;
+
+    const parseVer = (v) => v.split('.').map(Number);
+    const cur = parseVer(currentVersion);
+    const lat = parseVer(latestVersion);
+    let isNewer = false;
+    for (let i = 0; i < 3; i++) {
+      if ((lat[i] || 0) > (cur[i] || 0)) { isNewer = true; break; }
+      if ((lat[i] || 0) < (cur[i] || 0)) break;
+    }
+    const hasUpdate = isNewer;
+    const hasChangelog = latestVersion !== lastSeenVersion;
     console.log('[UPDATE] check:', { currentVersion, latestVersion, lastSeenVersion, hasUpdate, hasChangelog });
     return {
-      hasUpdate: !!hasUpdate,
+      hasUpdate,
       currentVersion,
       latestVersion,
-      releaseNotes: release.body || '',
-      releaseUrl: release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
+      releaseNotes: stableRelease.body || '',
+      releaseUrl: stableRelease.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
       skipped: hasUpdate && skippedVersion === latestVersion,
       hasChangelog: !!hasChangelog,
     };
@@ -1105,9 +1188,9 @@ ipcMain.handle('export-diagnostic-zip', async () => {
   if (!filePath) return null;
 
   try {
-    const archiver = require('archiver');
+    const { ZipArchive } = require('archiver');
     const output = fs.createWriteStream(filePath);
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    const archive = new ZipArchive('zip', { zlib: { level: 6 } });
 
     return new Promise((resolve, reject) => {
       output.on('close', () => resolve({ path: filePath, size: archive.pointer() }));
@@ -1213,8 +1296,9 @@ if (!gotLock) {
     Logger.info('Main', `PKHeX.Core in resources: ${pkhexCoreExists} (${pkhexCore})`);
 
     // Check for .NET 8.0 Runtime required for PKHeX
-    const dotnetPath = checkDotnetRuntime();
-    if (!dotnetPath) {
+    dotnetPath = checkDotnetRuntime();
+    dotnetAvailable = !!dotnetPath;
+    if (!dotnetAvailable) {
       Logger.error('Main', '.NET 8.0 Runtime not found - PKHeX will not work');
       setTimeout(() => showDotnetMissingDialog(), 1000);
     } else {

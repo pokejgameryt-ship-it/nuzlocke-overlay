@@ -39,6 +39,7 @@ class ProjectManager {
     const project = {
       id,
       name: data.name || 'Nuevo Proyecto',
+      inputMode: data.inputMode || 'auto',
       savePath: data.savePath || '',
       game: data.game || { generation: 8, saveType: 'gen8', version: 'auto', autoDetected: true },
       spriteStyle: data.spriteStyle || '',
@@ -46,6 +47,14 @@ class ProjectManager {
       showNames: data.showNames !== undefined ? data.showNames : true,
       usePlaceholder: data.usePlaceholder || false,
       placeholderSpriteId: data.placeholderSpriteId || '',
+      manualTeam: data.manualTeam || [
+        { speciesId: 0, nickname: '' },
+        { speciesId: 0, nickname: '' },
+        { speciesId: 0, nickname: '' },
+        { speciesId: 0, nickname: '' },
+        { speciesId: 0, nickname: '' },
+        { speciesId: 0, nickname: '' },
+      ],
       slots: data.slots || this.getDefaultSlots(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

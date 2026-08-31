@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.3-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.0--beta.1-blue" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/gen-1--9-brightgreen" alt="Gen 1-9">
   <img src="https://img.shields.io/badge/languages-ES%20%7C%20EN%20%7C%20FR%20%7C%20DE%20%7C%20JA%20%7C%20RU-brightgreen" alt="Languages">
@@ -35,10 +35,9 @@ El motor de lectura usa **PKHeX** (la biblioteca estándar de la comunidad Pokem
 ## Instalación (30 segundos)
 
 ### Instalador NSIS (recomendado)
-1. Descarga `NuzlockeOverlay-Setup-1.0.3.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases/latest)
-2. Ejecuta el instalador, siguiente-siguiente-finalizar
-3. Se instala en `C:\Program Files\Nuzlocke Overlay\` con desinstalador incluido
-4. Si falta .NET 8.0, la app te avisará con botón de descarga directa
+1. Descarga `NuzlockeOverlay-Setup-1.1.0-beta.1.exe` desde [Releases](https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/releases)
+2. Ejecuta el instalador — **si falta .NET 8.0, se descarga e instala automáticamente** (~60MB)
+3. Siguiente-siguiente-finalizar, se instala con desinstalador incluido
 
 ### Sin instalador (portable)
 1. Descarga `NuzlockeOverlay.exe` desde Releases
@@ -97,6 +96,8 @@ El motor de lectura usa **PKHeX** (la biblioteca estándar de la comunidad Pokem
 
 ## Características principales
 
+- **Modo Manual** (NEW) — Selecciona tu equipo manualmente de una lista con todos los Pokemon (Gen 1-9) sin necesidad de save file
+- **Modo Automatico** — Lee el save file del emulador y detecta el equipo con PKHeX, igual que siempre
 - **Lectura en tiempo real** — File watcher cada 500ms, actualiza overlay al guardar
 - **PKHeX para todo** — Gen 1-9 con la misma biblioteca que usan los editores de saves
 - **43+ estilos de sprites** — PNG/GIF, estáticos y animados, por generación
@@ -111,6 +112,7 @@ El motor de lectura usa **PKHeX** (la biblioteca estándar de la comunidad Pokem
 - **Descarga de sprites integrada** — Botón en Configuración → Recursos (desde GitHub Releases)
 - **Auto-actualización** — Comprueba versiones al iniciar, changelog, opción "omitir versión"
 - **Modo segundo plano** — Se queda en bandeja al cerrar; menú: Mostrar / Salir
+- **Instalador inteligente** — Descarga e instala .NET 8.0 automáticamente si falta
 
 ---
 
@@ -226,8 +228,18 @@ Si la app te resulta útil y quieres apoyar el desarrollo:
 
 ---
 
-## Novedades v1.0.3
+## Novedades
 
+### v1.1.0-beta.1 (BETA)
+- **Modo Manual** — Selecciona tu equipo manualmente de una lista con todos los Pokemon (Gen 1-9)
+- **Toggle Automatico/Manual** — Selector en la pestaña del proyecto
+- **6 slots con sprites** — Cada slot muestra el sprite del Pokemon seleccionado
+- **Motes manuales** — Campo de texto junto a cada slot para apodos
+- **Instalador auto-descarga .NET 8.0** — Descarga e instala el runtime si falta
+- **Banner de aviso persistente** — Banner rojo si .NET no está detectado
+- **Update checker corregido** — No muestra versiones beta como actualizaciones
+
+### v1.0.3
 - **PKHeX para TODAS las generaciones** — Gen 1-9 usan PKHeX siempre; parser nativo solo como último recurso sin .NET
 - **DLLs PKHeX en el instalador** — Ya no hace falta descarga aparte; todo va en `resources/pkhex/`
 - **Comprobación .NET al inicio** — Diálogo con botón de descarga directa si falta runtime
