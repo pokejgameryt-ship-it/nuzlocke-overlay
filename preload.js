@@ -83,4 +83,5 @@ window.api = {
   importFakemon: () => ipcRenderer.invoke('import-fakemon'),
   deleteFakemon: (fakemonId) => ipcRenderer.invoke('delete-fakemon', fakemonId),
   editFakemon: (fakemonId, newName, newSpritePath) => ipcRenderer.invoke('edit-fakemon', fakemonId, newName, newSpritePath),
+  selectFakemonSprite: () => ipcRenderer.invoke('select-fakemon-sprite'),
 };

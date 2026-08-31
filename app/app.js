@@ -562,6 +562,13 @@
   }
 
   async function editFakemon(fakemon) {
+    // Get current sprite preview URL
+    let currentSpriteUrl = '';
+    if (fakemon.spriteFile) {
+      const port = await window.api.getPort();
+      currentSpriteUrl = `http://127.0.0.1:${port}/fakemon/${encodeURIComponent(fakemon.spriteFile)}`;
+    }
+    
     const modalResult = await new Promise(resolve => {
       const div = document.createElement('div');
       div.className = 'modal-overlay';
@@ -569,10 +576,20 @@
       div.innerHTML = `
         <div style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:20px;width:360px;color:#e0e0e0;font-family:system-ui;">
           <h3 style="margin:0 0 12px;color:#e94560;">${t('editFakemon') || 'Editar Fakemon'}</h3>
+          
+          <div style="text-align:center;margin-bottom:16px;">
+            <img id="editSpritePreview" src="${currentSpriteUrl}" alt="${fakemon.name}" style="width:80px;height:80px;image-rendering:pixelated;border:1px solid #2a2a40;border-radius:4px;background:#0f0f1a;" onerror="this.style.display='none'">
+            <p style="margin:8px 0 0;font-size:12px;color:#888;">${fakemon.idLabel || fakemon.id}</p>
+          </div>
+          
           <label style="font-size:13px;color:#aaa;">${t('fakemonName') || 'Nombre'}:</label>
           <input id="editName" type="text" value="${fakemon.name}" style="width:100%;background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;margin:4px 0 12px;font-size:14px;box-sizing:border-box;">
-          <div style="display:flex;gap:8px;justify-content:flex-end;">
+          
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;">
             <button id="editSpriteBtn" style="background:#2a2a40;color:#aaa;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">${t('changeSprite') || 'Cambiar Sprite'}</button>
+          </div>
+          
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button id="editCancelBtn" style="background:#2a2a40;color:#aaa;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">${t('cancel') || 'Cancelar'}</button>
             <button id="editSaveBtn" style="background:#e94560;color:#fff;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">${t('save') || 'Guardar'}</button>
           </div>
@@ -580,9 +597,16 @@
       document.body.appendChild(div);
       let newSpriteDestFile = null;
       div.querySelector('#editSpriteBtn').onclick = async () => {
-        const r = await window.api.importFakemon();
-        if (r) {
-          newSpriteDestFile = r.spriteFile;
+        const spriteFile = await window.api.selectFakemonSprite();
+        if (spriteFile) {
+          newSpriteDestFile = spriteFile;
+          // Update preview
+          const port = await window.api.getPort();
+          const previewImg = div.querySelector('#editSpritePreview');
+          if (previewImg) {
+            previewImg.src = `http://127.0.0.1:${port}/fakemon/${encodeURIComponent(spriteFile)}`;
+            previewImg.style.display = 'block';
+          }
         }
       };
       div.querySelector('#editCancelBtn').onclick = () => { document.body.removeChild(div); resolve(null); };
@@ -1217,6 +1241,9 @@
       h3.style.userSelect = 'none';
 
       const card = h3.closest('.card');
+      // Don't make "Equipo Detectado" card collapsible - it's a status display
+      if (card.id === 'teamStatus' || h3.textContent?.includes('Equipo Detectado')) return;
+      
       const cardId = card.id || card.querySelector('h3')?.textContent?.trim();
       if (!cardId) return;
 
@@ -2081,8 +2108,6 @@
           await saveProject();
           await renderManualTeamGrid();
           await sendManualTeam();
-          currentTeam = [];
-          updateTeamStatus();
         } else {
           saveCard.style.display = 'block';
           manualCard.style.display = 'none';
@@ -2585,6 +2610,33 @@
 
   function skipTourStep() {
     // Skip current step without completing action
+    const currentStep = TOUR_STEPS[tourStep];
+    // If skipping manual mode step, auto-switch to manual mode
+    if (currentStep && currentStep.id === 'manual-mode') {
+      const modeToggle = $('#modeToggle');
+      if (modeToggle) {
+        const manualBtn = modeToggle.querySelector('[data-mode="manual"]');
+        if (manualBtn) manualBtn.click();
+      }
+    }
+    // If skipping fakemon step, auto-switch to manual mode and highlight fakemon creation
+    if (currentStep && currentStep.id === 'fakemon') {
+      const modeToggle = $('#modeToggle');
+      if (modeToggle) {
+        const manualBtn = modeToggle.querySelector('[data-mode="manual"]');
+        if (manualBtn && !manualBtn.classList.contains('active')) {
+          manualBtn.click();
+        }
+      }
+      // Highlight the fakemon creation button
+      setTimeout(() => {
+        const addFakemonBtn = document.querySelector('.species-search-add-fakemon');
+        if (addFakemonBtn) {
+          addFakemonBtn.style.boxShadow = '0 0 0 3px #e94560';
+          setTimeout(() => { addFakemonBtn.style.boxShadow = ''; }, 2000);
+        }
+      }, 500);
+    }
     if (tourStep < TOUR_STEPS.length - 1) {
       tourStep++;
       showTourStep();

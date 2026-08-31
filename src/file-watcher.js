@@ -20,6 +20,7 @@ class FileWatcher {
     this.projectData = new Map();
     this.debounceTimers = new Map();
     this.placeholderConfigs = new Map();
+    this.stoppedProjects = new Set();
   }
 
   updatePlaceholderConfig(projectId, config) {
@@ -32,6 +33,7 @@ class FileWatcher {
     Logger.info('Watcher', `  PKHeX available: ${!!PkHexReader}`);
 
     this.stopWatching(projectId);
+    this.stoppedProjects.delete(projectId);
 
     if (!savePath || !fs.existsSync(savePath)) {
       Logger.error('Watcher', `Save file NOT found: ${savePath}`);
@@ -230,7 +232,7 @@ class FileWatcher {
           client.write(`data: ${eventData}\n\n`);
         }
 
-        if (onTeamChange) {
+        if (onTeamChange && !this.stoppedProjects.has(projectId)) {
           Logger.info('Watcher', `Notifying renderer for project ${projectId}`);
           onTeamChange(projectId, resolvedTeam);
         }
@@ -260,6 +262,7 @@ class FileWatcher {
   }
 
   stopWatching(projectId) {
+    this.stoppedProjects.add(projectId);
     if (this.debounceTimers.has(projectId)) {
       clearTimeout(this.debounceTimers.get(projectId));
       this.debounceTimers.delete(projectId);
