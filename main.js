@@ -250,7 +250,53 @@ function startOverlayServer() {
   });
 
   expressApp.get('/api/team/:projectId', (req, res) => {
-    const team = fileWatcher.getCachedTeam(req.params.projectId);
+    const pid = req.params.projectId;
+    const project = projectManager.get(pid);
+    if (project && project.inputMode === 'manual') {
+      const { resolveSprite } = require('./src/sprite-scanner');
+      const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
+      const fakemonMeta = loadFakemonMeta();
+      const team = (project.manualTeam || []).map(entry => {
+        if (!entry) return null;
+        const speciesId = entry.speciesId || 0;
+        let spriteUrl = null;
+        if (speciesId <= -2000) {
+          const f = fakemonMeta.find(e => e.id === speciesId);
+          if (f && f.spriteFile) spriteUrl = `/fakemon/${encodeURIComponent(f.spriteFile)}`;
+        } else if (speciesId !== 0 && speciesId !== -1) {
+          spriteUrl = resolveSprite(absStylePath, speciesId === -2 ? 0 : speciesId, {
+            spritesRoot: SPRITES_ROOT,
+            styleId: project.spriteStyle
+          });
+        }
+        return {
+          speciesId,
+          nickname: entry.nickname || '',
+          isShiny: false,
+          level: 0,
+          form: 0,
+          spriteUrl: spriteUrl ? `http://127.0.0.1:${overlayPort}${spriteUrl}` : null
+        };
+      }).filter(Boolean);
+      const phConfig = fileWatcher.placeholderConfigs.get(pid);
+      if (phConfig && phConfig.usePlaceholder && team.length < 6) {
+        const placeholderUrl = resolveSprite(absStylePath, 0, {
+          spritesRoot: SPRITES_ROOT,
+          styleId: project.spriteStyle
+        });
+        if (placeholderUrl) {
+          while (team.length < 6) {
+            team.push({
+              speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0,
+              isPlaceholder: true,
+              spriteUrl: `http://127.0.0.1:${overlayPort}${placeholderUrl}`
+            });
+          }
+        }
+      }
+      return res.json({ team });
+    }
+    const team = fileWatcher.getCachedTeam(pid);
     res.json({ team });
   });
 

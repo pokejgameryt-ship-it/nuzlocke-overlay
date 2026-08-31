@@ -145,6 +145,8 @@
     await loadAndApplySettings();
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    initPanelResize();
+    initCollapsibleCards();
 
     window.api.onTeamUpdated((projectId, team, error) => {
       if (projectId === currentId) {
@@ -1054,6 +1056,91 @@
     canvas.style.height = (1080 * scale) + 'px';
   }
 
+  function initPanelResize() {
+    const handle = $('#panelResizeHandle');
+    const panelLeft = $('#panelLeft');
+    if (!handle || !panelLeft) return;
+
+    const saved = localStorage.getItem('nuzlocke-panel-left-width');
+    if (saved) {
+      const w = parseInt(saved, 10);
+      if (w >= 200 && w <= window.innerWidth * 0.6) panelLeft.style.width = w + 'px';
+    }
+
+    let dragging = false;
+    let startX = 0;
+    let startW = 0;
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      dragging = true;
+      startX = e.clientX;
+      startW = panelLeft.offsetWidth;
+      handle.classList.add('active');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const newW = Math.min(Math.max(startW + dx, 200), window.innerWidth * 0.6);
+      panelLeft.style.width = newW + 'px';
+      resizeCanvas();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('active');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('nuzlocke-panel-left-width', panelLeft.offsetWidth);
+    });
+
+    handle.addEventListener('dblclick', () => {
+      panelLeft.style.width = '360px';
+      localStorage.setItem('nuzlocke-panel-left-width', '360');
+      resizeCanvas();
+    });
+  }
+
+  function initCollapsibleCards() {
+    document.querySelectorAll('.panel-left .card h3').forEach(h3 => {
+      h3.style.cursor = 'pointer';
+      h3.style.userSelect = 'none';
+
+      const card = h3.closest('.card');
+      const cardId = card.id || card.querySelector('h3')?.textContent?.trim();
+      if (!cardId) return;
+
+      const key = 'nuzlocke-card-' + cardId.replace(/\s+/g, '_');
+      const collapsed = localStorage.getItem(key);
+      if (collapsed === 'true') {
+        const children = Array.from(card.children).filter(c => c !== h3);
+        children.forEach(c => c.style.display = 'none');
+        h3.classList.add('collapsed');
+      }
+
+      const indicator = document.createElement('span');
+      indicator.textContent = ' ▼';
+      indicator.style.cssText = 'font-size:8px;transition:transform 0.2s;display:inline-block;';
+      if (collapsed === 'true') indicator.style.transform = 'rotate(-90deg)';
+      h3.appendChild(indicator);
+
+      h3.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        const children = Array.from(card.children).filter(c => c !== h3);
+        const isHidden = children[0] && children[0].style.display === 'none';
+        children.forEach(c => c.style.display = isHidden ? '' : 'none');
+        indicator.style.transform = isHidden ? '' : 'rotate(-90deg)';
+        h3.classList.toggle('collapsed', !isHidden);
+        localStorage.setItem(key, (!isHidden).toString());
+        resizeCanvas();
+      });
+    });
+  }
+
   async function saveProject() {
     if (!currentId) return;
     const project = projects.find(p => p.id === currentId);
@@ -1886,6 +1973,7 @@
           }
           await window.api.stopWatching(currentId);
           await renderManualTeamGrid();
+          await sendManualTeam();
         } else {
           saveCard.style.display = 'block';
           manualCard.style.display = 'none';

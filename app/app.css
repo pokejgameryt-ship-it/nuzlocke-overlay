@@ -276,14 +276,32 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .panel-left {
   width: 360px;
+  min-width: 200px;
+  max-width: 60vw;
   padding: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   border-right: 1px solid #2a2a40;
   flex-shrink: 0;
+}
+
+.panel-resize-handle {
+  width: 5px;
+  cursor: col-resize;
+  background: #2a2a40;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  transition: background 0.15s;
+}
+.panel-resize-handle:hover,
+.panel-resize-handle.active {
+  background: #e94560;
 }
 
 .panel-right {
@@ -293,6 +311,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
 }
 
 /* ===== CARDS ===== */
@@ -302,6 +321,8 @@ body {
   border-radius: 8px;
   padding: 14px;
   margin-bottom: 12px;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .card h3 {
@@ -310,6 +331,14 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 10px;
+}
+.card h3.collapsed {
+  margin-bottom: 0;
+}
+.card h3.collapsed + .card-header-row,
+.card h3.collapsed + .field,
+.card h3.collapsed + .mode-toggle {
+  display: none;
 }
 
 .card-header-row {
