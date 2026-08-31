@@ -548,10 +548,6 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
     client.write(`data: ${eventData}\n\n`);
   }
 
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('team-updated', projectId, prefixed, null);
-  }
-
   return prefixed;
 });
 
@@ -589,39 +585,64 @@ ipcMain.handle('import-fakemon', async (event) => {
   const destPath = path.join(FAKEMON_DIR, filename);
   fs.copyFileSync(srcPath, destPath);
 
-  const nameResult = await dialog.showMessageBox(win, {
-    type: 'question',
-    buttons: ['Cancelar', 'Guardar'],
-    defaultId: 1,
-    title: 'Nombre del Fakemon',
-    message: `Nombre para ${idLabel}:`,
-    cancelId: 0
+  const inputWin = new BrowserWindow({
+    width: 360, height: 180, parent: win, modal: true,
+    webPreferences: { nodeIntegration: true, contextIsolation: false },
+    resizable: false, autoHideMenuBar: true
   });
-  let fakemonName = idLabel;
-  if (nameResult.response === 1) {
-    const inputWin = new BrowserWindow({
-      width: 360, height: 160, parent: win, modal: true,
-      webPreferences: { nodeIntegration: true, contextIsolation: false },
-      resizable: false, autoHideMenuBar: true
+  inputWin.setMenu(null);
+  const inputHtml = `<!DOCTYPE html><html><head><style>
+    body{background:#1a1a2e;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;margin:0;padding:16px;}
+    input{background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;font-size:14px;width:260px;margin:8px 0;outline:none;}
+    input:focus{border-color:#e94560;}
+    .btn-row{display:flex;gap:8px;margin-top:8px;}
+    button{border:none;border-radius:4px;padding:8px 20px;font-size:13px;cursor:pointer;}
+    .btn-primary{background:#e94560;color:#fff;}
+    .btn-primary:hover{background:#c73550;}
+    .btn-cancel{background:#2a2a40;color:#aaa;}
+    .btn-cancel:hover{background:#3a3a50;color:#fff;}
+    label{font-size:13px;margin-bottom:4px;color:#ccc;}
+    .preview{width:64px;height:64px;image-rendering:pixelated;margin-bottom:8px;}
+  </style></head><body>
+    <img class="preview" src="file:///${destPath.replace(/\\/g, '/')}">
+    <label>Nombre para ${idLabel}:</label>
+    <input id="fName" type="text" placeholder="${idLabel}" autofocus>
+    <div class="btn-row">
+      <button class="btn-cancel" id="fCancel">Cancelar</button>
+      <button class="btn-primary" id="fOk">Guardar</button>
+    </div>
+    <script>
+      document.getElementById('fOk').onclick=()=>{
+        const n=document.getElementById('fName').value.trim();
+        require('electron').ipcRenderer.send('fakemon-name-result',n||'${idLabel}');
+        window.close();
+      };
+      document.getElementById('fCancel').onclick=()=>{
+        require('electron').ipcRenderer.send('fakemon-name-result','');
+        window.close();
+      };
+      document.getElementById('fName').addEventListener('keydown',(e)=>{
+        if(e.key==='Enter')document.getElementById('fOk').click();
+        if(e.key==='Escape')document.getElementById('fCancel').click();
+      });
+    </script>
+  </body></html>`;
+  inputWin.loadURL('data:text/html,' + encodeURIComponent(inputHtml));
+
+  const fakemonName = await new Promise(resolve => {
+    const {ipcMain: im} = require('electron');
+    const cleanup = () => { im.removeAllListeners('fakemon-name-result'); resolve(''); };
+    inputWin.on('closed', cleanup);
+    im.once('fakemon-name-result', (e, name) => {
+      inputWin.removeListener('closed', cleanup);
+      resolve(name);
     });
-    inputWin.setMenu(null);
-    const inputHtml = `<!DOCTYPE html><html><head><style>
-      body{background:#1a1a2e;color:#e0e0e0;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;margin:0;padding:16px;}
-      input{background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;font-size:14px;width:260px;margin:8px 0;}
-      button{background:#e94560;color:#fff;border:none;border-radius:4px;padding:8px 20px;font-size:13px;cursor:pointer;}
-      button:hover{background:#c73550;}
-      label{font-size:13px;margin-bottom:4px;}
-    </style></head><body>
-      <label>Nombre para ${idLabel}:</label>
-      <input id="fName" type="text" placeholder="${idLabel}" autofocus>
-      <button id="fOk">Guardar</button>
-      <script>document.getElementById('fOk').onclick=()=>{const n=document.getElementById('fName').value.trim();require('electron').ipcRenderer.send('fakemon-name-result',n||'${idLabel}');window.close();};</script>
-    </body></html>`;
-    inputWin.loadURL('data:text/html,' + encodeURIComponent(inputHtml));
-    fakemonName = await new Promise(resolve => {
-      const {ipcMain: im} = require('electron');
-      im.once('fakemon-name-result', (e, name) => resolve(name));
-    });
+  });
+
+  if (!fakemonName) {
+    const filePath = path.join(FAKEMON_DIR, filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return null;
   }
 
   const entry = {id: -2000 - nextNum, idLabel, name: fakemonName, spriteFile: filename};
@@ -640,6 +661,25 @@ ipcMain.handle('delete-fakemon', (event, fakemonId) => {
   meta.splice(idx, 1);
   saveFakemonMeta(meta);
   return true;
+});
+
+ipcMain.handle('edit-fakemon', async (event, fakemonId, newName, newSpriteFile) => {
+  const meta = loadFakemonMeta();
+  const entry = meta.find(e => e.id === fakemonId);
+  if (!entry) return null;
+
+  if (newName !== undefined && newName !== null) {
+    entry.name = newName;
+  }
+
+  if (newSpriteFile && newSpriteFile !== entry.spriteFile) {
+    const oldPath = path.join(FAKEMON_DIR, entry.spriteFile);
+    entry.spriteFile = newSpriteFile;
+    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+  }
+
+  saveFakemonMeta(meta);
+  return entry;
 });
 
 // Overlay URL

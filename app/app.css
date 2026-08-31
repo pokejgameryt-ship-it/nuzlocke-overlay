@@ -1993,6 +1993,48 @@ kbd {
   color: #666;
   text-align: center;
 }
+.species-search-item-fakemon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.species-search-item-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.species-search-item-actions {
+  display: none;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.species-search-item-fakemon:hover .species-search-item-actions {
+  display: flex;
+}
+.species-search-item-edit,
+.species-search-item-delete {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #888;
+  flex-shrink: 0;
+}
+.species-search-item-edit:hover {
+  background: #2a2a40;
+  color: #4ecdc4;
+}
+.species-search-item-delete:hover {
+  background: #3a1020;
+  color: #e94560;
+}
 .manual-nick-input {
   width: 100px;
   flex-shrink: 0;

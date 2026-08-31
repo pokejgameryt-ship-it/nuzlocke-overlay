@@ -151,7 +151,7 @@
     window.api.onTeamUpdated((projectId, team, error) => {
       if (projectId === currentId) {
         const project = projects.find(p => p.id === currentId);
-        if (project && project.inputMode === 'manual') return;
+        if (!project || project.inputMode === 'manual') return;
         if (error === 'encrypted') {
           currentTeam = [];
           const status = $('#teamStatus');
@@ -435,7 +435,63 @@
           grp.className = 'species-search-group';
           grp.textContent = t('fakemonGroup') || 'Fakemon';
           dropdown.appendChild(grp);
-          filteredFakemon.forEach(f => addItem({id: f.id, name: f.name, idLabel: f.idLabel}, 'fakemon'));
+          filteredFakemon.forEach(f => {
+            const item = document.createElement('div');
+            item.className = 'species-search-item species-search-item-fakemon';
+            if (f.id === entry.speciesId) item.classList.add('selected');
+            const prefix = `<span class="species-search-id">${f.idLabel || 'F???'}</span> `;
+            const textSpan = document.createElement('span');
+            textSpan.textContent = f.name;
+            textSpan.className = 'species-search-item-text';
+            textSpan.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              project.manualTeam[i].speciesId = f.id;
+              input.value = `${f.idLabel || 'F???'} ${f.name}`;
+              dropdown.style.display = 'none';
+              updateManualSlotPreview(preview, f.id);
+              saveProject();
+              sendManualTeam();
+            });
+            item.innerHTML = prefix;
+            item.appendChild(textSpan);
+
+            const actions = document.createElement('span');
+            actions.className = 'species-search-item-actions';
+            const editBtn = document.createElement('span');
+            editBtn.className = 'species-search-item-edit';
+            editBtn.textContent = '✎';
+            editBtn.title = t('editFakemon') || 'Editar';
+            editBtn.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              dropdown.style.display = 'none';
+              editFakemon(f);
+            });
+            const delBtn = document.createElement('span');
+            delBtn.className = 'species-search-item-delete';
+            delBtn.textContent = '✕';
+            delBtn.title = t('deleteFakemon') || 'Eliminar';
+            delBtn.addEventListener('mousedown', async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              dropdown.style.display = 'none';
+              if (confirm((t('confirmDeleteFakemon') || '¿Eliminar Fakemon') + ` ${f.name}?`)) {
+                await window.api.deleteFakemon(f.id);
+                if (entry.speciesId === f.id) {
+                  project.manualTeam[i].speciesId = -1;
+                  input.value = '';
+                  updateManualSlotPreview(preview, -1);
+                  saveProject();
+                  sendManualTeam();
+                }
+                await refreshManualFakemonList();
+              }
+            });
+            actions.appendChild(editBtn);
+            actions.appendChild(delBtn);
+            item.appendChild(actions);
+            dropdown.appendChild(item);
+          });
         }
 
         const addFakemonItem = document.createElement('div');
@@ -503,6 +559,55 @@
     await saveProject();
     await sendManualTeam();
     await renderManualTeamGrid();
+  }
+
+  async function editFakemon(fakemon) {
+    const modalResult = await new Promise(resolve => {
+      const div = document.createElement('div');
+      div.className = 'modal-overlay';
+      div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;';
+      div.innerHTML = `
+        <div style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:20px;width:360px;color:#e0e0e0;font-family:system-ui;">
+          <h3 style="margin:0 0 12px;color:#e94560;">${t('editFakemon') || 'Editar Fakemon'}</h3>
+          <label style="font-size:13px;color:#aaa;">${t('fakemonName') || 'Nombre'}:</label>
+          <input id="editName" type="text" value="${fakemon.name}" style="width:100%;background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;margin:4px 0 12px;font-size:14px;box-sizing:border-box;">
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button id="editSpriteBtn" style="background:#2a2a40;color:#aaa;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">${t('changeSprite') || 'Cambiar Sprite'}</button>
+            <button id="editCancelBtn" style="background:#2a2a40;color:#aaa;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">${t('cancel') || 'Cancelar'}</button>
+            <button id="editSaveBtn" style="background:#e94560;color:#fff;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">${t('save') || 'Guardar'}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(div);
+      let newSpriteDestFile = null;
+      div.querySelector('#editSpriteBtn').onclick = async () => {
+        const r = await window.api.importFakemon();
+        if (r) {
+          newSpriteDestFile = r.spriteFile;
+        }
+      };
+      div.querySelector('#editCancelBtn').onclick = () => { document.body.removeChild(div); resolve(null); };
+      div.querySelector('#editSaveBtn').onclick = () => {
+        const name = div.querySelector('#editName').value.trim() || fakemon.name;
+        document.body.removeChild(div);
+        resolve({ name, newSpriteDestFile });
+      };
+      div.querySelector('#editName').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') div.querySelector('#editSaveBtn').click();
+        if (e.key === 'Escape') div.querySelector('#editCancelBtn').click();
+      });
+      div.addEventListener('click', (e) => { if (e.target === div) { document.body.removeChild(div); resolve(null); } });
+      setTimeout(() => div.querySelector('#editName').focus(), 50);
+    });
+    if (!modalResult) return;
+    await window.api.editFakemon(fakemon.id, modalResult.name, modalResult.newSpriteDestFile);
+    await refreshManualFakemonList();
+    const project = projects.find(p => p.id === currentId);
+    if (project) await renderManualTeamGrid();
+  }
+
+  let cachedFakemonList = [];
+  async function refreshManualFakemonList() {
+    cachedFakemonList = await window.api.getFakemonList().catch(() => []);
   }
 
   async function updateManualSlotPreview(previewEl, speciesId) {
@@ -1976,11 +2081,14 @@
           await saveProject();
           await renderManualTeamGrid();
           await sendManualTeam();
+          currentTeam = [];
+          updateTeamStatus();
         } else {
           saveCard.style.display = 'block';
           manualCard.style.display = 'none';
           await window.api.stopWatching(currentId);
           await saveProject();
+          await refreshTeam();
         }
       });
     });
@@ -2182,54 +2290,74 @@
       progress: 55
     },
     {
-      id: 'nickname-style',
-      title: '7. Estilo de nickname',
-      _titleKey: 'tourStepNicknameStyle', _contentKey: 'tourStepNicknameStyleContent',
-      content: 'Personaliza el aspecto de los nicknames: <span class="tour-highlight">fuente</span>, <span class="tour-highlight">color</span>, <span class="tour-highlight">trazo</span> y mas en la seccion de Estilo de Nickname.',
-      target: '#nicknameStyleCard',
+      id: 'manual-mode',
+      title: '7. Modo manual',
+      _titleKey: 'tourStepManual', _contentKey: 'tourStepManualContent',
+      content: 'Usa el toggle <span class="tour-highlight">Automatico / Manual</span> para cambiar como se detecta tu equipo.<br><br><strong>Automatico:</strong> Lee el save file cada 500ms.<br><strong>Manual:</strong> Selecciona los Pokemon manualmente.',
+      target: '#modeToggle',
       position: 'left',
-      action: 'scroll',
+      action: 'none',
       progress: 60
     },
     {
-      id: 'presets',
-      title: '8. Presets de layout',
-      _titleKey: 'tourStepPresets', _contentKey: 'tourStepPresetsContent',
-      content: 'Guarda y carga configuraciones de layout rapidamente con los <span class="tour-highlight">Presets</span>.<br>Guarda un preset, cargalo en otra ocasion, o elimina los que ya no necesites.',
-      target: '.presets-row',
+      id: 'fakemon',
+      title: '8. Crear Fakemons',
+      _titleKey: 'tourStepFakemon', _contentKey: 'tourStepFakemonContent',
+      content: 'En modo <span class="tour-highlight">Manual</span>, haz clic en <span class="tour-highlight">+ Crear Fakemon</span> en el dropdown de Pokemon.<br><br>Sube un sprite PNG y ponle nombre. Los Fakemons aparecen en el overlay como Pokemon personalizados.',
+      target: '.manual-slot',
       position: 'top',
       action: 'none',
       progress: 65
     },
     {
+      id: 'nickname-style',
+      title: '9. Estilo de nickname',
+      _titleKey: 'tourStepNicknameStyle', _contentKey: 'tourStepNicknameStyleContent',
+      content: 'Personaliza el aspecto de los nicknames: <span class="tour-highlight">fuente</span>, <span class="tour-highlight">color</span>, <span class="tour-highlight">trazo</span> y mas en la seccion de Estilo de Nickname.',
+      target: '#nicknameStyleCard',
+      position: 'left',
+      action: 'scroll',
+      progress: 70
+    },
+    {
+      id: 'presets',
+      title: '10. Presets de layout',
+      _titleKey: 'tourStepPresets', _contentKey: 'tourStepPresetsContent',
+      content: 'Guarda y carga configuraciones de layout rapidamente con los <span class="tour-highlight">Presets</span>.<br>Guarda un preset, cargalo en otra ocasion, o elimina los que ya no necesites.',
+      target: '.presets-row',
+      position: 'top',
+      action: 'none',
+      progress: 75
+    },
+    {
       id: 'layout-editor',
-      title: '9. Ajustar el Layout Editor',
+      title: '11. Ajustar el Layout Editor',
       _titleKey: 'tourStep4', _contentKey: 'tourStep4Content',
       content: 'Arrastra los sprites para posicionarlos.<br><span class="tour-action-hint">Clic + arrastrar</span> = Mover<br><span class="tour-action-hint">Esquinas</span> = Redimensionar<br>Usa los botones de alineacion y espaciado arriba',
       target: '#layoutCanvas',
       position: 'top',
       action: 'drag',
-      progress: 75
+      progress: 80
     },
     {
       id: 'obs-setup',
-      title: '10. Configurar en OBS',
+      title: '12. Configurar en OBS',
       _titleKey: 'tourStep5', _contentKey: 'tourStep5Content',
       content: 'Copia la <span class="tour-highlight">URL de OBS</span> (boton Copiar).<br>En OBS Studio: Fuente de Navegador -> Pega URL -> 1920x1080.<br>Los sprites se actualizan solos cada 500ms al guardar.',
       target: '#copyUrlBtn',
       position: 'bottom',
       action: 'click',
-      progress: 85
+      progress: 88
     },
     {
       id: 'camera-setup',
-      title: '11. Camara virtual - Previsualizar layout',
+      title: '13. Camara virtual - Previsualizar layout',
       _titleKey: 'tourStep6', _contentKey: 'tourStep6Content',
       content: 'Activa la <span class="tour-highlight">Camara virtual</span> (boton Cam) para ver tu webcam encima del Layout Editor.<br>Sirve para <span class="tour-highlight">posicionar los sprites</span> sabiendo donde quedara tu cara en OBS/Discord.',
       target: '#cameraToggleBtn',
       position: 'bottom',
       action: 'click',
-      progress: 92
+      progress: 94
     },
     {
       id: 'finished',
