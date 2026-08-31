@@ -1,5 +1,6 @@
 const SPECIES = [
   {id:0,name:'(Vacío)'},
+  // Gen 1 (1-151)
   {id:1,name:'Bulbasaur'},{id:2,name:'Ivysaur'},{id:3,name:'Venusaur'},
   {id:4,name:'Charmander'},{id:5,name:'Charmeleon'},{id:6,name:'Charizard'},
   {id:7,name:'Squirtle'},{id:8,name:'Wartortle'},{id:9,name:'Blastoise'},
@@ -51,6 +52,7 @@ const SPECIES = [
   {id:145,name:'Zapdos'},{id:146,name:'Moltres'},{id:147,name:'Dratini'},
   {id:148,name:'Dragonair'},{id:149,name:'Dragonite'},{id:150,name:'Mewtwo'},
   {id:151,name:'Mew'},
+  // Gen 2 (152-251)
   {id:152,name:'Chikorita'},{id:153,name:'Bayleef'},{id:154,name:'Meganium'},
   {id:155,name:'Cyndaquil'},{id:156,name:'Quilava'},{id:157,name:'Typhlosion'},
   {id:158,name:'Totodile'},{id:159,name:'Croconaw'},{id:160,name:'Feraligatr'},
@@ -85,6 +87,7 @@ const SPECIES = [
   {id:245,name:'Suicune'},{id:246,name:'Larvitar'},{id:247,name:'Pupitar'},
   {id:248,name:'Tyranitar'},{id:249,name:'Lugia'},{id:250,name:'Ho-Oh'},
   {id:251,name:'Celebi'},
+  // Gen 3 (252-386)
   {id:252,name:'Treecko'},{id:253,name:'Grovyle'},{id:254,name:'Sceptile'},
   {id:255,name:'Torchic'},{id:256,name:'Combusken'},{id:257,name:'Blaziken'},
   {id:258,name:'Mudkip'},{id:259,name:'Marshtomp'},{id:260,name:'Swampert'},
@@ -130,6 +133,7 @@ const SPECIES = [
   {id:378,name:'Regice'},{id:379,name:'Registeel'},{id:380,name:'Latias'},
   {id:381,name:'Latios'},{id:382,name:'Kyogre'},{id:383,name:'Groudon'},
   {id:384,name:'Rayquaza'},{id:385,name:'Jirachi'},{id:386,name:'Deoxys'},
+  // Gen 4 (387-493)
   {id:387,name:'Turtwig'},{id:388,name:'Grotle'},{id:389,name:'Torterra'},
   {id:390,name:'Chimchar'},{id:391,name:'Monferno'},{id:392,name:'Infernape'},
   {id:393,name:'Piplup'},{id:394,name:'Prinplup'},{id:395,name:'Empoleon'},
@@ -165,6 +169,7 @@ const SPECIES = [
   {id:483,name:'Heatran'},{id:484,name:'Regigigas'},{id:485,name:'Giratina'},
   {id:486,name:'Cresselia'},{id:487,name:'Phione'},{id:488,name:'Manaphy'},
   {id:489,name:'Darkrai'},{id:490,name:'Shaymin'},{id:491,name:'Arceus'},
+  // Gen 5 (492-649)
   {id:492,name:'Victini'},{id:493,name:'Snivy'},{id:494,name:'Servine'},
   {id:495,name:'Serperior'},{id:496,name:'Tepig'},{id:497,name:'Pignite'},
   {id:498,name:'Emboar'},{id:499,name:'Oshawott'},{id:500,name:'Dewott'},
@@ -217,6 +222,7 @@ const SPECIES = [
   {id:639,name:'Tornadus'},{id:640,name:'Thundurus'},{id:641,name:'Reshiram'},
   {id:642,name:'Zekrom'},{id:643,name:'Landorus'},{id:644,name:'Kyurem'},
   {id:645,name:'Keldeo'},{id:646,name:'Meloetta'},{id:647,name:'Genesect'},
+  // Gen 6 (648-721)
   {id:648,name:'Chespin'},{id:649,name:'Quilladin'},{id:650,name:'Chesnaught'},
   {id:651,name:'Fennekin'},{id:652,name:'Braixen'},{id:653,name:'Delphox'},
   {id:654,name:'Froakie'},{id:655,name:'Frogadier'},{id:656,name:'Greninja'},
@@ -234,6 +240,7 @@ const SPECIES = [
   {id:690,name:'Avalugg'},{id:691,name:'Noibat'},{id:692,name:'Noivern'},
   {id:693,name:'Xerneas'},{id:694,name:'Yveltal'},{id:695,name:'Zygarde'},
   {id:696,name:'Diancie'},{id:697,name:'Hoopa'},{id:698,name:'Volcanion'},
+  // Gen 7 (699-809)
   {id:699,name:'Rowlet'},{id:700,name:'Dartrix'},{id:701,name:'Decidueye'},
   {id:702,name:'Litten'},{id:703,name:'Torracat'},{id:704,name:'Incineroar'},
   {id:705,name:'Popplio'},{id:706,name:'Brionne'},{id:707,name:'Primarina'},
@@ -263,6 +270,7 @@ const SPECIES = [
   {id:777,name:'Magearna'},{id:778,name:'Marshadow'},{id:779,name:'Poipole'},
   {id:780,name:'Naganadel'},{id:781,name:'Stakataka'},{id:782,name:'Blacephalon'},
   {id:783,name:'Zeraora'},{id:784,name:'Meltan'},{id:785,name:'Melmetal'},
+  // Gen 8 (786-905) includes BDSP + Legends Arceus
   {id:786,name:'Grookey'},{id:787,name:'Thwackey'},{id:788,name:'Rillaboom'},
   {id:789,name:'Scorbunny'},{id:790,name:'Raboot'},{id:791,name:'Cinderace'},
   {id:792,name:'Sobble'},{id:793,name:'Drizzile'},{id:794,name:'Inteleon'},
@@ -295,6 +303,7 @@ const SPECIES = [
   {id:873,name:'Wyrdeer'},{id:874,name:'Kleavor'},{id:875,name:'Ursaluna'},
   {id:876,name:'Basculegion'},{id:877,name:'Sneasler'},{id:878,name:'Overqwil'},
   {id:879,name:'Enamorus'},
+  // Gen 9 (880-1025)
   {id:880,name:'Sprigatito'},{id:881,name:'Floragato'},{id:882,name:'Meowscarada'},
   {id:883,name:'Fuecoco'},{id:884,name:'Crocalor'},{id:885,name:'Skeledirge'},
   {id:886,name:'Quaxly'},{id:887,name:'Quaxwell'},{id:888,name:'Quaquaval'},
@@ -335,6 +344,32 @@ const SPECIES = [
   {id:991,name:'Ogerpon'},{id:992,name:'Archaludon'},{id:993,name:'Hydrapple'},
   {id:994,name:'Gouging Fire'},{id:995,name:'Raging Bolt'},{id:996,name:'Iron Boulder'},
   {id:997,name:'Iron Crown'},{id:998,name:'Terapagos'},{id:999,name:'Pecharunt'},
+  // Regional forms (negative IDs, sequential from -1001)
+  // Alola
+  {id:-1001,name:'Sandshrew (Alola)'},{id:-1002,name:'Sandslash (Alola)'},
+  {id:-1003,name:'Vulpix (Alola)'},{id:-1004,name:'Ninetales (Alola)'},
+  {id:-1005,name:'Meowth (Alola)'},{id:-1006,name:'Persian (Alola)'},
+  {id:-1007,name:'Geodude (Alola)'},{id:-1008,name:'Graveler (Alola)'},
+  {id:-1009,name:'Golem (Alola)'},{id:-1010,name:'Grimer (Alola)'},
+  {id:-1011,name:'Muk (Alola)'},{id:-1012,name:'Exeggutor (Alola)'},
+  {id:-1013,name:'Marowak (Alola)'},
+  // Galar
+  {id:-1014,name:'Ponyta (Galar)'},{id:-1015,name:'Rapidash (Galar)'},
+  {id:-1016,name:'Slowpoke (Galar)'},{id:-1017,name:'Slowbro (Galar)'},
+  {id:-1018,name:'Meowth (Galar)'},{id:-1019,name:'Weezing (Galar)'},
+  {id:-1020,name:'Mr. Mime (Galar)'},{id:-1021,name:'Slowking (Galar)'},
+  {id:-1022,name:'Corsola (Galar)'},{id:-1023,name:'Darumaka (Galar)'},
+  {id:-1024,name:'Darmanitan (Galar)'},{id:-1025,name:'Yamask (Galar)'},
+  {id:-1026,name:'Stunfisk (Galar)'},
+  // Hisui
+  {id:-1027,name:'Growlithe (Hisui)'},{id:-1028,name:'Arcanine (Hisui)'},
+  {id:-1029,name:'Typhlosion (Hisui)'},{id:-1030,name:'Voltorb (Hisui)'},
+  {id:-1031,name:'Electrode (Hisui)'},{id:-1032,name:'Samurott (Hisui)'},
+  {id:-1033,name:'Lilligant (Hisui)'},{id:-1034,name:'Zorua (Hisui)'},
+  {id:-1035,name:'Zoroark (Hisui)'},{id:-1036,name:'Braviary (Hisui)'},
+  {id:-1037,name:'Avalugg (Hisui)'},{id:-1038,name:'Decidueye (Hisui)'},
+  // Paldea
+  {id:-1039,name:'Tauros (Paldea)'},{id:-1040,name:'Wooper (Paldea)'},
 ];
 
 module.exports = SPECIES;

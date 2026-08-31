@@ -394,13 +394,14 @@ ipcMain.handle('get-team', (event, projectId) => {
     const { resolveSprite } = require('./src/sprite-scanner');
     const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
     const team = (project.manualTeam || []).map(entry => {
-      if (!entry || !entry.speciesId) return null;
-      const spriteUrl = resolveSprite(absStylePath, entry.speciesId, {
+      if (!entry) return null;
+      const speciesId = entry.speciesId || 0;
+      const spriteUrl = speciesId ? resolveSprite(absStylePath, speciesId, {
         spritesRoot: SPRITES_ROOT,
         styleId: project.spriteStyle
-      });
+      }) : null;
       return {
-        speciesId: entry.speciesId,
+        speciesId,
         nickname: entry.nickname || '',
         isShiny: false,
         level: 0,
@@ -408,6 +409,27 @@ ipcMain.handle('get-team', (event, projectId) => {
         spriteUrl: spriteUrl ? `http://127.0.0.1:${overlayPort}${spriteUrl}` : null
       };
     }).filter(Boolean);
+
+    const phConfig = fileWatcher.placeholderConfigs.get(projectId);
+    if (phConfig && phConfig.usePlaceholder && team.length < 6) {
+      const placeholderUrl = resolveSprite(absStylePath, 0, {
+        spritesRoot: SPRITES_ROOT,
+        styleId: project.spriteStyle
+      });
+      if (placeholderUrl) {
+        while (team.length < 6) {
+          team.push({
+            speciesId: 0,
+            nickname: '',
+            isShiny: false,
+            level: 0,
+            form: 0,
+            isPlaceholder: true,
+            spriteUrl: `http://127.0.0.1:${overlayPort}${placeholderUrl}`
+          });
+        }
+      }
+    }
     return team;
   }
   const team = fileWatcher.getCachedTeam(projectId);
@@ -422,13 +444,14 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
   const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
 
   const team = manualTeam.map(entry => {
-    if (!entry || !entry.speciesId) return null;
-    const spriteUrl = resolveSprite(absStylePath, entry.speciesId, {
+    if (!entry) return null;
+    const speciesId = entry.speciesId || 0;
+    const spriteUrl = speciesId ? resolveSprite(absStylePath, speciesId, {
       spritesRoot: SPRITES_ROOT,
       styleId: project.spriteStyle
-    });
+    }) : null;
     return {
-      speciesId: entry.speciesId,
+      speciesId,
       nickname: entry.nickname || '',
       isShiny: false,
       level: 0,

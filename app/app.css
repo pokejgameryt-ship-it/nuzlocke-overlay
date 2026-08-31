@@ -1877,7 +1877,66 @@ kbd {
   padding: 5px 6px;
   font-size: 12px;
 }
-.manual-slot input[type="text"] {
+.species-search-wrapper {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+.species-search-input {
+  width: 100%;
+  background: #0f0f1a;
+  color: #e0e0e0;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 12px;
+  outline: none;
+}
+.species-search-input:focus {
+  border-color: #e94560;
+}
+.species-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #1a1a2e;
+  border: 1px solid #2a2a40;
+  border-radius: 0 0 4px 4px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.species-search-item {
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #ccc;
+}
+.species-search-item:hover {
+  background: #2a2a40;
+  color: #fff;
+}
+.species-search-item.selected {
+  background: #e94560;
+  color: #fff;
+}
+.species-search-id {
+  color: #888;
+  font-size: 11px;
+  margin-right: 4px;
+}
+.species-search-item.selected .species-search-id {
+  color: #fcc;
+}
+.species-search-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+.manual-nick-input {
   width: 100px;
   flex-shrink: 0;
   background: #0f0f1a;
@@ -1886,9 +1945,6 @@ kbd {
   border-radius: 4px;
   padding: 5px 6px;
   font-size: 12px;
-}
-.manual-slot input[type="text"]::placeholder {
-  color: #555;
 }
 .manual-slot .manual-sprite-preview {
   width: 28px;

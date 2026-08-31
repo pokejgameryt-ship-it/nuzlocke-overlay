@@ -356,24 +356,77 @@
       preview.className = 'manual-sprite-preview';
       row.appendChild(preview);
 
-      const sel = document.createElement('select');
-      allSpecies.forEach(sp => {
-        const opt = document.createElement('option');
-        opt.value = sp.id;
-        opt.textContent = `#${sp.id} ${sp.name}`;
-        if (sp.id === entry.speciesId) opt.selected = true;
-        sel.appendChild(opt);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'species-search-wrapper';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'species-search-input';
+      const selectedSp = allSpecies.find(sp => sp.id === entry.speciesId);
+      input.value = selectedSp ? `#${selectedSp.id} ${selectedSp.name}` : '';
+      input.placeholder = t('searchPokemon') || 'Buscar Pokemon...';
+      input.setAttribute('autocomplete', 'off');
+
+      const dropdown = document.createElement('div');
+      dropdown.className = 'species-search-dropdown';
+      dropdown.style.display = 'none';
+
+      function renderDropdown(filter) {
+        dropdown.innerHTML = '';
+        const q = (filter || '').toLowerCase().trim();
+        let list = allSpecies;
+        if (q) {
+          list = allSpecies.filter(sp => {
+            const idStr = String(sp.id);
+            return sp.name.toLowerCase().includes(q) || idStr.startsWith(q) || idStr === q;
+          });
+        }
+        const shown = list.slice(0, 50);
+        for (const sp of shown) {
+          const item = document.createElement('div');
+          item.className = 'species-search-item';
+          if (sp.id === entry.speciesId) item.classList.add('selected');
+          item.innerHTML = `<span class="species-search-id">#${sp.id}</span> ${sp.name}`;
+          item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            project.manualTeam[i].speciesId = sp.id;
+            input.value = `#${sp.id} ${sp.name}`;
+            dropdown.style.display = 'none';
+            updateManualSlotPreview(preview, sp.id);
+            saveProject();
+            sendManualTeam();
+          });
+          dropdown.appendChild(item);
+        }
+        if (!shown.length) {
+          const empty = document.createElement('div');
+          empty.className = 'species-search-empty';
+          empty.textContent = t('noResults') || 'Sin resultados';
+          dropdown.appendChild(empty);
+        }
+      }
+
+      input.addEventListener('focus', () => {
+        renderDropdown(input.value);
+        dropdown.style.display = 'block';
       });
-      sel.addEventListener('change', async () => {
-        project.manualTeam[i].speciesId = parseInt(sel.value) || 0;
-        updateManualSlotPreview(preview, project.manualTeam[i].speciesId);
-        await saveProject();
-        await sendManualTeam();
+
+      input.addEventListener('input', () => {
+        renderDropdown(input.value);
+        dropdown.style.display = 'block';
       });
-      row.appendChild(sel);
+
+      input.addEventListener('blur', () => {
+        setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+      });
+
+      wrapper.appendChild(input);
+      wrapper.appendChild(dropdown);
+      row.appendChild(wrapper);
 
       const nick = document.createElement('input');
       nick.type = 'text';
+      nick.className = 'manual-nick-input';
       nick.placeholder = t('nickname') || 'Mote';
       nick.value = entry.nickname || '';
       let nickTimeout = null;
