@@ -150,6 +150,8 @@
 
     window.api.onTeamUpdated((projectId, team, error) => {
       if (projectId === currentId) {
+        const project = projects.find(p => p.id === currentId);
+        if (project && project.inputMode === 'manual') return;
         if (error === 'encrypted') {
           currentTeam = [];
           const status = $('#teamStatus');
@@ -159,7 +161,6 @@
           currentTeam = team;
           updateTeamStatus();
         }
-        const project = projects.find(p => p.id === currentId);
         if (project) renderCanvasSlots(project.slots, project.nicknameSlots);
       }
     });
@@ -1972,14 +1973,15 @@
             project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
           }
           await window.api.stopWatching(currentId);
+          await saveProject();
           await renderManualTeamGrid();
           await sendManualTeam();
         } else {
           saveCard.style.display = 'block';
           manualCard.style.display = 'none';
           await window.api.stopWatching(currentId);
+          await saveProject();
         }
-        await saveProject();
       });
     });
   }
