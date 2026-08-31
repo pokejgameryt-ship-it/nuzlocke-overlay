@@ -97,6 +97,11 @@ El motor de lectura usa **PKHeX** (la biblioteca estándar de la comunidad Pokem
 ## Características principales
 
 - **Modo Manual** (NEW) — Selecciona tu equipo manualmente de una lista con todos los Pokemon (Gen 1-9) sin necesidad de save file
+- **Busqueda de Pokemon** (NEW) — Busca por nombre o numero Pokedex en el selector del modo manual
+- **Opciones especiales** (NEW) — "Ninguno" (slot vacio) y "Huevo" (sprite de huevo) en el dropdown
+- **Fakemon** (NEW) — Importa sprites personalizados con numeracion automatica (F001, F002...)
+- **Formas regionales** (NEW) — Formas de Alola, Galar, Hisui y Paldea en el selector
+- **Toggle de betas** (NEW) — Checkbox en Configuracion para incluir versiones beta en actualizaciones
 - **Modo Automatico** — Lee el save file del emulador y detecta el equipo con PKHeX, igual que siempre
 - **Lectura en tiempo real** — File watcher cada 500ms, actualiza overlay al guardar
 - **PKHeX para todo** — Gen 1-9 con la misma biblioteca que usan los editores de saves
@@ -232,12 +237,16 @@ Si la app te resulta útil y quieres apoyar el desarrollo:
 
 ### v1.1.0-beta.1 (BETA)
 - **Modo Manual** — Selecciona tu equipo manualmente de una lista con todos los Pokemon (Gen 1-9)
-- **Toggle Automatico/Manual** — Selector en la pestaña del proyecto
-- **6 slots con sprites** — Cada slot muestra el sprite del Pokemon seleccionado
-- **Motes manuales** — Campo de texto junto a cada slot para apodos
-- **Instalador auto-descarga .NET 8.0** — Descarga e instala el runtime si falta
-- **Banner de aviso persistente** — Banner rojo si .NET no está detectado
-- **Update checker corregido** — No muestra versiones beta como actualizaciones
+- **Busqueda de Pokemon** — Busca por nombre o numero Pokedex en el selector
+- **Opciones especiales** — "Ninguno" (slot vacio) y "Huevo" (sprite de huevo)
+- **Fakemon** — Importa sprites personalizados, numeracion automatica (F001-F999)
+- **Formas regionales** — Alola, Galar, Hisui y Paldea en el selector
+- **Toggle de betas** — Checkbox en Configuracion para incluir versiones beta
+- **Dropdown agrupado** — Secciones: Especiales, Pokemon Oficiales, Fakemon
+- **Placeholder en modo manual** — Slots vacios muestran sprites de relleno
+- **Bug visual arreglado** — Slots ya no se superponen
+- **IDs corregidos** — Todos los 1025 Pokemon con IDs correctos
+- **Update checker** — Muestra changelog en el popup, toggle para betas
 
 ### v1.0.3
 - **PKHeX para TODAS las generaciones** — Gen 1-9 usan PKHeX siempre; parser nativo solo como último recurso sin .NET
