@@ -538,6 +538,28 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
     };
   }).filter(Boolean);
 
+  // Add placeholder entries if usePlaceholder is enabled and team has less than 6
+  const usePlaceholder = project.usePlaceholder === true;
+  if (usePlaceholder && team.length < 6) {
+    const placeholderUrl = resolveSprite(absStylePath, 0, {
+      spritesRoot: SPRITES_ROOT,
+      styleId: project.spriteStyle
+    });
+    if (placeholderUrl) {
+      while (team.length < 6) {
+        team.push({
+          speciesId: 0,
+          nickname: '',
+          isShiny: false,
+          level: 0,
+          form: 0,
+          isPlaceholder: true,
+          spriteUrl: placeholderUrl
+        });
+      }
+    }
+  }
+
   const prefixed = team.map(p => p.spriteUrl
     ? { ...p, spriteUrl: `http://127.0.0.1:${overlayPort}${p.spriteUrl}` }
     : p);
@@ -585,80 +607,64 @@ ipcMain.handle('import-fakemon', async (event) => {
   const destPath = path.join(FAKEMON_DIR, filename);
   fs.copyFileSync(srcPath, destPath);
 
-  // Simple name prompt using dialog.showMessageBox with a text input workaround
-  const nameResult = await dialog.showMessageBox(win, {
-    type: 'question',
-    buttons: ['Cancelar', 'Guardar'],
-    defaultId: 1,
-    title: 'Nombre del Fakemon',
-    message: `Nombre para ${idLabel}:`,
-    detail: 'Escribe el nombre y pulsa Guardar',
-    cancelId: 0,
-    noLink: true
+  // Single modal window for name input with sprite preview
+  const inputWin = new BrowserWindow({
+    width: 380, height: 220, parent: win, modal: true,
+    webPreferences: { nodeIntegration: true, contextIsolation: false },
+    resizable: false, autoHideMenuBar: true, show: false
+  });
+  inputWin.setMenu(null);
+  const inputHtml = `<!DOCTYPE html><html><head><style>
+    body{background:#1a1a2e;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;margin:0;padding:16px;overflow:hidden;}
+    input{background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;font-size:14px;width:280px;margin:8px 0;outline:none;}
+    input:focus{border-color:#e94560;}
+    .btn-row{display:flex;gap:8px;margin-top:12px;}
+    button{border:none;border-radius:4px;padding:10px 24px;font-size:13px;cursor:pointer;}
+    .btn-primary{background:#e94560;color:#fff;}
+    .btn-primary:hover{background:#c73550;}
+    .btn-cancel{background:#2a2a40;color:#aaa;}
+    .btn-cancel:hover{background:#3a3a50;color:#fff;}
+    label{font-size:13px;margin-bottom:4px;color:#ccc;}
+    .preview{width:64px;height:64px;image-rendering:pixelated;margin-bottom:8px;border:1px solid #2a2a40;border-radius:4px;}
+    h3{margin:0 0 8px;color:#e94560;font-size:14px;}
+  </style></head><body>
+    <h3>Nuevo Fakemon: ${idLabel}</h3>
+    <img class="preview" src="file:///${destPath.replace(/\\/g, '/')}" alt="Sprite preview">
+    <label>Nombre:</label>
+    <input id="fName" type="text" placeholder="${idLabel}" autofocus>
+    <div class="btn-row">
+      <button class="btn-cancel" id="fCancel">Cancelar</button>
+      <button class="btn-primary" id="fOk">Crear Fakemon</button>
+    </div>
+    <script>
+      const input = document.getElementById('fName');
+      input.focus();
+      document.getElementById('fOk').onclick=()=>{
+        const n=input.value.trim();
+        window.returnValue = n || '${idLabel}';
+        window.close();
+      };
+      document.getElementById('fCancel').onclick=()=>{
+        window.returnValue = '';
+        window.close();
+      };
+      input.addEventListener('keydown',(e)=>{
+        if(e.key==='Enter')document.getElementById('fOk').click();
+        if(e.key==='Escape')document.getElementById('fCancel').click();
+      });
+    </script>
+  </body></html>`;
+  inputWin.loadURL('data:text/html,' + encodeURIComponent(inputHtml));
+  
+  inputWin.once('ready-to-show', () => inputWin.show());
+  
+  let fakemonName = await new Promise(resolve => {
+    inputWin.on('closed', () => {
+      resolve(inputWin.returnValue || '');
+    });
   });
   
-  let fakemonName = idLabel;
-  if (nameResult.response === 1) {
-    // Use a simple prompt for the name
-    const inputWin = new BrowserWindow({
-      width: 360, height: 160, parent: win, modal: true,
-      webPreferences: { nodeIntegration: true, contextIsolation: false },
-      resizable: false, autoHideMenuBar: true, show: false
-    });
-    inputWin.setMenu(null);
-    const inputHtml = `<!DOCTYPE html><html><head><style>
-      body{background:#1a1a2e;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;margin:0;padding:16px;}
-      input{background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;font-size:14px;width:260px;margin:8px 0;outline:none;}
-      input:focus{border-color:#e94560;}
-      .btn-row{display:flex;gap:8px;margin-top:8px;}
-      button{border:none;border-radius:4px;padding:8px 20px;font-size:13px;cursor:pointer;}
-      .btn-primary{background:#e94560;color:#fff;}
-      .btn-primary:hover{background:#c73550;}
-      .btn-cancel{background:#2a2a40;color:#aaa;}
-      .btn-cancel:hover{background:#3a3a50;color:#fff;}
-      label{font-size:13px;margin-bottom:4px;color:#ccc;}
-      .preview{width:64px;height:64px;image-rendering:pixelated;margin-bottom:8px;}
-    </style></head><body>
-      <img class="preview" src="file:///${destPath.replace(/\\/g, '/')}">
-      <label>Nombre para ${idLabel}:</label>
-      <input id="fName" type="text" placeholder="${idLabel}" autofocus>
-      <div class="btn-row">
-        <button class="btn-cancel" id="fCancel">Cancelar</button>
-        <button class="btn-primary" id="fOk">Guardar</button>
-      </div>
-      <script>
-        document.getElementById('fOk').onclick=()=>{
-          const n=document.getElementById('fName').value.trim();
-          window.returnValue = n || '${idLabel}';
-          window.close();
-        };
-        document.getElementById('fCancel').onclick=()=>{
-          window.returnValue = '';
-          window.close();
-        };
-        document.getElementById('fName').addEventListener('keydown',(e)=>{
-          if(e.key==='Enter')document.getElementById('fOk').click();
-          if(e.key==='Escape')document.getElementById('fCancel').click();
-        });
-      </script>
-    </body></html>`;
-    inputWin.loadURL('data:text/html,' + encodeURIComponent(inputHtml));
-    
-    inputWin.once('ready-to-show', () => inputWin.show());
-    
-    fakemonName = await new Promise(resolve => {
-      inputWin.on('closed', () => {
-        resolve(inputWin.returnValue || '');
-      });
-    });
-    
-    if (!fakemonName) {
-      const filePath = path.join(FAKEMON_DIR, filename);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return null;
-    }
-  } else {
-    // User cancelled at first dialog
+  if (!fakemonName) {
     const filePath = path.join(FAKEMON_DIR, filename);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     return null;
