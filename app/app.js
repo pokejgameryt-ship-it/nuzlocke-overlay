@@ -2332,15 +2332,28 @@
     const skipBtn = document.getElementById('updateSkip');
     const goBtn = document.getElementById('updateGo');
     if (!overlay) return;
-    msg.textContent = t('updateMessage');
+
+    if (data.isPrerelease) {
+      msg.innerHTML = `<span class="update-beta-badge">BETA</span> ${t('updateBetaMessage')}`;
+    } else {
+      msg.textContent = t('updateMessage');
+    }
+
     const versionInfo = document.createElement('div');
     versionInfo.className = 'update-version-info';
     versionInfo.innerHTML = `<span class="update-version-current">v${data.currentVersion}</span> <span class="update-version-arrow">&rarr;</span> <span class="update-version-latest">v${data.latestVersion}</span>`;
     msg.parentNode.insertBefore(versionInfo, notes);
+
     const parsed = parseChangelog(data.releaseNotes || '', t);
     notes.innerHTML = parsed || '';
     overlay.style.display = 'flex';
-    goBtn.textContent = t('updateGo');
+
+    if (data.isPrerelease) {
+      goBtn.textContent = t('updateGoBeta') || 'Instalar Beta';
+    } else {
+      goBtn.textContent = t('updateGo');
+    }
+
     goBtn.onclick = async () => {
       goBtn.textContent = t('updateDownloading') || 'Downloading...';
       goBtn.disabled = true;

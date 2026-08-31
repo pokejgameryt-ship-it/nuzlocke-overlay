@@ -671,9 +671,9 @@ function fetchJSON(url) {
 ipcMain.handle('check-for-updates', async () => {
   try {
     const releases = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases`);
-    const stableRelease = (Array.isArray(releases) ? releases : []).find(r => !r.prerelease && !r.draft);
-    if (!stableRelease) return { hasUpdate: false, hasChangelog: false };
-    const latestVersion = (stableRelease.tag_name || '').replace(/^v/, '');
+    const allReleases = (Array.isArray(releases) ? releases : []).filter(r => !r.draft);
+    const stableRelease = allReleases.find(r => !r.prerelease);
+    const betaRelease = allReleases.find(r => r.prerelease);
     const currentVersion = app.getVersion();
     const settings = loadSettings();
     const skippedVersion = settings.skippedVersion || '';
@@ -681,21 +681,43 @@ ipcMain.handle('check-for-updates', async () => {
 
     const parseVer = (v) => v.split('.').map(Number);
     const cur = parseVer(currentVersion);
-    const lat = parseVer(latestVersion);
-    let isNewer = false;
-    for (let i = 0; i < 3; i++) {
-      if ((lat[i] || 0) > (cur[i] || 0)) { isNewer = true; break; }
-      if ((lat[i] || 0) < (cur[i] || 0)) break;
+    const compareVer = (a, b) => {
+      const va = parseVer(a), vb = parseVer(b);
+      for (let i = 0; i < 3; i++) {
+        if ((va[i] || 0) > (vb[i] || 0)) return 1;
+        if ((va[i] || 0) < (vb[i] || 0)) return -1;
+      }
+      return 0;
+    };
+
+    let targetRelease = null;
+    let isPrerelease = false;
+    if (stableRelease) {
+      const stableVer = (stableRelease.tag_name || '').replace(/^v/, '');
+      if (compareVer(stableVer, currentVersion) > 0) {
+        targetRelease = stableRelease;
+      }
     }
-    const hasUpdate = isNewer;
+    if (!targetRelease && betaRelease) {
+      const betaVer = (betaRelease.tag_name || '').replace(/^v/, '');
+      if (compareVer(betaVer, currentVersion) > 0) {
+        targetRelease = betaRelease;
+        isPrerelease = true;
+      }
+    }
+    if (!targetRelease) return { hasUpdate: false, hasChangelog: false };
+
+    const latestVersion = (targetRelease.tag_name || '').replace(/^v/, '');
+    const hasUpdate = true;
     const hasChangelog = latestVersion !== lastSeenVersion;
-    console.log('[UPDATE] check:', { currentVersion, latestVersion, lastSeenVersion, hasUpdate, hasChangelog });
+    console.log('[UPDATE] check:', { currentVersion, latestVersion, isPrerelease, lastSeenVersion, hasUpdate, hasChangelog });
     return {
       hasUpdate,
       currentVersion,
       latestVersion,
-      releaseNotes: stableRelease.body || '',
-      releaseUrl: stableRelease.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
+      isPrerelease,
+      releaseNotes: targetRelease.body || '',
+      releaseUrl: targetRelease.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
       skipped: hasUpdate && skippedVersion === latestVersion,
       hasChangelog: !!hasChangelog,
     };
