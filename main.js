@@ -217,22 +217,22 @@ function createSettingsWindow(parent) {
   settingsWindow.on('closed', () => { settingsWindow = null; });
 }
 
+const FAKEMON_DIR = path.join(app.getPath('userData'), 'Fakemon');
+function ensureFakemonDir() { if (!fs.existsSync(FAKEMON_DIR)) fs.mkdirSync(FAKEMON_DIR, {recursive: true}); }
+function getFakemonMetaPath() { return path.join(FAKEMON_DIR, 'fakemon.json'); }
+function loadFakemonMeta() {
+  const p = getFakemonMetaPath();
+  if (fs.existsSync(p)) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch(e) {} }
+  return [];
+}
+function saveFakemonMeta(list) {
+  ensureFakemonDir();
+  fs.writeFileSync(getFakemonMetaPath(), JSON.stringify(list, null, 2), 'utf8');
+}
+
 function startOverlayServer() {
   const config = loadConfig();
   overlayPort = config.port || 19876;
-
-  const FAKEMON_DIR = path.join(app.getPath('userData'), 'Fakemon');
-  function ensureFakemonDir() { if (!fs.existsSync(FAKEMON_DIR)) fs.mkdirSync(FAKEMON_DIR, {recursive: true}); }
-  function getFakemonMetaPath() { return path.join(FAKEMON_DIR, 'fakemon.json'); }
-  function loadFakemonMeta() {
-    const p = getFakemonMetaPath();
-    if (fs.existsSync(p)) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch(e) {} }
-    return [];
-  }
-  function saveFakemonMeta(list) {
-    ensureFakemonDir();
-    fs.writeFileSync(getFakemonMetaPath(), JSON.stringify(list, null, 2), 'utf8');
-  }
 
   const expressApp = express();
   expressApp.use('/css', express.static(path.join(APP_DIR, 'public', 'css')));
