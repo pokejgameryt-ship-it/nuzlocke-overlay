@@ -296,6 +296,7 @@
     await refreshTeam();
     if (mode === 'manual') {
       await renderManualTeamGrid();
+      await sendManualTeam();
     }
     if (!project.slots) project.slots = getDefaultSlots();
     if (!project.nicknameSlots) project.nicknameSlots = getDefaultNicknameSlots(project.slots);
@@ -398,8 +399,7 @@
             input.value = sp.id < 0 && sp.id > -1000 ? sp.name : (sp.id <= -2000 ? `${sp.idLabel || 'F???'} ${sp.name}` : `#${sp.id} ${sp.name}`);
             dropdown.style.display = 'none';
             updateManualSlotPreview(preview, sp.id);
-            saveProject();
-            sendManualTeam();
+            saveProject().then(() => sendManualTeam());
           });
           dropdown.appendChild(item);
         }
@@ -449,8 +449,7 @@
               input.value = `${f.idLabel || 'F???'} ${f.name}`;
               dropdown.style.display = 'none';
               updateManualSlotPreview(preview, f.id);
-              saveProject();
-              sendManualTeam();
+              saveProject().then(() => sendManualTeam());
             });
             item.innerHTML = prefix;
             item.appendChild(textSpan);
@@ -481,8 +480,8 @@
                   project.manualTeam[i].speciesId = -1;
                   input.value = '';
                   updateManualSlotPreview(preview, -1);
-                  saveProject();
-                  sendManualTeam();
+                  await saveProject();
+                  await sendManualTeam();
                 }
                 await refreshManualFakemonList();
               }

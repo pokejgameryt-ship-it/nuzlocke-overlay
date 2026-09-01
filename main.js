@@ -256,8 +256,11 @@ function startOverlayServer() {
       const { resolveSprite } = require('./src/sprite-scanner');
       const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
       const fakemonMeta = loadFakemonMeta();
-      const team = (project.manualTeam || []).map(entry => {
-        if (!entry) return null;
+      const rawTeam = project.manualTeam || [];
+      const team = rawTeam.map(entry => {
+        if (!entry) {
+          return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null };
+        }
         const speciesId = entry.speciesId || 0;
         let spriteUrl = null;
         if (speciesId <= -2000) {
@@ -277,20 +280,23 @@ function startOverlayServer() {
           form: 0,
           spriteUrl: spriteUrl ? `http://127.0.0.1:${overlayPort}${spriteUrl}` : null
         };
-      }).filter(Boolean);
-      const phConfig = fileWatcher.placeholderConfigs.get(pid);
-      if (phConfig && phConfig.usePlaceholder && team.length < 6) {
+      });
+
+      while (team.length < 6) {
+        team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null });
+      }
+
+      if (project.usePlaceholder) {
         const placeholderUrl = resolveSprite(absStylePath, 0, {
           spritesRoot: SPRITES_ROOT,
           styleId: project.spriteStyle
         });
         if (placeholderUrl) {
-          while (team.length < 6) {
-            team.push({
-              speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0,
-              isPlaceholder: true,
-              spriteUrl: `http://127.0.0.1:${overlayPort}${placeholderUrl}`
-            });
+          for (let i = 0; i < 6; i++) {
+            if (!team[i].spriteUrl) {
+              team[i].spriteUrl = `http://127.0.0.1:${overlayPort}${placeholderUrl}`;
+              team[i].isPlaceholder = true;
+            }
           }
         }
       }
@@ -429,11 +435,9 @@ ipcMain.handle('create-project', (event, data) => {
 ipcMain.handle('update-project', (event, id, data) => {
   const updated = projectManager.update(id, data);
   if (updated) {
-    fileWatcher.updatePlaceholderConfig(id, {
-      usePlaceholder: updated.usePlaceholder || false
-    });
     fileWatcher.stopWatching(id);
     if (updated.inputMode !== 'manual' && updated.savePath) startWatching(updated);
+    else fileWatcher.updatePlaceholderConfig(id, { usePlaceholder: updated.usePlaceholder || false });
     const clients = sseClients.get(id) || new Set();
     for (const client of clients) {
       client.write(`event: config-updated\ndata: ${JSON.stringify(updated)}\n\n`);
@@ -454,8 +458,11 @@ ipcMain.handle('get-team', (event, projectId) => {
     const { resolveSprite } = require('./src/sprite-scanner');
     const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
     const fakemonMeta = loadFakemonMeta();
-    const team = (project.manualTeam || []).map(entry => {
-      if (!entry) return null;
+    const rawTeam = project.manualTeam || [];
+    const team = rawTeam.map(entry => {
+      if (!entry) {
+        return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null };
+      }
       const speciesId = entry.speciesId || 0;
       let spriteUrl = null;
       if (speciesId <= -2000) {
@@ -477,25 +484,23 @@ ipcMain.handle('get-team', (event, projectId) => {
         form: 0,
         spriteUrl: spriteUrl ? `http://127.0.0.1:${overlayPort}${spriteUrl}` : null
       };
-    }).filter(Boolean);
+    });
 
-    const phConfig = fileWatcher.placeholderConfigs.get(projectId);
-    if (phConfig && phConfig.usePlaceholder && team.length < 6) {
+    while (team.length < 6) {
+      team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null });
+    }
+
+    if (project.usePlaceholder) {
       const placeholderUrl = resolveSprite(absStylePath, 0, {
         spritesRoot: SPRITES_ROOT,
         styleId: project.spriteStyle
       });
       if (placeholderUrl) {
-        while (team.length < 6) {
-          team.push({
-            speciesId: 0,
-            nickname: '',
-            isShiny: false,
-            level: 0,
-            form: 0,
-            isPlaceholder: true,
-            spriteUrl: `http://127.0.0.1:${overlayPort}${placeholderUrl}`
-          });
+        for (let i = 0; i < 6; i++) {
+          if (!team[i].spriteUrl) {
+            team[i].spriteUrl = `http://127.0.0.1:${overlayPort}${placeholderUrl}`;
+            team[i].isPlaceholder = true;
+          }
         }
       }
     }
@@ -513,8 +518,10 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
   const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
   const fakemonMeta = loadFakemonMeta();
 
-  const team = manualTeam.map(entry => {
-    if (!entry) return null;
+  const team = (manualTeam || []).map(entry => {
+    if (!entry) {
+      return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null };
+    }
     const speciesId = entry.speciesId || 0;
     let spriteUrl = null;
     if (speciesId <= -2000) {
@@ -536,26 +543,23 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
       form: 0,
       spriteUrl
     };
-  }).filter(Boolean);
+  });
 
-  // Add placeholder entries if usePlaceholder is enabled and team has less than 6
-  const usePlaceholder = project.usePlaceholder === true;
-  if (usePlaceholder && team.length < 6) {
+  while (team.length < 6) {
+    team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null });
+  }
+
+  if (project.usePlaceholder) {
     const placeholderUrl = resolveSprite(absStylePath, 0, {
       spritesRoot: SPRITES_ROOT,
       styleId: project.spriteStyle
     });
     if (placeholderUrl) {
-      while (team.length < 6) {
-        team.push({
-          speciesId: 0,
-          nickname: '',
-          isShiny: false,
-          level: 0,
-          form: 0,
-          isPlaceholder: true,
-          spriteUrl: placeholderUrl
-        });
+      for (let i = 0; i < team.length; i++) {
+        if (!team[i].spriteUrl) {
+          team[i].spriteUrl = placeholderUrl;
+          team[i].isPlaceholder = true;
+        }
       }
     }
   }
@@ -637,15 +641,16 @@ ipcMain.handle('import-fakemon', async (event) => {
       <button class="btn-primary" id="fOk">Crear Fakemon</button>
     </div>
     <script>
+      const { ipcRenderer } = require('electron');
       const input = document.getElementById('fName');
       input.focus();
       document.getElementById('fOk').onclick=()=>{
         const n=input.value.trim();
-        window.returnValue = n || '${idLabel}';
+        ipcRenderer.send('fakemon-name-result', n || '${idLabel}');
         window.close();
       };
       document.getElementById('fCancel').onclick=()=>{
-        window.returnValue = '';
+        ipcRenderer.send('fakemon-name-result', '');
         window.close();
       };
       input.addEventListener('keydown',(e)=>{
@@ -658,11 +663,32 @@ ipcMain.handle('import-fakemon', async (event) => {
   
   inputWin.once('ready-to-show', () => inputWin.show());
   
-  let fakemonName = await new Promise(resolve => {
+  let fakemonName = null;
+  let finished = false;
+  await new Promise(resolve => {
+    const onName = (e, name) => {
+      if (!finished) {
+        finished = true;
+        fakemonName = name || '';
+        resolve();
+      }
+    };
+    ipcMain.once('fakemon-name-result', onName);
     inputWin.on('closed', () => {
-      resolve(inputWin.returnValue || '');
+      if (!finished) {
+        finished = true;
+        fakemonName = null;
+      }
+      ipcMain.removeListener('fakemon-name-result', onName);
+      resolve();
     });
   });
+  
+  if (!fakemonName) {
+    const filePath = path.join(FAKEMON_DIR, filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return null;
+  }
   
   if (!fakemonName) {
     const filePath = path.join(FAKEMON_DIR, filename);
