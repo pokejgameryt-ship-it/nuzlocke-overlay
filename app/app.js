@@ -554,13 +554,14 @@
       const result = await window.api.importFakemon();
       console.log('[FAKEMON] importFakemon result:', result);
       if (!result) { console.log('[FAKEMON] result is null/undefined, aborting'); return; }
-    const project = projects.find(p => p.id === currentId);
-    if (!project) return;
-    if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
-    project.manualTeam[slotIndex].speciesId = result.id;
-    await saveProject();
-    await sendManualTeam();
-    await renderManualTeamGrid();
+      const project = projects.find(p => p.id === currentId);
+      if (!project) return;
+      if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
+      project.manualTeam[slotIndex].speciesId = result.id;
+      await saveProject();
+      await sendManualTeam();
+      await renderManualTeamGrid();
+    } catch(e) { console.error('[FAKEMON] Error:', e); }
   }
 
   async function editFakemon(fakemon) {
