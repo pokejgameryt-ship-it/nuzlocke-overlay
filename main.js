@@ -433,6 +433,7 @@ ipcMain.handle('create-project', (event, data) => {
   return project;
 });
 ipcMain.handle('update-project', (event, id, data) => {
+  console.log('[MAIN] update-project:', id, 'inputMode:', data.inputMode);
   const updated = projectManager.update(id, data);
   if (updated) {
     fileWatcher.stopWatching(id);
@@ -454,6 +455,7 @@ ipcMain.handle('delete-project', (event, id) => {
 // Team
 ipcMain.handle('get-team', (event, projectId) => {
   const project = projectManager.get(projectId);
+  console.log('[MAIN] get-team:', projectId, 'inputMode:', project?.inputMode);
   if (project && project.inputMode === 'manual') {
     const { resolveSprite } = require('./src/sprite-scanner');
     const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
@@ -512,7 +514,8 @@ ipcMain.handle('get-team', (event, projectId) => {
 
 ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
   const project = projectManager.get(projectId);
-  if (!project || project.inputMode !== 'manual') return null;
+  console.log('[MAIN] set-manual-team:', projectId, 'inputMode:', project?.inputMode, 'manualTeam len:', manualTeam?.length);
+  if (!project || project.inputMode !== 'manual') { console.log('[MAIN] set-manual-team: RETURNING NULL'); return null; }
 
   const { resolveSprite } = require('./src/sprite-scanner');
   const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
@@ -593,6 +596,7 @@ ipcMain.handle('get-fakemon-sprite', (event, fakemonId) => {
 });
 
 ipcMain.handle('import-fakemon', async (event) => {
+  console.log('[MAIN] import-fakemon called');
   const { dialog, BrowserWindow } = require('electron');
   const win = BrowserWindow.getFocusedWindow();
   const result = await dialog.showOpenDialog(win, {
@@ -647,11 +651,9 @@ ipcMain.handle('import-fakemon', async (event) => {
       document.getElementById('fOk').onclick=()=>{
         const n=input.value.trim();
         ipcRenderer.send('fakemon-name-result', n || '${idLabel}');
-        window.close();
       };
       document.getElementById('fCancel').onclick=()=>{
         ipcRenderer.send('fakemon-name-result', '');
-        window.close();
       };
       input.addEventListener('keydown',(e)=>{
         if(e.key==='Enter')document.getElementById('fOk').click();
@@ -670,6 +672,7 @@ ipcMain.handle('import-fakemon', async (event) => {
       if (!finished) {
         finished = true;
         fakemonName = name || '';
+        if (inputWin && !inputWin.isDestroyed()) inputWin.close();
         resolve();
       }
     };
@@ -682,13 +685,15 @@ ipcMain.handle('import-fakemon', async (event) => {
       ipcMain.removeListener('fakemon-name-result', onName);
       resolve();
     });
+    setTimeout(() => {
+      if (!finished) {
+        finished = true;
+        fakemonName = null;
+        if (inputWin && !inputWin.isDestroyed()) inputWin.close();
+        resolve();
+      }
+    }, 30000);
   });
-  
-  if (!fakemonName) {
-    const filePath = path.join(FAKEMON_DIR, filename);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    return null;
-  }
   
   if (!fakemonName) {
     const filePath = path.join(FAKEMON_DIR, filename);

@@ -549,8 +549,11 @@
   }
 
   async function importFakemon(slotIndex) {
-    const result = await window.api.importFakemon();
-    if (!result) return;
+    console.log('[FAKEMON] importFakemon called for slot', slotIndex);
+    try {
+      const result = await window.api.importFakemon();
+      console.log('[FAKEMON] importFakemon result:', result);
+      if (!result) { console.log('[FAKEMON] result is null/undefined, aborting'); return; }
     const project = projects.find(p => p.id === currentId);
     if (!project) return;
     if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
@@ -675,15 +678,20 @@
   }
 
   async function sendManualTeam() {
-    if (!currentId) return;
+    if (!currentId) { console.log('[MANUAL] sendManualTeam: no currentId'); return; }
     const project = projects.find(p => p.id === currentId);
-    if (!project || project.inputMode !== 'manual') return;
-    const team = await window.api.setManualTeam(currentId, project.manualTeam);
-    if (team) {
-      currentTeam = team;
-      updateTeamStatus();
-      renderCanvasSlots(project.slots, project.nicknameSlots);
-    }
+    if (!project) { console.log('[MANUAL] sendManualTeam: project not found'); return; }
+    console.log('[MANUAL] sendManualTeam:', { inputMode: project.inputMode, manualTeamLen: project.manualTeam ? project.manualTeam.length : 'null' });
+    if (project.inputMode !== 'manual') { console.log('[MANUAL] sendManualTeam: NOT manual, returning'); return; }
+    try {
+      const team = await window.api.setManualTeam(currentId, project.manualTeam);
+      console.log('[MANUAL] sendManualTeam: backend returned', team ? team.length + ' entries' : 'null');
+      if (team) {
+        currentTeam = team;
+        updateTeamStatus();
+        renderCanvasSlots(project.slots, project.nicknameSlots);
+      }
+    } catch(e) { console.error('[MANUAL] sendManualTeam error:', e); }
   }
 
   function populateGameSelect(selected) {
@@ -2093,6 +2101,7 @@
         const mode = btn.dataset.mode;
         const project = projects.find(p => p.id === currentId);
         if (!project) return;
+        console.log('[MODE] Switching to:', mode, 'project.inputMode before:', project.inputMode);
         project.inputMode = mode;
 
         const saveCard = $('#saveFileCard');
@@ -2103,10 +2112,17 @@
           if (!project.manualTeam) {
             project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
           }
-          await window.api.stopWatching(currentId);
-          await saveProject();
-          await renderManualTeamGrid();
-          await sendManualTeam();
+          console.log('[MODE] Calling stopWatching, saveProject, renderManualTeamGrid, sendManualTeam');
+          try {
+            await window.api.stopWatching(currentId);
+            console.log('[MODE] stopWatching done');
+            await saveProject();
+            console.log('[MODE] saveProject done');
+            await renderManualTeamGrid();
+            console.log('[MODE] renderManualTeamGrid done');
+            await sendManualTeam();
+            console.log('[MODE] sendManualTeam done');
+          } catch(e) { console.error('[MODE] ERROR:', e); }
         } else {
           saveCard.style.display = 'block';
           manualCard.style.display = 'none';
