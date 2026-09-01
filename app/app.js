@@ -1820,6 +1820,7 @@
       if (!project) return;
       project.usePlaceholder = e.target.checked;
       await saveProject();
+      if (project.inputMode === 'manual') await sendManualTeam();
     });
 
     $('#nicknameFont').addEventListener('change', saveNicknameStyle);
