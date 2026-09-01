@@ -551,13 +551,50 @@
   async function importFakemon(slotIndex) {
     console.log('[FAKEMON] importFakemon called for slot', slotIndex);
     try {
-      const result = await window.api.importFakemon();
-      console.log('[FAKEMON] importFakemon result:', result);
-      if (!result) { console.log('[FAKEMON] result is null/undefined, aborting'); return; }
+      const spriteResult = await window.api.importFakemon();
+      if (!spriteResult) { console.log('[FAKEMON] no sprite selected'); return; }
+      const { filename, idLabel, nextNum, spriteUrl } = spriteResult;
+
+      const port = await window.api.getPort().catch(() => 19876);
+
+      const name = await new Promise(resolve => {
+        const div = document.createElement('div');
+        div.className = 'modal-overlay';
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;';
+        div.innerHTML = `
+          <div style="background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:20px;width:360px;color:#e0e0e0;font-family:system-ui;">
+            <h3 style="margin:0 0 12px;color:#e94560;">Nuevo Fakemon: ${idLabel}</h3>
+            <div style="text-align:center;margin-bottom:16px;">
+              <img src="http://127.0.0.1:${port}${spriteUrl}" alt="Preview" style="width:80px;height:80px;image-rendering:pixelated;border:1px solid #2a2a40;border-radius:4px;background:#0f0f1a;" onerror="this.style.display='none'">
+            </div>
+            <label style="font-size:13px;color:#aaa;">Nombre:</label>
+            <input id="fakemonNameInput" type="text" value="${idLabel}" style="width:100%;background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;margin:4px 0 12px;font-size:14px;box-sizing:border-box;" autofocus>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button id="fakemonCancelBtn" style="background:#2a2a40;color:#aaa;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">Cancelar</button>
+              <button id="fakemonOkBtn" style="background:#e94560;color:#fff;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;">Crear Fakemon</button>
+            </div>
+          </div>`;
+        document.body.appendChild(div);
+        const input = div.querySelector('#fakemonNameInput');
+        input.select();
+        div.querySelector('#fakemonOkBtn').onclick = () => { const v = input.value.trim(); document.body.removeChild(div); resolve(v || idLabel); };
+        div.querySelector('#fakemonCancelBtn').onclick = () => { document.body.removeChild(div); resolve(null); };
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') div.querySelector('#fakemonOkBtn').click();
+          if (e.key === 'Escape') div.querySelector('#fakemonCancelBtn').click();
+        });
+        setTimeout(() => input.focus(), 50);
+      });
+      if (!name) { console.log('[FAKEMON] user canceled name input'); return; }
+
+      const entry = await window.api.createFakemonEntry(filename, idLabel, nextNum, name);
+      console.log('[FAKEMON] entry created:', entry);
+      if (!entry) return;
+
       const project = projects.find(p => p.id === currentId);
       if (!project) return;
       if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
-      project.manualTeam[slotIndex].speciesId = result.id;
+      project.manualTeam[slotIndex].speciesId = entry.id;
       await saveProject();
       await sendManualTeam();
       await renderManualTeamGrid();

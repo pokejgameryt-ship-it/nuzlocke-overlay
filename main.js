@@ -14,6 +14,11 @@ const ProjectManager = require('./src/project-manager');
 const PresetManager = require('./src/preset-manager');
 const FileWatcher = require('./src/file-watcher');
 
+const DBG_LOG = path.join(app.getPath('userData'), 'debug.log');
+function dbgWrite(msg) {
+  try { fs.appendFileSync(DBG_LOG, `[${new Date().toISOString()}] ${msg}\n`); } catch(e) {}
+}
+
 function checkDotnetRuntime() {
   const userDotnet = path.join(process.env['USERPROFILE'] || '', '.dotnet', 'dotnet.exe');
   if (fs.existsSync(userDotnet)) return userDotnet;
@@ -377,6 +382,11 @@ function createWindow() {
     },
   });
   mainWindow.setMenu(null);
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' && !input.control && !input.alt && !input.shift) {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
   mainWindow.loadFile(path.join(__dirname, 'app', 'index.html'));
 
   try {
@@ -433,6 +443,7 @@ ipcMain.handle('create-project', (event, data) => {
   return project;
 });
 ipcMain.handle('update-project', (event, id, data) => {
+  dbgWrite(`update-project: id=${id} inputMode=${data.inputMode} usePlaceholder=${data.usePlaceholder}`);
   console.log('[MAIN] update-project:', id, 'inputMode:', data.inputMode);
   const updated = projectManager.update(id, data);
   if (updated) {
@@ -455,6 +466,7 @@ ipcMain.handle('delete-project', (event, id) => {
 // Team
 ipcMain.handle('get-team', (event, projectId) => {
   const project = projectManager.get(projectId);
+  dbgWrite(`get-team: id=${projectId} inputMode=${project?.inputMode} manualTeam=${JSON.stringify(project?.manualTeam?.map(m=>m?.speciesId))}`);
   console.log('[MAIN] get-team:', projectId, 'inputMode:', project?.inputMode);
   if (project && project.inputMode === 'manual') {
     const { resolveSprite } = require('./src/sprite-scanner');
@@ -514,8 +526,9 @@ ipcMain.handle('get-team', (event, projectId) => {
 
 ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
   const project = projectManager.get(projectId);
+  dbgWrite(`set-manual-team: id=${projectId} inputMode=${project?.inputMode} manualTeamLen=${manualTeam?.length} manualTeamIds=${JSON.stringify(manualTeam?.map(m=>m?.speciesId))}`);
   console.log('[MAIN] set-manual-team:', projectId, 'inputMode:', project?.inputMode, 'manualTeam len:', manualTeam?.length);
-  if (!project || project.inputMode !== 'manual') { console.log('[MAIN] set-manual-team: RETURNING NULL'); return null; }
+  if (!project || project.inputMode !== 'manual') { console.log('[MAIN] set-manual-team: RETURNING NULL'); dbgWrite('set-manual-team: RETURNING NULL - inputMode not manual'); return null; }
 
   const { resolveSprite } = require('./src/sprite-scanner');
   const absStylePath = path.resolve(SPRITES_ROOT, project.spriteStylePath || '');
@@ -596,7 +609,7 @@ ipcMain.handle('get-fakemon-sprite', (event, fakemonId) => {
 });
 
 ipcMain.handle('import-fakemon', async (event) => {
-  console.log('[MAIN] import-fakemon called');
+  dbgWrite('import-fakemon: called');
   const { dialog, BrowserWindow } = require('electron');
   const win = BrowserWindow.getFocusedWindow();
   const result = await dialog.showOpenDialog(win, {
@@ -604,7 +617,7 @@ ipcMain.handle('import-fakemon', async (event) => {
     filters: [{name: 'Images', extensions: ['png','gif','jpg','jpeg','webp']}],
     properties: ['openFile']
   });
-  if (result.canceled || !result.filePaths.length) return null;
+  if (result.canceled || !result.filePaths.length) { dbgWrite('import-fakemon: canceled'); return null; }
   const srcPath = result.filePaths[0];
   const meta = loadFakemonMeta();
   const nextNum = meta.length + 1;
@@ -614,96 +627,17 @@ ipcMain.handle('import-fakemon', async (event) => {
   ensureFakemonDir();
   const destPath = path.join(FAKEMON_DIR, filename);
   fs.copyFileSync(srcPath, destPath);
+  dbgWrite(`import-fakemon: sprite copied to ${destPath}, idLabel=${idLabel}`);
+  return { filename, idLabel, nextNum, spriteUrl: `/fakemon/${encodeURIComponent(filename)}` };
+});
 
-  // Single modal window for name input with sprite preview
-  const inputWin = new BrowserWindow({
-    width: 380, height: 220, parent: win, modal: true,
-    webPreferences: { nodeIntegration: true, contextIsolation: false },
-    resizable: false, autoHideMenuBar: true, show: false
-  });
-  inputWin.setMenu(null);
-  const inputHtml = `<!DOCTYPE html><html><head><style>
-    body{background:#1a1a2e;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;margin:0;padding:16px;overflow:hidden;}
-    input{background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a40;border-radius:4px;padding:8px;font-size:14px;width:280px;margin:8px 0;outline:none;}
-    input:focus{border-color:#e94560;}
-    .btn-row{display:flex;gap:8px;margin-top:12px;}
-    button{border:none;border-radius:4px;padding:10px 24px;font-size:13px;cursor:pointer;}
-    .btn-primary{background:#e94560;color:#fff;}
-    .btn-primary:hover{background:#c73550;}
-    .btn-cancel{background:#2a2a40;color:#aaa;}
-    .btn-cancel:hover{background:#3a3a50;color:#fff;}
-    label{font-size:13px;margin-bottom:4px;color:#ccc;}
-    .preview{width:64px;height:64px;image-rendering:pixelated;margin-bottom:8px;border:1px solid #2a2a40;border-radius:4px;}
-    h3{margin:0 0 8px;color:#e94560;font-size:14px;}
-  </style></head><body>
-    <h3>Nuevo Fakemon: ${idLabel}</h3>
-    <img class="preview" src="file:///${destPath.replace(/\\/g, '/')}" alt="Sprite preview">
-    <label>Nombre:</label>
-    <input id="fName" type="text" placeholder="${idLabel}" autofocus>
-    <div class="btn-row">
-      <button class="btn-cancel" id="fCancel">Cancelar</button>
-      <button class="btn-primary" id="fOk">Crear Fakemon</button>
-    </div>
-    <script>
-      const { ipcRenderer } = require('electron');
-      const input = document.getElementById('fName');
-      input.focus();
-      document.getElementById('fOk').onclick=()=>{
-        const n=input.value.trim();
-        ipcRenderer.send('fakemon-name-result', n || '${idLabel}');
-      };
-      document.getElementById('fCancel').onclick=()=>{
-        ipcRenderer.send('fakemon-name-result', '');
-      };
-      input.addEventListener('keydown',(e)=>{
-        if(e.key==='Enter')document.getElementById('fOk').click();
-        if(e.key==='Escape')document.getElementById('fCancel').click();
-      });
-    </script>
-  </body></html>`;
-  inputWin.loadURL('data:text/html,' + encodeURIComponent(inputHtml));
-  
-  inputWin.once('ready-to-show', () => inputWin.show());
-  
-  let fakemonName = null;
-  let finished = false;
-  await new Promise(resolve => {
-    const onName = (e, name) => {
-      if (!finished) {
-        finished = true;
-        fakemonName = name || '';
-        if (inputWin && !inputWin.isDestroyed()) inputWin.close();
-        resolve();
-      }
-    };
-    ipcMain.once('fakemon-name-result', onName);
-    inputWin.on('closed', () => {
-      if (!finished) {
-        finished = true;
-        fakemonName = null;
-      }
-      ipcMain.removeListener('fakemon-name-result', onName);
-      resolve();
-    });
-    setTimeout(() => {
-      if (!finished) {
-        finished = true;
-        fakemonName = null;
-        if (inputWin && !inputWin.isDestroyed()) inputWin.close();
-        resolve();
-      }
-    }, 30000);
-  });
-  
-  if (!fakemonName) {
-    const filePath = path.join(FAKEMON_DIR, filename);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    return null;
-  }
-
-  const entry = {id: -2000 - nextNum, idLabel, name: fakemonName, spriteFile: filename};
+ipcMain.handle('create-fakemon-entry', (event, filename, idLabel, nextNum, name) => {
+  dbgWrite(`create-fakemon-entry: filename=${filename} name=${name}`);
+  const meta = loadFakemonMeta();
+  const entry = { id: -2000 - nextNum, idLabel, name: name || idLabel, spriteFile: filename };
   meta.push(entry);
   saveFakemonMeta(meta);
+  dbgWrite(`create-fakemon-entry: created id=${entry.id} name=${entry.name}`);
   return entry;
 });
 
