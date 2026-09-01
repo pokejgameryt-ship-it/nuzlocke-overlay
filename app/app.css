@@ -1930,17 +1930,20 @@ kbd {
 .species-search-input:focus {
   border-color: #e94560;
 }
+#manualTeamCard {
+  overflow: visible;
+}
 .species-search-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  max-height: 200px;
+  max-height: 250px;
   overflow-y: auto;
   background: #1a1a2e;
   border: 1px solid #2a2a40;
   border-radius: 0 0 4px 4px;
-  z-index: 1000;
+  z-index: 10000;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 .species-search-group {

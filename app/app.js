@@ -393,13 +393,14 @@
           if (sp.id === entry.speciesId) item.classList.add('selected');
           const prefix = sp.id < 0 && sp.id > -1000 ? '' : (sp.id <= -2000 ? `<span class="species-search-id">${sp.idLabel || 'F???'}</span> ` : `<span class="species-search-id">#${sp.id}</span> `);
           item.innerHTML = prefix + sp.name;
-          item.addEventListener('mousedown', (e) => {
+           item.addEventListener('mousedown', async (e) => {
             e.preventDefault();
             project.manualTeam[i].speciesId = sp.id;
             input.value = sp.id < 0 && sp.id > -1000 ? sp.name : (sp.id <= -2000 ? `${sp.idLabel || 'F???'} ${sp.name}` : `#${sp.id} ${sp.name}`);
             dropdown.style.display = 'none';
             updateManualSlotPreview(preview, sp.id);
-            saveProject().then(() => sendManualTeam());
+            await saveProject();
+            await sendManualTeam();
           });
           dropdown.appendChild(item);
         }
@@ -443,13 +444,14 @@
             const textSpan = document.createElement('span');
             textSpan.textContent = f.name;
             textSpan.className = 'species-search-item-text';
-            textSpan.addEventListener('mousedown', (e) => {
+            textSpan.addEventListener('mousedown', async (e) => {
               e.preventDefault();
               project.manualTeam[i].speciesId = f.id;
               input.value = `${f.idLabel || 'F???'} ${f.name}`;
               dropdown.style.display = 'none';
               updateManualSlotPreview(preview, f.id);
-              saveProject().then(() => sendManualTeam());
+              await saveProject();
+              await sendManualTeam();
             });
             item.innerHTML = prefix;
             item.appendChild(textSpan);
@@ -511,13 +513,29 @@
         }
       }
 
+      function positionDropdown() {
+        const rect = dropdown.getBoundingClientRect();
+        const viewH = window.innerHeight;
+        if (rect.bottom > viewH - 10) {
+          dropdown.style.top = 'auto';
+          dropdown.style.bottom = '100%';
+          dropdown.style.borderRadius = '4px 4px 0 0';
+        } else {
+          dropdown.style.top = '100%';
+          dropdown.style.bottom = 'auto';
+          dropdown.style.borderRadius = '0 0 4px 4px';
+        }
+      }
+
       input.addEventListener('focus', () => {
         renderDropdown(input.value);
         dropdown.style.display = 'block';
+        positionDropdown();
       });
       input.addEventListener('input', () => {
         renderDropdown(input.value);
         dropdown.style.display = 'block';
+        positionDropdown();
       });
       input.addEventListener('blur', () => {
         setTimeout(() => { dropdown.style.display = 'none'; }, 150);
