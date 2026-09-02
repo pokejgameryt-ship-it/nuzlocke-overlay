@@ -343,15 +343,26 @@
     await loadSpeciesList();
     const project = projects.find(p => p.id === currentId);
     if (!project) return;
-    if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
+    if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '', form: null }));
 
     const fakemonList = await window.api.getFakemonList().catch(() => []);
     const specialOptions = allSpecies.filter(sp => sp.id === 0 || sp.id === -1 || sp.id === -2);
     const officialSpecies = allSpecies.filter(sp => sp.id > 0);
 
+    function matchEntry(sp, e) {
+      return sp.id === e.speciesId && (sp.form || null) === (e.form || null);
+    }
+
+    function displayName(sp) {
+      const formNum = sp.form !== null && sp.form !== undefined ? allSpecies.filter(x => x.id === sp.id && x.form !== null).indexOf(sp) + 1 : 0;
+      if (sp.id <= -2000) return `${sp.idLabel || 'F???'} ${sp.name}`;
+      if (sp.form === null || sp.form === undefined) return `#${sp.id} ${sp.name}`;
+      return `#${sp.id} ${sp.name} - ${formNum}`;
+    }
+
     grid.innerHTML = '';
     for (let i = 0; i < 6; i++) {
-      const entry = project.manualTeam[i] || { speciesId: 0, nickname: '' };
+      const entry = project.manualTeam[i] || { speciesId: 0, nickname: '', form: null };
       const row = document.createElement('div');
       row.className = 'manual-slot';
 
@@ -370,9 +381,9 @@
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'species-search-input';
-      const allEntries = [...specialOptions, ...officialSpecies, ...fakemonList.map(f => ({id: f.id, name: f.name}))];
-      const selectedSp = allEntries.find(sp => sp.id === entry.speciesId);
-      input.value = selectedSp ? (selectedSp.id < 0 && selectedSp.id > -1000 ? `${selectedSp.name}` : `#${selectedSp.id} ${selectedSp.name}`) : '';
+      const allEntries = [...specialOptions, ...officialSpecies, ...fakemonList.map(f => ({id: f.id, name: f.name, form: null}))];
+      const selectedSp = allEntries.find(sp => matchEntry(sp, entry));
+      input.value = selectedSp ? displayName(selectedSp) : '';
       input.placeholder = t('searchPokemon') || 'Buscar Pokemon...';
       input.setAttribute('autocomplete', 'off');
 
@@ -390,15 +401,16 @@
         function addItem(sp, groupId) {
           const item = document.createElement('div');
           item.className = 'species-search-item';
-          if (sp.id === entry.speciesId) item.classList.add('selected');
-          const prefix = sp.id < 0 && sp.id > -1000 ? '' : (sp.id <= -2000 ? `<span class="species-search-id">${sp.idLabel || 'F???'}</span> ` : `<span class="species-search-id">#${sp.id}</span> `);
-          item.innerHTML = prefix + sp.name;
-           item.addEventListener('mousedown', async (e) => {
+          if (matchEntry(sp, entry)) item.classList.add('selected');
+          const prefix = sp.id <= -2000 ? `<span class="species-search-id">${sp.idLabel || 'F???'}</span> ` : `<span class="species-search-id">${displayName(sp)}</span> `;
+          item.innerHTML = prefix;
+            item.addEventListener('mousedown', async (e) => {
             e.preventDefault();
             project.manualTeam[i].speciesId = sp.id;
-            input.value = sp.id < 0 && sp.id > -1000 ? sp.name : (sp.id <= -2000 ? `${sp.idLabel || 'F???'} ${sp.name}` : `#${sp.id} ${sp.name}`);
+            project.manualTeam[i].form = sp.form || null;
+            input.value = displayName(sp);
             dropdown.style.display = 'none';
-            updateManualSlotPreview(preview, sp.id);
+            updateManualSlotPreview(preview, sp.id, sp.form);
             await saveProject();
             await sendManualTeam();
           });
@@ -411,7 +423,7 @@
 
         if (q) {
           filteredSpecial = specialOptions.filter(sp => sp.name.toLowerCase().includes(q));
-          filteredOfficial = officialSpecies.filter(sp => sp.name.toLowerCase().includes(q) || String(sp.id).startsWith(q));
+          filteredOfficial = officialSpecies.filter(sp => sp.name.toLowerCase().includes(q) || String(sp.id).startsWith(q) || (sp.form || '').toLowerCase().includes(q));
           filteredFakemon = fakemonList.filter(f => f.name.toLowerCase().includes(q) || (f.idLabel || '').toLowerCase().includes(q));
         }
 
@@ -562,7 +574,7 @@
       row.appendChild(nick);
 
       grid.appendChild(row);
-      updateManualSlotPreview(preview, entry.speciesId);
+      updateManualSlotPreview(preview, entry.speciesId, entry.form);
     }
   }
 
@@ -611,8 +623,9 @@
 
       const project = projects.find(p => p.id === currentId);
       if (!project) return;
-      if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
+      if (!project.manualTeam) project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '', form: null }));
       project.manualTeam[slotIndex].speciesId = entry.id;
+      project.manualTeam[slotIndex].form = entry.form || null;
       await saveProject();
       await sendManualTeam();
       await renderManualTeamGrid();
@@ -692,7 +705,7 @@
     cachedFakemonList = await window.api.getFakemonList().catch(() => []);
   }
 
-  async function updateManualSlotPreview(previewEl, speciesId) {
+  async function updateManualSlotPreview(previewEl, speciesId, form) {
     if (!speciesId || speciesId === -1) { previewEl.innerHTML = ''; return; }
     if (speciesId === -2) {
       const project = projects.find(p => p.id === currentId);
@@ -700,7 +713,8 @@
       try {
         const url = await window.api.resolveSprite(project.spriteStylePath, 0, {
           spritesRoot: await window.api.getBaseDir() ? (await window.api.getBaseDir() + '/Recursos/Sprites') : '',
-          styleId: project.spriteStyle
+          styleId: project.spriteStyle,
+          form: null
         });
         if (url) {
           const port = await window.api.getPort();
@@ -724,7 +738,8 @@
     try {
       const url = await window.api.resolveSprite(project.spriteStylePath, speciesId, {
         spritesRoot: await window.api.getBaseDir() ? (await window.api.getBaseDir() + '/Recursos/Sprites') : '',
-        styleId: project.spriteStyle
+        styleId: project.spriteStyle,
+        form: form || null
       });
       if (url) {
         const port = await window.api.getPort();
@@ -2167,7 +2182,7 @@
           saveCard.style.display = 'none';
           manualCard.style.display = 'block';
           if (!project.manualTeam) {
-            project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '' }));
+            project.manualTeam = Array.from({length: 6}, () => ({ speciesId: 0, nickname: '', form: null }));
           }
           console.log('[MODE] Calling stopWatching, saveProject, renderManualTeamGrid, sendManualTeam');
           try {

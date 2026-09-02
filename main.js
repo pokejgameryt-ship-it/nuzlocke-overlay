@@ -264,9 +264,10 @@ function startOverlayServer() {
       const rawTeam = project.manualTeam || [];
       const team = rawTeam.map(entry => {
         if (!entry) {
-          return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null };
+          return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: null, spriteUrl: null };
         }
         const speciesId = entry.speciesId || 0;
+        const entryForm = entry.form || null;
         let spriteUrl = null;
         if (speciesId <= -2000) {
           const f = fakemonMeta.find(e => e.id === speciesId);
@@ -274,7 +275,8 @@ function startOverlayServer() {
         } else if (speciesId !== 0 && speciesId !== -1) {
           spriteUrl = resolveSprite(absStylePath, speciesId === -2 ? 0 : speciesId, {
             spritesRoot: SPRITES_ROOT,
-            styleId: project.spriteStyle
+            styleId: project.spriteStyle,
+            form: entryForm
           });
         }
         return {
@@ -282,13 +284,13 @@ function startOverlayServer() {
           nickname: entry.nickname || '',
           isShiny: false,
           level: 0,
-          form: 0,
+          form: entryForm,
           spriteUrl: spriteUrl ? `http://127.0.0.1:${overlayPort}${spriteUrl}` : null
         };
       });
 
       while (team.length < 6) {
-        team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null });
+        team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: null, spriteUrl: null });
       }
 
       if (project.usePlaceholder) {
@@ -475,9 +477,10 @@ ipcMain.handle('get-team', (event, projectId) => {
     const rawTeam = project.manualTeam || [];
     const team = rawTeam.map(entry => {
       if (!entry) {
-        return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null };
+        return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: null, spriteUrl: null };
       }
       const speciesId = entry.speciesId || 0;
+      const entryForm = entry.form || null;
       let spriteUrl = null;
       if (speciesId <= -2000) {
         const f = fakemonMeta.find(e => e.id === speciesId);
@@ -487,7 +490,8 @@ ipcMain.handle('get-team', (event, projectId) => {
       } else if (speciesId !== 0 && speciesId !== -1) {
         spriteUrl = resolveSprite(absStylePath, speciesId === -2 ? 0 : speciesId, {
           spritesRoot: SPRITES_ROOT,
-          styleId: project.spriteStyle
+          styleId: project.spriteStyle,
+          form: entryForm
         });
       }
       return {
@@ -495,13 +499,13 @@ ipcMain.handle('get-team', (event, projectId) => {
         nickname: entry.nickname || '',
         isShiny: false,
         level: 0,
-        form: 0,
+        form: entryForm,
         spriteUrl: spriteUrl ? `http://127.0.0.1:${overlayPort}${spriteUrl}` : null
       };
     });
 
     while (team.length < 6) {
-      team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null });
+      team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: null, spriteUrl: null });
     }
 
     if (project.usePlaceholder) {
@@ -536,9 +540,10 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
 
   const team = (manualTeam || []).map(entry => {
     if (!entry) {
-      return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null };
+      return { speciesId: 0, nickname: '', isShiny: false, level: 0, form: null, spriteUrl: null };
     }
     const speciesId = entry.speciesId || 0;
+    const entryForm = entry.form || null;
     let spriteUrl = null;
     if (speciesId <= -2000) {
       const f = fakemonMeta.find(e => e.id === speciesId);
@@ -548,7 +553,8 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
     } else if (speciesId !== 0 && speciesId !== -1) {
       spriteUrl = resolveSprite(absStylePath, speciesId === -2 ? 0 : speciesId, {
         spritesRoot: SPRITES_ROOT,
-        styleId: project.spriteStyle
+        styleId: project.spriteStyle,
+        form: entryForm
       });
     }
     return {
@@ -556,13 +562,13 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
       nickname: entry.nickname || '',
       isShiny: false,
       level: 0,
-      form: 0,
+      form: entryForm,
       spriteUrl
     };
   });
 
   while (team.length < 6) {
-    team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: 0, spriteUrl: null });
+    team.push({ speciesId: 0, nickname: '', isShiny: false, level: 0, form: null, spriteUrl: null });
   }
 
   if (project.usePlaceholder) {
