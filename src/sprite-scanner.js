@@ -449,35 +449,35 @@ const FORM_SUFFIX_MAP = {
   'speed':      { named: 'speed',      code: 's',  number: null },
   // Other named forms
   'zen':        { named: 'zen',        code: 'z',  number: null },
-  'blade':      { named: 'blade',      code: null, number: null },
+  'blade':      { named: 'blade',      code: '1',  number: null },
   'shield':     { named: 'shield',     code: null, number: null },
   'east':       { named: 'east',       code: null, number: null },
   'west':       { named: 'west',       code: null, number: null },
   'sunshine':   { named: 'sunshine',   code: null, number: null },
   'overcast':   { named: 'overcast',   code: null, number: null },
-  'rainy':      { named: 'rainy',      code: null, number: null },
-  'snowy':      { named: 'snowy',      code: null, number: null },
-  'sunny':      { named: 'sunny',      code: null, number: null },
-  'school':     { named: 'school',     code: null, number: null },
+  'rainy':      { named: 'rainy',      code: 'w',  number: null },
+  'snowy':      { named: 'snowy',      code: 'i',  number: null },
+  'sunny':      { named: 'sunny',      code: 'f',  number: null },
+  'school':     { named: 'school',     code: 'SCHOOL', number: null },
   'solo':       { named: 'solo',       code: null, number: null },
   'aria':       { named: 'aria',       code: null, number: null },
   'pirouette':  { named: 'pirouette',  code: null, number: null },
   'incarnate':  { named: 'incarnate',  code: null, number: null },
-  'therian':    { named: 'therian',    code: null, number: null },
-  'resolute':   { named: 'resolute',   code: null, number: null },
+  'therian':    { named: 'therian',    code: 'TF', number: null },
+  'resolute':   { named: 'resolute',   code: 'r',  number: null },
   'ordinary':   { named: 'ordinary',   code: null, number: null },
-  'black':      { named: 'black',      code: null, number: null },
-  'white':      { named: 'white',      code: null, number: null },
-  'dusk':       { named: 'dusk',       code: null, number: null },
+  'black':      { named: 'black',      code: 'BK', number: null },
+  'white':      { named: 'white',      code: 'WK', number: null },
+  'dusk':       { named: 'dusk',       code: 'D',  number: null },
   'midday':     { named: 'midday',     code: null, number: null },
-  'midnight':   { named: 'midnight',   code: null, number: null },
-  'ultra':      { named: 'ultra',      code: null, number: null },
-  'dawn wings': { named: 'dawn wings', code: null, number: null },
-  'dusk mane':  { named: 'dusk mane',  code: null, number: null },
-  'origin':     { named: 'origin',     code: null, number: null },
+  'midnight':   { named: 'midnight',   code: 'M',  number: null },
+  'ultra':      { named: 'ultra',      code: 'U',  number: null },
+  'dawn wings': { named: 'dawn wings', code: 'DW', number: null },
+  'dusk mane':  { named: 'dusk mane',  code: 'DM', number: null },
+  'origin':     { named: 'origin',     code: 'o',  number: null },
   'altered':    { named: 'altered',    code: null, number: null },
   'neutral':    { named: 'neutral',    code: null, number: null },
-  'hero':       { named: 'hero',       code: null, number: null },
+  'hero':       { named: 'hero',       code: 'H',  number: null },
   'land':       { named: 'land',       code: null, number: null },
   'sky':        { named: 'sky',        code: null, number: null },
   'noice':      { named: 'noice',      code: null, number: null },
@@ -487,30 +487,30 @@ const FORM_SUFFIX_MAP = {
   'large':      { named: 'large',      code: null, number: null },
   'small':      { named: 'small',      code: null, number: null },
   'super':      { named: 'super',      code: null, number: null },
-  // Arceus type forms
-  'bug':        { named: 'bug',        code: null, number: null },
-  'dark':       { named: 'dark',       code: null, number: null },
-  'dragon':     { named: 'dragon',     code: null, number: null },
-  'electric':   { named: 'electric',   code: null, number: null },
-  'fairy':      { named: 'fairy',      code: null, number: null },
-  'fighting':   { named: 'fighting',   code: null, number: null },
-  'fire':       { named: 'fire',       code: null, number: null },
-  'flying':     { named: 'flying',     code: null, number: null },
-  'ghost':      { named: 'ghost',      code: null, number: null },
-  'grass':      { named: 'grass',      code: null, number: null },
-  'ground':     { named: 'ground',     code: null, number: null },
-  'ice':        { named: 'ice',        code: null, number: null },
-  'poison':     { named: 'poison',     code: null, number: null },
-  'psychic':    { named: 'psychic',    code: null, number: null },
-  'rock':       { named: 'rock',       code: null, number: null },
-  'steel':      { named: 'steel',      code: null, number: null },
-  'water':      { named: 'water',      code: null, number: null },
+  // Arceus type forms (code: uppercase for SPRITES ANIMADOS underscore format)
+  'bug':        { named: 'bug',        code: 'BUG',     number: null },
+  'dark':       { named: 'dark',       code: 'DARK',    number: null },
+  'dragon':     { named: 'dragon',     code: 'DRAGON',  number: null },
+  'electric':   { named: 'electric',   code: 'ELECTRIC', number: null },
+  'fairy':      { named: 'fairy',      code: 'FAIRY',   number: null },
+  'fighting':   { named: 'fighting',   code: 'FIGHTING', number: null },
+  'fire':       { named: 'fire',       code: 'FIRE',    number: null },
+  'flying':     { named: 'flying',     code: 'FLYING',  number: null },
+  'ghost':      { named: 'ghost',      code: 'GHOST',   number: null },
+  'grass':      { named: 'grass',      code: 'GRASS',   number: null },
+  'ground':     { named: 'ground',     code: 'GROUND',  number: null },
+  'ice':        { named: 'ice',        code: 'ICE',     number: null },
+  'poison':     { named: 'poison',     code: 'POISON',  number: null },
+  'psychic':    { named: 'psychic',    code: 'PSYCHIC', number: null },
+  'rock':       { named: 'rock',       code: 'ROCK',    number: null },
+  'steel':      { named: 'steel',      code: 'STEEL',   number: null },
+  'water':      { named: 'water',      code: 'WATER',   number: null },
   // Rotom forms
-  'heat':       { named: 'heat',       code: null, number: null },
-  'wash':       { named: 'wash',       code: null, number: null },
-  'frost':      { named: 'frost',      code: null, number: null },
-  'fan':        { named: 'fan',        code: null, number: null },
-  'mow':        { named: 'mow',        code: null, number: null },
+  'heat':       { named: 'heat',       code: 'h',  number: null },
+  'wash':       { named: 'wash',       code: 'w',  number: null },
+  'frost':      { named: 'frost',      code: 's',  number: null },
+  'fan':        { named: 'fan',        code: 'f',  number: null },
+  'mow':        { named: 'mow',        code: 'm',  number: null },
   // Unown forms
   'exclamation': { named: 'exclamation', code: null, number: null },
   'question':   { named: 'question',   code: null, number: null },
@@ -528,27 +528,84 @@ const FORM_SUFFIX_MAP = {
   // Morpeko forms
   'hangry':     { named: 'hangry',     code: null, number: null },
   // Mimikyu forms
-  'busted':     { named: 'busted',     code: null, number: null },
+  'busted':     { named: 'busted',     code: 'BUSTED', number: null },
   // Zarude forms
   'dada':       { named: 'dada',       code: null, number: null },
   // Calyrex forms
-  'shadow':     { named: 'shadow',     code: null, number: null },
+  'shadow':     { named: 'shadow',     code: 'SHADOW', number: null },
   // Magearna forms
-  'original':   { named: 'original',   code: null, number: null },
+  'original':   { named: 'original',   code: 'O',  number: null },
   // Terapagos forms
   'terastal':   { named: 'terastal',   code: null, number: null },
   'stellar':    { named: 'stellar',    code: null, number: null },
   // Burmy/Wormadam forms
-  'sandy':      { named: 'sandy',      code: null, number: null },
-  'trash':      { named: 'trash',      code: null, number: null },
+  'sandy':      { named: 'sandy',      code: 'e',  number: null },
+  'trash':      { named: 'trash',      code: 'ss', number: null },
   // Basculin forms
-  'red':        { named: 'red-striped', code: null, number: null },
-  'blue':       { named: 'blue-striped', code: null, number: null },
+  'red':        { named: 'red-striped', code: 'r',  number: null },
+  'blue':       { named: 'blue-striped', code: 'b',  number: null },
   // Tatsugiri forms
   'droopy':     { named: 'droopy',     code: null, number: null },
   'stretchy':   { named: 'stretchy',   code: null, number: null },
   // Enamorus forms
   // (therian already defined above)
+  // Aegislash forms
+  // (blade already defined above)
+  // Deerling/Sawsbuck seasons
+  'spring':     { named: 'spring',     code: null, number: null },
+  'summer':     { named: 'summer',     code: null, number: null },
+  'autumn':     { named: 'autumn',     code: null, number: null },
+  'winter':     { named: 'winter',     code: null, number: null },
+  // Vivillon patterns
+  'archipelago': { named: 'archipelago', code: null, number: null },
+  'continental': { named: 'continental', code: null, number: null },
+  'elegant':    { named: 'elegant',    code: null, number: null },
+  'fancy':      { named: 'fancy',      code: null, number: null },
+  'garden':     { named: 'garden',     code: null, number: null },
+  'high-plains': { named: 'high-plains', code: null, number: null },
+  'icy-snow':   { named: 'icy-snow',   code: null, number: null },
+  'jungle':     { named: 'jungle',     code: null, number: null },
+  'marine':     { named: 'marine',     code: null, number: null },
+  'meadow':     { named: 'meadow',     code: null, number: null },
+  'modern':     { named: 'modern',     code: null, number: null },
+  'monsoon':    { named: 'monsoon',    code: null, number: null },
+  'ocean':      { named: 'ocean',      code: null, number: null },
+  'poke-ball':  { named: 'poke-ball',  code: null, number: null },
+  'polar':      { named: 'polar',      code: null, number: null },
+  'river':      { named: 'river',      code: null, number: null },
+  'sandstorm':  { named: 'sandstorm',  code: null, number: null },
+  'savanna':    { named: 'savanna',    code: null, number: null },
+  'sun':        { named: 'sun',        code: null, number: null },
+  'tundra':     { named: 'tundra',     code: null, number: null },
+  // Flabebe flower colors
+  'red-flower': { named: 'red-flower', code: null, number: null },
+  'yellow-flower': { named: 'yellow-flower', code: null, number: null },
+  'orange-flower': { named: 'orange-flower', code: null, number: null },
+  'blue-flower': { named: 'blue-flower', code: null, number: null },
+  'white-flower': { named: 'white-flower', code: null, number: null },
+  // Minior cores
+  'red-core':   { named: 'red-core',   code: null, number: null },
+  'orange-core': { named: 'orange-core', code: null, number: null },
+  'yellow-core': { named: 'yellow-core', code: null, number: null },
+  'green-core': { named: 'green-core', code: null, number: null },
+  'blue-core':  { named: 'blue-core',  code: null, number: null },
+  'indigo-core': { named: 'indigo-core', code: null, number: null },
+  'violet-core': { named: 'violet-core', code: null, number: null },
+  // Alcremie cream forms
+  'vanilla-cream': { named: 'vanilla-cream', code: null, number: null },
+  'matcha-cream': { named: 'matcha-cream', code: null, number: null },
+  'mint-cream': { named: 'mint-cream', code: null, number: null },
+  'lemon-cream': { named: 'lemon-cream', code: null, number: null },
+  'salted-cream': { named: 'salted-cream', code: null, number: null },
+  'ruby-swirl': { named: 'ruby-swirl', code: null, number: null },
+  'caramel-swirl': { named: 'caramel-swirl', code: null, number: null },
+  'rainbow-swirl': { named: 'rainbow-swirl', code: null, number: null },
+  // Toxtricity forms
+  'amped':      { named: 'amped',      code: null, number: null },
+  // Calyrex forms
+  'shadow-rider': { named: 'shadow rider', code: null, number: null },
+  // Urshifu
+  'single-strike': { named: 'single strike', code: null, number: null },
 };
 
 const GENDER_CODE_MAP = { female: 'f', male: 'm', f: 'f', m: 'm' };
@@ -790,6 +847,7 @@ function resolveSprite(stylePath, speciesId, options = {}) {
       // Exact ID match (various paddings)
       if (base === numStr || base === numStr.padStart(3, '0') || base === numStr.padStart(4, '0')) {
         score = 1000;
+        if (formInfo) score -= 200;
       }
       // BT prefix match
       else if (baseUpper.startsWith('BT' + numStr.padStart(3, '0'))) {
@@ -863,13 +921,19 @@ function resolveSprite(stylePath, speciesId, options = {}) {
             const wordCount = base.split(/\s+/).length;
             if (wordCount <= 2) score += 5;
           }
-          if (formInfo && formInfo.code && base.includes(formInfo.code)) score += 50;
+          if (formInfo && formInfo.code && baseLower.includes(formInfo.code.toLowerCase())) score += 50;
           // Gender bonus: check for -f, -female, _f, _female at end or before shiny suffix
           if (genderCode) {
             const genderPatterns = ['-' + genderCode, '-female', '_' + genderCode, '_female'];
             if (genderPatterns.some(p => baseLower.endsWith(p)) || genderPatterns.some(p => baseLower.includes(p + '-s'))) score += 40;
           }
-          if (!shinyFlag && (baseLower.endsWith('-s') || baseLower.endsWith('-shiny') || baseLower.endsWith('_s'))) score -= 200;
+          if (!shinyFlag && (baseLower.endsWith('-s') || baseLower.endsWith('-shiny') || baseLower.endsWith('_s'))) {
+            const endsWithUnderscoreS = baseLower.endsWith('_s');
+            const endsWithHyphenS = baseLower.endsWith('-s') && !baseLower.endsWith('-shiny');
+            const formCodeIsS = formInfo && formInfo.code && formInfo.code.toLowerCase() === 's';
+            const isHyphenFormMatch = endsWithHyphenS && formCodeIsS;
+            if (!isHyphenFormMatch) score -= 200;
+          }
           if (shinyFlag && (baseLower.endsWith('-s') || baseLower.endsWith('-shiny') || baseLower.endsWith('_s') || baseLower.endsWith('s'))) score += 20;
         }
       }
@@ -1022,16 +1086,25 @@ function resolveSprite(stylePath, speciesId, options = {}) {
     for (const shinyDir of dirsToCheck) {
       if (!fs.existsSync(shinyDir.absPath)) continue;
 
-      // Try exact candidates first
+      // Try exact candidates first (skip bare ID matches when form is specified)
       const candidates = allBasenames(idStr, form, false, gender);
+      const bareIds = new Set([idStr, idStr.padStart(3, '0'), idStr.padStart(4, '0')]);
       for (const c of candidates) {
+        if (form && bareIds.has(c)) continue;
         const found = fileExistsInDir(shinyDir.absPath, shinyDir.relBase, c);
         if (found) return found;
       }
 
-      // Then fuzzy
+      // Then fuzzy (includes bare ID fallback)
       const fuzzy = fuzzyFind(shinyDir.absPath, shinyDir.relBase, idStr, form, false, gender);
       if (fuzzy) return fuzzy;
+
+      // Last resort: try bare ID exact match
+      for (const c of candidates) {
+        if (!bareIds.has(c)) continue;
+        const found = fileExistsInDir(shinyDir.absPath, shinyDir.relBase, c);
+        if (found) return found;
+      }
     }
     return null;
   }
@@ -1087,9 +1160,12 @@ function resolveSprite(stylePath, speciesId, options = {}) {
         if (shinyResult) return shinyResult;
       }
 
-      // 2. Try exact candidates in gender dir
+      // 2. Try exact candidates in gender dir (skip bare IDs when form/gender/shiny is specified)
       const candidates = allBasenames(idStr, form, shiny, gender);
+      const bareIdsG = new Set([idStr, idStr.padStart(3, '0'), idStr.padStart(4, '0')]);
+      const hasModifiersG = !!(form || shiny || gender);
       for (const c of candidates) {
+        if (hasModifiersG && bareIdsG.has(c)) continue;
         const found = fileExistsInDir(gDir.absPath, gDir.relBase, c);
         if (found) return found;
       }
@@ -1105,6 +1181,7 @@ function resolveSprite(stylePath, speciesId, options = {}) {
         if (entry.name.toLowerCase().includes('shiny')) continue;
         const subCandidates = allBasenames(idStr, form, shiny, gender);
         for (const c of subCandidates) {
+          if (hasModifiersG && bareIdsG.has(c)) continue;
           const found = fileExistsInDir(path.join(gDir.absPath, entry.name), `${gDir.relBase}/${entry.name}`, c);
           if (found) return found;
         }
@@ -1124,9 +1201,12 @@ function resolveSprite(stylePath, speciesId, options = {}) {
     if (shinyResult) return shinyResult;
   }
 
-  // 2. Try exact candidates in main dir
+  // 2. Try exact candidates in main dir (skip bare IDs when form/gender/shiny is specified)
   const candidates = allBasenames(idStr, form, shiny, gender);
+  const bareIds = new Set([idStr, idStr.padStart(3, '0'), idStr.padStart(4, '0')]);
+  const hasModifiers = !!(form || shiny || gender);
   for (const c of candidates) {
+    if (hasModifiers && bareIds.has(c)) continue;
     const found = fileExists(null, c);
     if (found) return found;
   }
@@ -1143,6 +1223,7 @@ function resolveSprite(stylePath, speciesId, options = {}) {
 
     const subCandidates = allBasenames(idStr, form, shiny, gender);
     for (const c of subCandidates) {
+      if (hasModifiers && bareIds.has(c)) continue;
       const found = fileExists(entry.name, c);
       if (found) return found;
     }
@@ -1151,7 +1232,7 @@ function resolveSprite(stylePath, speciesId, options = {}) {
   }
 
   // 5. Last resort: try base form (no form/gender/shiny) with fuzzy
-  if (form || shiny || gender) {
+  if (hasModifiers) {
     const baseCandidates = allBasenames(idStr, null, false, null);
     for (const c of baseCandidates) {
       const found = fileExists(null, c);
