@@ -487,6 +487,68 @@ const FORM_SUFFIX_MAP = {
   'large':      { named: 'large',      code: null, number: null },
   'small':      { named: 'small',      code: null, number: null },
   'super':      { named: 'super',      code: null, number: null },
+  // Arceus type forms
+  'bug':        { named: 'bug',        code: null, number: null },
+  'dark':       { named: 'dark',       code: null, number: null },
+  'dragon':     { named: 'dragon',     code: null, number: null },
+  'electric':   { named: 'electric',   code: null, number: null },
+  'fairy':      { named: 'fairy',      code: null, number: null },
+  'fighting':   { named: 'fighting',   code: null, number: null },
+  'fire':       { named: 'fire',       code: null, number: null },
+  'flying':     { named: 'flying',     code: null, number: null },
+  'ghost':      { named: 'ghost',      code: null, number: null },
+  'grass':      { named: 'grass',      code: null, number: null },
+  'ground':     { named: 'ground',     code: null, number: null },
+  'ice':        { named: 'ice',        code: null, number: null },
+  'poison':     { named: 'poison',     code: null, number: null },
+  'psychic':    { named: 'psychic',    code: null, number: null },
+  'rock':       { named: 'rock',       code: null, number: null },
+  'steel':      { named: 'steel',      code: null, number: null },
+  'water':      { named: 'water',      code: null, number: null },
+  // Rotom forms
+  'heat':       { named: 'heat',       code: null, number: null },
+  'wash':       { named: 'wash',       code: null, number: null },
+  'frost':      { named: 'frost',      code: null, number: null },
+  'fan':        { named: 'fan',        code: null, number: null },
+  'mow':        { named: 'mow',        code: null, number: null },
+  // Unown forms
+  'exclamation': { named: 'exclamation', code: null, number: null },
+  'question':   { named: 'question',   code: null, number: null },
+  // Necrozma forms (use spaces to match sprite filenames)
+  'dawnwings':  { named: 'dawn wings', code: null, number: null },
+  'duskmane':   { named: 'dusk mane',  code: null, number: null },
+  // Urshifu forms
+  'rapidstrike': { named: 'rapid strike', code: null, number: null },
+  // Toxtricity forms
+  'lowkey':     { named: 'low key',    code: null, number: null },
+  // Oricorio forms
+  'pompom':     { named: 'pom pom',    code: null, number: null },
+  'pau':        { named: "pa'u",       code: null, number: null },
+  'sensu':      { named: 'sensu',      code: null, number: null },
+  // Morpeko forms
+  'hangry':     { named: 'hangry',     code: null, number: null },
+  // Mimikyu forms
+  'busted':     { named: 'busted',     code: null, number: null },
+  // Zarude forms
+  'dada':       { named: 'dada',       code: null, number: null },
+  // Calyrex forms
+  'shadow':     { named: 'shadow',     code: null, number: null },
+  // Magearna forms
+  'original':   { named: 'original',   code: null, number: null },
+  // Terapagos forms
+  'terastal':   { named: 'terastal',   code: null, number: null },
+  'stellar':    { named: 'stellar',    code: null, number: null },
+  // Burmy/Wormadam forms
+  'sandy':      { named: 'sandy',      code: null, number: null },
+  'trash':      { named: 'trash',      code: null, number: null },
+  // Basculin forms
+  'red':        { named: 'red-striped', code: null, number: null },
+  'blue':       { named: 'blue-striped', code: null, number: null },
+  // Tatsugiri forms
+  'droopy':     { named: 'droopy',     code: null, number: null },
+  'stretchy':   { named: 'stretchy',   code: null, number: null },
+  // Enamorus forms
+  // (therian already defined above)
 };
 
 const GENDER_CODE_MAP = { female: 'f', male: 'm', f: 'f', m: 'm' };
