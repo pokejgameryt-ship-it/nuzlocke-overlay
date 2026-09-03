@@ -1819,6 +1819,10 @@
       project.spriteStylePath = opt ? opt.dataset.path : '';
       await saveProject();
       updateSpritePreview(project.spriteStyle, project.spriteStylePath);
+      if (project.inputMode === 'manual') {
+        await sendManualTeam();
+        renderManualTeamGrid();
+      }
     });
 
     $('#showNames').addEventListener('change', async (e) => {

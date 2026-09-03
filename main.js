@@ -544,6 +544,7 @@ ipcMain.handle('set-manual-team', (event, projectId, manualTeam) => {
     }
     const speciesId = entry.speciesId || 0;
     const entryForm = entry.form || null;
+    dbgWrite(`set-manual-team mapping: speciesId=${speciesId} form=${entryForm}`);
     let spriteUrl = null;
     if (speciesId <= -2000) {
       const f = fakemonMeta.find(e => e.id === speciesId);

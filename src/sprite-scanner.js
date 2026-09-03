@@ -556,7 +556,7 @@ const REGION_CODE_MAP = { alola: 'RA', galar: 'RG', hisui: 'RH', paldea: 'RP' };
 
 function resolveSprite(stylePath, speciesId, options = {}) {
   const { form, shiny, gender, spritesRoot, styleId } = options;
-  Logger.debug('Sprites', `resolveSprite: speciesId=${speciesId}, stylePath=${stylePath}, styleId=${styleId}`);
+  Logger.debug('Sprites', `resolveSprite: speciesId=${speciesId}, form=${form}, stylePath=${stylePath}, styleId=${styleId}`);
 
   let dir;
   let relativeBase;
