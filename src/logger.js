@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const LogUploader = require('./log-uploader');
 
 let LOG_DIR = null;
 
@@ -26,7 +25,6 @@ let logFile = null;
 let jsonlFile = null;
 let sessionId = null;
 let sessionMeta = null;
-const uploader = new LogUploader();
 
 function ensureLogDir() {
   const dir = getLogDir();
@@ -92,7 +90,7 @@ function cleanOldLogs(currentVersion) {
   } catch (e) {}
 }
 
-function initSession(appVersion, logEndpoint) {
+function initSession(appVersion) {
   cleanOldLogs(appVersion);
 
   sessionMeta = {
@@ -117,14 +115,8 @@ function initSession(appVersion, logEndpoint) {
     sessionMeta.dotnetPath = 'NOT FOUND';
   }
 
-  uploader.configure(logEndpoint, sessionMeta);
-
   writeLog('INFO', 'Session', '=== Session started ===', sessionMeta);
   return sessionMeta;
-}
-
-function setLogEndpoint(endpoint) {
-  uploader.configure(endpoint, sessionMeta);
 }
 
 function writeLog(level, category, message, data) {
@@ -153,7 +145,6 @@ function writeLog(level, category, message, data) {
 const Logger = {
   setLogDir,
   initSession,
-  setLogEndpoint,
 
   info(category, message, data) {
     writeLog('INFO', category, message, data);
@@ -196,7 +187,6 @@ const Logger = {
       timestamp: timestamp(),
     };
     writeLog('INFO', 'SaveParse', `Parsed ${result?.pokemon?.length || 0} Pokemon from ${path.basename(filePath)}`, entry);
-    uploader.sendNow(entry);
   },
 
   logPkHexResult(filePath, fileSize, gameInfo, result, error) {
@@ -214,7 +204,6 @@ const Logger = {
       timestamp: timestamp(),
     };
     writeLog(error ? 'ERROR' : 'INFO', 'PKHeX', error || `PKHeX returned ${result?.pokemon?.length || 0} Pokemon`, entry);
-    uploader.sendNow(entry);
   },
 
   logNativeParserResult(filePath, fileSize, gameInfo, teamLength, error) {
@@ -229,7 +218,6 @@ const Logger = {
       timestamp: timestamp(),
     };
     writeLog(error ? 'ERROR' : 'INFO', 'NativeParser', error || `Native parser returned ${teamLength} Pokemon`, entry);
-    uploader.sendNow(entry);
   },
 
   getExportData() {

@@ -2136,19 +2136,17 @@
       }
     });
 
-    const logEndpointInput = $('#settingsLogEndpoint');
-    if (logEndpointInput) {
-      window.api.getSettings().then(s => { logEndpointInput.value = s.logEndpoint || ''; });
-      let saveTimeout = null;
-      logEndpointInput.addEventListener('input', () => {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(async () => {
-          const s = await window.api.getSettings();
-          s.logEndpoint = logEndpointInput.value.trim();
-          await window.api.saveSettings(s);
-        }, 500);
-      });
-    }
+    $('#settingsSendLogsToGithub').addEventListener('click', async () => {
+      const result = await window.api.exportDiagnosticZip();
+      if (result) {
+        const version = await window.api.getVersion();
+        const title = encodeURIComponent(`[Bug Report] Nuzlocke Overlay v${version}`);
+        const body = encodeURIComponent(`## Descripcion\n描述描述描述\n\n## Logs\nEl archivo ZIP adjunto contiene los logs de diagnostico.\n\nRuta del ZIP: \`${result.path}\`\nTamano: ${(result.size / 1024).toFixed(1)} KB`);
+        const url = `https://github.com/pokejgameryt-ship-it/nuzlocke-overlay/issues/new?title=${title}&body=${body}`;
+        window.api.openExternal(url);
+        alert(`Logs exportados a:\n${result.path}\n\nSe abrio GitHub para enviar los logs. Adjunta el ZIP al issue.`);
+      }
+    });
 
     const betaToggle = $('#settingsIncludeBetas');
     if (betaToggle) {

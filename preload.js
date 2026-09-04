@@ -38,6 +38,7 @@ window.api = {
 
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  getVersion: () => ipcRenderer.invoke('get-version'),
   openSettingsWindow: () => ipcRenderer.send('open-settings'),
 
   checkForUpdates: (includeBetas) => ipcRenderer.invoke('check-for-updates', includeBetas),

@@ -626,17 +626,17 @@
             <div class="settings-group-title" data-i18n="diagnosticsGroup">Diagnostico / Diagnostics</div>
             <div class="settings-row settings-row-tutorial">
               <div>
-                <div class="settings-label" data-i18n="logEndpoint">URL de recepcion de logs</div>
-                <div class="settings-desc" data-i18n="logEndpointDesc">Endpoint HTTP donde se envian automaticamente los logs de diagnosticos al parsear saves</div>
-              </div>
-              <input type="text" id="settingsLogEndpoint" placeholder="https://tu-servidor.com/api/logs" style="width:260px;font-size:12px;padding:4px 8px">
-            </div>
-            <div class="settings-row settings-row-tutorial">
-              <div>
                 <div class="settings-label" data-i18n="exportLogs">Exportar logs de diagnostico</div>
                 <div class="settings-desc" data-i18n="exportLogsDesc">Guarda un ZIP con logs, configuracion y info del sistema para solucionar problemas</div>
               </div>
               <button class="btn-tutorial" id="settingsExportLogs" data-i18n="exportLogs">Exportar Logs</button>
+            </div>
+            <div class="settings-row settings-row-tutorial">
+              <div>
+                <div class="settings-label" data-i18n="sendLogsToDev">Enviar logs al desarrollador</div>
+                <div class="settings-desc" data-i18n="sendLogsToDevDesc">Exporta un ZIP y abre GitHub para enviar los logs directamente</div>
+              </div>
+              <button class="btn-tutorial" id="settingsSendLogsToGithub" data-i18n="sendLogsToDev">Enviar logs</button>
             </div>
           </div>
           <div class="settings-group">

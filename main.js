@@ -807,13 +807,10 @@ ipcMain.handle('save-config', (event, config) => {
 
 // Settings
 ipcMain.handle('get-settings', () => loadSettings());
+ipcMain.handle('get-version', () => require('./package.json').version);
 ipcMain.handle('save-settings', (event, newSettings) => {
   const oldSettings = loadSettings();
   saveSettingsToFile(newSettings);
-  if (newSettings.logEndpoint !== oldSettings.logEndpoint) {
-    Logger.setLogEndpoint(newSettings.logEndpoint || null);
-    Logger.info('Main', `Log endpoint changed: ${newSettings.logEndpoint || 'disabled'}`);
-  }
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('settings-changed', newSettings);
     updateTrayMenu();
@@ -1447,9 +1444,9 @@ ipcMain.handle('export-diagnostic-zip', async () => {
   if (!filePath) return null;
 
   try {
-    const { ZipArchive } = require('archiver');
+    const archiver = require('archiver');
     const output = fs.createWriteStream(filePath);
-    const archive = new ZipArchive('zip', { zlib: { level: 6 } });
+    const archive = archiver('zip', { zlib: { level: 6 } });
 
     return new Promise((resolve, reject) => {
       output.on('close', () => resolve({ path: filePath, size: archive.pointer() }));
@@ -1537,8 +1534,7 @@ if (!gotLock) {
   app.whenReady().then(() => {
     // Initialize logging session
     const pkg = require('./package.json');
-    const settings = loadSettings();
-    Logger.initSession(pkg.version, settings.logEndpoint || null);
+    Logger.initSession(pkg.version);
 
     // Log environment details for debugging
     Logger.info('Main', `process.resourcesPath=${process.resourcesPath || 'undefined'}`);

@@ -2,7 +2,7 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { ZipArchive } = require('archiver');
+const archiver = require('archiver');
 
 const args = process.argv.slice(2);
 const FROM_DRIVE = args.includes('--from-drive');
@@ -207,7 +207,7 @@ async function createZipForGeneration(genName, files) {
 
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(zipPath);
-    const archive = new ZipArchive('zip', { zlib: { level: 6 } });
+    const archive = archiver('zip', { zlib: { level: 6 } });
     output.on('close', () => {
       const size = archive.pointer();
       console.log(`[${genName}] Created ${zipName} (${(size / 1024 / 1024).toFixed(0)} MB)`);
@@ -253,7 +253,7 @@ function writePartZip(genName, files, partIndex) {
 
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(zipPath);
-    const archive = new ZipArchive('zip', { zlib: { level: 6 } });
+    const archive = archiver('zip', { zlib: { level: 6 } });
     output.on('close', () => {
       const size = archive.pointer();
       console.log(`[${genName}] Created ${zipName} (${(size / 1024 / 1024).toFixed(0)} MB)`);
