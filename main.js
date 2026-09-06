@@ -131,6 +131,7 @@ const GAMES = [
   { id: 'emerald', name: 'Pokemon Esmeralda', generation: 3, saveType: 'gen3' },
   { id: 'firered', name: 'Pokemon Rojo Fuego', generation: 3, saveType: 'gen3' },
   { id: 'leafgreen', name: 'Pokemon Verde Hoja', generation: 3, saveType: 'gen3' },
+  { id: 'radicalred', name: 'Pokemon Radical Red (Fangame)', generation: 3, saveType: 'gen3' },
   { id: 'diamond', name: 'Pokemon Diamante', generation: 4, saveType: 'gen4' },
   { id: 'pearl', name: 'Pokemon Perla', generation: 4, saveType: 'gen4' },
   { id: 'platinum', name: 'Pokemon Platino', generation: 4, saveType: 'gen4' },

@@ -140,8 +140,8 @@ class FileWatcher {
           Logger.warn('Watcher', 'PkHexReader not available');
         }
 
-        // Fallback to native parser if PKHeX returned empty (hackroms, unsupported saves)
-        if (team.length === 0 && gameInfo && gameInfo.generation !== 3) {
+        // Fallback to native parser if PKHeX returned empty (hackroms, fangames, unsupported saves)
+        if (team.length === 0 && gameInfo) {
           Logger.info('Watcher', 'PKHeX returned empty team, trying built-in parser as fallback');
           try {
             const buffer = fs.readFileSync(resolvedSavePath);

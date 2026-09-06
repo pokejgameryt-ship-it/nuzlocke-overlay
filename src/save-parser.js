@@ -607,6 +607,9 @@ class SaveParser {
     Logger.info('Gen3', `Trying slots: [${slots.join(', ')}]`);
 
     // --- Shared: decrypt + deshuffle one Pokemon ---
+    // Handles both standard encrypted Gen3 and unencrypted CFRU/fangame saves.
+    // Standard Gen3: data is XOR-encrypted with PID^OTID, then shuffled
+    // CFRU/fangames: data is only shuffled (no XOR encryption), checksum is 0
     function decryptAndRead(pokemonFileOfs) {
       if (pokemonFileOfs + SIZE_3PARTY > buffer.length) return null;
 
@@ -614,31 +617,48 @@ class SaveParser {
       const otId = buffer.readUInt32LE(pokemonFileOfs + 0x04);
       if (pid === 0) return null;
 
-      const seed = (pid ^ otId) >>> 0;
-
-      // Read 48 bytes encrypted data from offset 0x20
-      const ekData = Buffer.alloc(48);
-      buffer.copy(ekData, 0, pokemonFileOfs + 0x20, pokemonFileOfs + 0x20 + 48);
+      // Read 48 bytes of substructure data from offset 0x20
+      const rawData = Buffer.alloc(48);
+      buffer.copy(rawData, 0, pokemonFileOfs + 0x20, pokemonFileOfs + 0x20 + 48);
 
       // Check not empty
       let hasData = false;
       for (let b = 0; b < 48; b++) {
-        if (ekData[b] !== 0x00 && ekData[b] !== 0xFF) { hasData = true; break; }
+        if (rawData[b] !== 0x00 && rawData[b] !== 0xFF) { hasData = true; break; }
       }
       if (!hasData) return null;
 
-      // XOR decrypt each 4-byte word with PID^OTID
-      for (let b = 0; b < 48; b += 4) {
-        ekData.writeUInt32LE((ekData.readUInt32LE(b) ^ seed) >>> 0, b);
-      }
-
-      // Verify checksum: sum of 24 uint16 from decrypted 48 bytes, masked to 16 bits
       const storedCS = buffer.readUInt16LE(pokemonFileOfs + 0x1C);
-      let computedCS = 0;
-      for (let i = 0; i < 48; i += 2) {
-        computedCS = (computedCS + ekData.readUInt16LE(i)) & 0xFFFF;
+
+      // Determine if data is encrypted or unencrypted (CFRU/fangames):
+      // Unencrypted party data has valid species (1-1025) at offset 0x00
+      // and stored checksum is 0 (CFRU doesn't populate the checksum field)
+      const rawSpecies = rawData.readUInt16LE(0x00);
+      const isUnencrypted = storedCS === 0 && rawSpecies >= 1 && rawSpecies <= 1025;
+
+      let data48;
+      let computedCS;
+      let csOk;
+
+      if (isUnencrypted) {
+        // CFRU/fangame: data is only shuffled, no XOR encryption
+        data48 = rawData;
+        computedCS = 0;
+        csOk = true;
+      } else {
+        // Standard Gen3: XOR decrypt with PID^OTID seed
+        const seed = (pid ^ otId) >>> 0;
+        data48 = Buffer.from(rawData);
+        for (let b = 0; b < 48; b += 4) {
+          data48.writeUInt32LE((data48.readUInt32LE(b) ^ seed) >>> 0, b);
+        }
+        // Verify checksum
+        computedCS = 0;
+        for (let i = 0; i < 48; i += 2) {
+          computedCS = (computedCS + data48.readUInt16LE(i)) & 0xFFFF;
+        }
+        csOk = storedCS === computedCS;
       }
-      const csOk = storedCS === computedCS;
 
       // Unshuffle 4 x12-byte blocks (Growth, Attacks, EVs/Misc, Misc/Condition)
       const sv = pid % 24;
@@ -649,7 +669,7 @@ class SaveParser {
         const srcOff = srcBlock * 12;
         const dstOff = blk * 12;
         for (let k = 0; k < 12; k++) {
-          unshuffled[dstOff + k] = ekData[srcOff + k];
+          unshuffled[dstOff + k] = data48[srcOff + k];
         }
       }
 
@@ -661,7 +681,7 @@ class SaveParser {
       const curHp = buffer.readUInt16LE(pokemonFileOfs + 0x56);
       const maxHp = buffer.readUInt16LE(pokemonFileOfs + 0x58);
 
-      return { pid, otId, seed, sv, speciesId, rawLevel, level, curHp, maxHp, storedCS, computedCS, csOk };
+      return { pid, otId, sv, speciesId, rawLevel, level, curHp, maxHp, storedCS, computedCS, csOk, isUnencrypted };
     }
 
     // --- Shared: read nickname/OT and build result ---
@@ -757,8 +777,9 @@ class SaveParser {
     }
 
     // --- Main loop: try each slot, route to RSE or FRLG ---
+    // Include fangames based on each engine (CFRU = FireRed-based, etc.)
     const isRSE = ['ruby', 'sapphire', 'emerald', 'ruby_sapphire', 'emerald_jp'].includes(version);
-    const isFRLG = ['firered', 'leafgreen', 'firered_leafgreen'].includes(version);
+    const isFRLG = ['firered', 'leafgreen', 'firered_leafgreen', 'radicalred'].includes(version);
 
     for (const slot of slots) {
       Logger.info('Gen3', `Trying slot ${slot}`);
