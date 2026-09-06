@@ -913,7 +913,7 @@ ipcMain.handle('check-for-updates', async (event, includeBetas) => {
     const lastSeenVersion = settings.lastSeenVersion || '';
     const wantBetas = includeBetas || settings.includeBetas || false;
 
-    const parseVer = (v) => v.split('.').map(Number);
+    const parseVer = (v) => v.split('-')[0].split('.').map(Number);
     const cur = parseVer(currentVersion);
     const compareVer = (a, b) => {
       const va = parseVer(a), vb = parseVer(b);
