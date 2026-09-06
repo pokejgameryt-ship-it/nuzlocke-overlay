@@ -141,7 +141,12 @@ class FileWatcher {
         }
 
         // Fallback to native parser if PKHeX returned empty (hackroms, fangames, unsupported saves)
-        if (team.length === 0 && gameInfo) {
+        // Only fallback when PKHeX FAILED (threw error = hackrom/unsupported) or returned no generation.
+        // Do NOT fallback when PKHeX succeeded but found 0 Pokemon — that means the save is empty/corrupted
+        // and the native parser would find false positives (e.g. Pokemon Emerald false detection).
+        const pkhexFailed = !pkhexResult || pkhexError;
+        const pkhexNoGen = pkhexResult && !pkhexResult.generation;
+        if (team.length === 0 && gameInfo && (pkhexFailed || pkhexNoGen)) {
           Logger.info('Watcher', 'PKHeX returned empty team, trying built-in parser as fallback');
           try {
             const buffer = fs.readFileSync(resolvedSavePath);
