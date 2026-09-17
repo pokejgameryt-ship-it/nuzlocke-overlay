@@ -971,7 +971,19 @@ ipcMain.handle('skip-version', (event, version) => {
 ipcMain.handle('download-update', async (event, releaseUrl) => {
   const webContents = event.sender;
   try {
-    const release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+    // Use the specific release URL passed from the update checker, not /releases/latest
+    // /releases/latest only returns stable releases, ignoring betas
+    let release;
+    if (releaseUrl && releaseUrl.includes('/releases/')) {
+      const tagMatch = releaseUrl.match(/\/releases\/tag\/(.+)$/);
+      if (tagMatch) {
+        const tag = tagMatch[1];
+        release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${tag}`);
+      }
+    }
+    if (!release) {
+      release = await fetchJSON(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+    }
     const assets = release.assets || [];
     const installer = assets.find(a => a.name && a.name.endsWith('.exe') && a.name.includes('Setup'));
     if (!installer) return { success: false, error: 'Installer not found in release assets' };
