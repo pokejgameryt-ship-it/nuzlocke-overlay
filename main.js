@@ -940,7 +940,7 @@ ipcMain.handle('check-for-updates', async (event, includeBetas) => {
         isPrerelease = true;
       }
     }
-    if (!targetRelease) return { hasUpdate: false, hasChangelog: false };
+    if (!targetRelease) return { hasUpdate: false, hasChangelog: false, currentVersion };
 
     const latestVersion = (targetRelease.tag_name || '').replace(/^v/, '');
     const hasUpdate = true;

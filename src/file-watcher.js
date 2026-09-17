@@ -140,82 +140,30 @@ class FileWatcher {
           Logger.warn('Watcher', 'PkHexReader not available');
         }
 
-        // === CASCADE FALLBACK: PKHeX → native parser → re-detect → alternative parsers ===
-        // Each step only runs if the previous one failed or returned empty.
-        const parseBuffer = team.length === 0 ? (() => { try { return fs.readFileSync(resolvedSavePath); } catch { return null; } })() : null;
-
-        // Step 2: Native parser with user-selected game info
-        if (team.length === 0 && parseBuffer && gameInfo && !gameInfo.encrypted) {
-          Logger.info('Watcher', 'Step 2: Trying native parser with user-selected game info');
+        // === FALLBACK: PKHeX → native parser (one attempt) → done ===
+        // If PKHeX succeeds, trust its result (even if 0 Pokemon).
+        // Only try native parser when PKHeX FAILS (e.g. hackroms, .NET missing).
+        // No re-detection, no alternative parsers — prevents false species on save changes.
+        if (team.length === 0 && pkhexError && gameInfo && !gameInfo.encrypted) {
+          Logger.info('Watcher', `PKHeX failed (${pkhexError}), trying native parser as fallback`);
           try {
-            const nativeTeam = SaveParser.parse(parseBuffer, gameInfo);
+            const buffer = fs.readFileSync(resolvedSavePath);
+            const nativeTeam = SaveParser.parse(buffer, gameInfo);
             nativeTeamLength = nativeTeam.length;
             if (nativeTeam.length > 0) {
-              Logger.info('Watcher', `Native parser found ${nativeTeam.length} Pokemon (step 2)`);
+              Logger.info('Watcher', `Native parser found ${nativeTeam.length} Pokemon (fallback)`);
               Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
               team = nativeTeam;
             } else {
-              Logger.warn('Watcher', 'Native parser returned empty (step 2)');
+              Logger.warn('Watcher', 'Native parser also returned empty');
               Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, null);
             }
           } catch (nativeErr) {
             nativeError = nativeErr.message;
-            Logger.error('Watcher', `Native parser failed (step 2): ${nativeErr.message}`);
+            Logger.error('Watcher', `Native parser fallback failed: ${nativeErr.message}`);
             Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
           }
         }
-
-        // Step 3: Re-detect save format and try again
-        if (team.length === 0 && parseBuffer && !gameInfo.encrypted) {
-          Logger.info('Watcher', 'Step 3: Re-detecting save format');
-          try {
-            const detected = DetectSave.detect(parseBuffer);
-            if (detected && (!gameInfo || detected.version !== gameInfo.version || detected.generation !== gameInfo.generation)) {
-              Logger.info('Watcher', `Re-detected: ${detected.name} (was: ${gameInfo?.version || '?'})`);
-              const nativeTeam = SaveParser.parse(parseBuffer, detected);
-              if (nativeTeam.length > 0) {
-                Logger.info('Watcher', `Native parser found ${nativeTeam.length} Pokemon (step 3, re-detected ${detected.name})`);
-                Logger.logNativeParserResult(resolvedSavePath, saveSize, detected, nativeTeam.length, null);
-                team = nativeTeam;
-              } else {
-                Logger.warn('Watcher', 'Native parser returned empty (step 3)');
-                Logger.logNativeParserResult(resolvedSavePath, saveSize, detected, 0, null);
-              }
-            }
-          } catch (detErr) {
-            Logger.error('Watcher', `Re-detect failed (step 3): ${detErr.message}`);
-          }
-        }
-
-        // Step 4: Gen3 alternative — try CFRU/unencrypted if standard parsing failed
-        if (team.length === 0 && parseBuffer && gameInfo && gameInfo.generation === 3 && !gameInfo.encrypted) {
-          Logger.info('Watcher', 'Step 4: Trying Gen3 alternative parsers (CFRU/fangame)');
-          try {
-            // Try both RSE and FRLG paths regardless of selected version
-            const altInfos = [
-              { ...gameInfo, version: 'firered' },
-              { ...gameInfo, version: 'ruby' },
-              { ...gameInfo, version: 'emerald' },
-            ];
-            for (const altInfo of altInfos) {
-              const altTeam = SaveParser.parse(parseBuffer, altInfo);
-              if (altTeam.length > 0) {
-                Logger.info('Watcher', `Gen3 alternative found ${altTeam.length} Pokemon (version=${altInfo.version})`);
-                Logger.logNativeParserResult(resolvedSavePath, saveSize, altInfo, altTeam.length, null);
-                team = altTeam;
-                break;
-              }
-            }
-            if (team.length === 0) {
-              Logger.warn('Watcher', 'All Gen3 alternative parsers returned empty');
-            }
-          } catch (altErr) {
-            Logger.error('Watcher', `Gen3 alternative failed: ${altErr.message}`);
-            Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, altErr.message);
-          }
-        }
-
-        // parseBuffer is block-scoped and will be GC'd
 
         Logger.logSaveParse(resolvedSavePath, saveSize, gameInfo, {
           game: pkhexResult?.game || gameInfo?.version,
