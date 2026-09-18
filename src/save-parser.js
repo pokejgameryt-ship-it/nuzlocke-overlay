@@ -686,7 +686,12 @@ class SaveParser {
 
     // --- Shared: read nickname/OT and build result ---
     function buildPokemonResult(pokemonFileOfs, monData, i) {
-      const { speciesId, level, curHp, maxHp, pid, otId, isShiny: _ } = monData;
+      const { speciesId, level, curHp, maxHp, pid, otId, csOk, isUnencrypted } = monData;
+
+      if (!csOk && !isUnencrypted) {
+        Logger.debug('Gen3', `  Pokemon ${i}: checksum mismatch (csOk=false), skipping`);
+        return null;
+      }
 
       if (speciesId === 0 || speciesId > 1025) {
         Logger.debug('Gen3', `  Pokemon ${i}: invalid species ${speciesId}, skipping`);
