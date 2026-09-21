@@ -145,7 +145,8 @@ class FileWatcher {
 
           if (storedParser === 'pkhex') {
             if (!PkHexReader) {
-              Logger.warn('Watcher', 'Stored parser is pkhex but PkHexReader not available. Trying native fallback.');
+              Logger.warn('Watcher', 'Stored parser is pkhex but PkHexReader not available. Keeping last team.');
+              return;
             } else {
               try {
                 pkhexResult = await PkHexReader.parse(resolvedSavePath);
@@ -160,19 +161,8 @@ class FileWatcher {
             }
 
             if (team.length === 0 && pkhexError) {
-              try {
-                const buffer = fs.readFileSync(resolvedSavePath);
-                const nativeTeam = SaveParser.parse(buffer, gameInfo);
-                if (nativeTeam.length > 0) {
-                  nativeTeamLength = nativeTeam.length;
-                  Logger.info('Watcher', `[Native] Fallback found ${nativeTeam.length} Pokemon`);
-                  Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
-                  team = nativeTeam;
-                  this.workingParsers.set(projectId, 'native');
-                }
-              } catch (nativeErr) {
-                Logger.error('Watcher', `[Native] Fallback also failed: ${nativeErr.message}`);
-              }
+              Logger.warn('Watcher', `[PKHeX] Re-detection failed, keeping last team`);
+              return;
             }
           } else if (storedParser === 'native') {
             try {
