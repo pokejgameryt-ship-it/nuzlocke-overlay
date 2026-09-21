@@ -139,29 +139,25 @@ class FileWatcher {
         let nativeTeamLength = 0;
 
         const storedParser = this.workingParsers.get(projectId);
+        const isFangame = gameInfo && gameInfo.fangame;
 
         if (storedParser) {
+          // === RE-DETECTION: always use the same parser that worked before ===
           Logger.info('Watcher', `Re-detection: using stored parser "${storedParser}" for project ${projectId}`);
 
           if (storedParser === 'pkhex') {
             if (!PkHexReader) {
               Logger.warn('Watcher', 'Stored parser is pkhex but PkHexReader not available. Keeping last team.');
               return;
-            } else {
-              try {
-                pkhexResult = await PkHexReader.parse(resolvedSavePath);
-                Logger.info('Watcher', `[PKHeX] Re-detection result: partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
-                Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
-                team = mapPkHeXTeam(pkhexResult.pokemon);
-              } catch (pkErr) {
-                pkhexError = pkErr.message;
-                Logger.error('Watcher', `[PKHeX] Re-detection FAILED: ${pkErr.message}. Trying native fallback.`);
-                Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
-              }
             }
-
-            if (team.length === 0 && pkhexError) {
-              Logger.warn('Watcher', `[PKHeX] Re-detection failed, keeping last team`);
+            try {
+              pkhexResult = await PkHexReader.parse(resolvedSavePath);
+              Logger.info('Watcher', `[PKHeX] Re-detection result: partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
+              Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
+              team = mapPkHeXTeam(pkhexResult.pokemon);
+            } catch (pkErr) {
+              Logger.error('Watcher', `[PKHeX] Re-detection FAILED: ${pkErr.message}. Keeping last team.`);
+              Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
               return;
             }
           } else if (storedParser === 'native') {
@@ -173,50 +169,75 @@ class FileWatcher {
               Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
               team = nativeTeam;
             } catch (nativeErr) {
-              nativeError = nativeErr.message;
               Logger.error('Watcher', `[Native] Re-detection FAILED: ${nativeErr.message}. Keeping last team.`);
               Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
               return;
             }
           }
         } else {
-          if (PkHexReader) {
-            try {
-              Logger.info('Watcher', `[PKHeX] First detection, calling parse on: ${resolvedSavePath}`);
-              pkhexResult = await PkHexReader.parse(resolvedSavePath);
-              Logger.info('Watcher', `[PKHeX] Result: game=${pkhexResult.game}, gen=${pkhexResult.generation}, partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
-              Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
-              team = mapPkHeXTeam(pkhexResult.pokemon);
-            } catch (pkErr) {
-              pkhexError = pkErr.message;
-              Logger.error('Watcher', `[PKHeX] Failed for ${resolvedSavePath}: ${pkErr.message}`);
-              Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
-            }
-          } else {
-            Logger.warn('Watcher', 'PkHexReader not available');
-          }
-
-          if (team.length === 0 && pkhexError && gameInfo && !gameInfo.encrypted) {
-            Logger.info('Watcher', `PKHeX failed (${pkhexError}), trying native parser as fallback`);
+          // === FIRST DETECTION ===
+          if (isFangame) {
+            // Fangames: PKHeX won't know them, go straight to native parser
+            Logger.info('Watcher', `Fangame detected (${gameInfo.id}), using native parser directly`);
             try {
               const buffer = fs.readFileSync(resolvedSavePath);
               const nativeTeam = SaveParser.parse(buffer, gameInfo);
               nativeTeamLength = nativeTeam.length;
               if (nativeTeam.length > 0) {
-                Logger.info('Watcher', `Native parser found ${nativeTeam.length} Pokemon (fallback)`);
+                Logger.info('Watcher', `[Native] Found ${nativeTeam.length} Pokemon`);
                 Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
                 team = nativeTeam;
               } else {
-                Logger.warn('Watcher', 'Native parser also returned empty');
+                Logger.warn('Watcher', '[Native] Returned empty team');
                 Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, null);
               }
             } catch (nativeErr) {
               nativeError = nativeErr.message;
-              Logger.error('Watcher', `Native parser fallback failed: ${nativeErr.message}`);
+              Logger.error('Watcher', `[Native] Failed for fangame: ${nativeErr.message}`);
               Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
+            }
+          } else {
+            // Official games: PKHeX first
+            if (PkHexReader) {
+              try {
+                Logger.info('Watcher', `[PKHeX] First detection, calling parse on: ${resolvedSavePath}`);
+                pkhexResult = await PkHexReader.parse(resolvedSavePath);
+                Logger.info('Watcher', `[PKHeX] Result: game=${pkhexResult.game}, gen=${pkhexResult.generation}, partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
+                Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
+                team = mapPkHeXTeam(pkhexResult.pokemon);
+              } catch (pkErr) {
+                pkhexError = pkErr.message;
+                Logger.error('Watcher', `[PKHeX] Failed for ${resolvedSavePath}: ${pkErr.message}`);
+                Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
+              }
+            } else {
+              Logger.warn('Watcher', 'PkHexReader not available');
+            }
+
+            // Native fallback if PKHeX failed (e.g. corrupted save, unsupported format)
+            if (team.length === 0 && pkhexError) {
+              Logger.info('Watcher', `PKHeX failed (${pkhexError}), trying native parser as fallback`);
+              try {
+                const buffer = fs.readFileSync(resolvedSavePath);
+                const nativeTeam = SaveParser.parse(buffer, gameInfo);
+                nativeTeamLength = nativeTeam.length;
+                if (nativeTeam.length > 0) {
+                  Logger.info('Watcher', `Native parser found ${nativeTeam.length} Pokemon (fallback)`);
+                  Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
+                  team = nativeTeam;
+                } else {
+                  Logger.warn('Watcher', 'Native parser also returned empty');
+                  Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, null);
+                }
+              } catch (nativeErr) {
+                nativeError = nativeErr.message;
+                Logger.error('Watcher', `Native parser fallback failed: ${nativeErr.message}`);
+                Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
+              }
             }
           }
 
+          // Store which parser succeeded for future re-detections
           if (team.length > 0) {
             if (!pkhexError && pkhexResult) {
               this.workingParsers.set(projectId, 'pkhex');
