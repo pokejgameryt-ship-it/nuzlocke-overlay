@@ -357,7 +357,7 @@ function startWatching(project) {
   if (!project || !project.savePath) return;
 
   const gameEntry = GAMES.find(g => g.id === (project.game?.version || project.game?.game));
-  const gameInfo = gameEntry ? { ...gameEntry } : project.game;
+  const gameInfo = gameEntry ? { ...gameEntry, version: gameEntry.id } : project.game;
   Logger.info('Main', `startWatching gameInfo: version=${gameInfo.version}, gen=${gameInfo.generation}, encrypted=${gameInfo.encrypted}`);
 
   fileWatcher.updatePlaceholderConfig(project.id, {
