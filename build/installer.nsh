@@ -1,48 +1,35 @@
 !macro customInit
   ; Check if .NET 8.0 Desktop Runtime is already installed
-  ; Method 1: Check if dotnet.exe exists in standard system location
-  IfFileExists "C:\Program Files\dotnet\dotnet.exe" dotnet_found dotnet_not_found_system
-  Goto dotnet_not_found_user
+  ; Method 1: Check registry for Microsoft.WindowsDesktop.App shared framework
+  SetRegView 64
+  ReadRegStr $0 HKLM "SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App" ""
+  StrCmp $0 "" 0 dotnet_found
 
-  dotnet_not_found_system:
-    ; Method 2: Check if dotnet.exe exists in user profile
-    IfFileExists "$PROFILE\.dotnet\dotnet.exe" dotnet_found dotnet_not_found_user
+  ; Method 2: Check WOW6432Node
+  ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App" ""
+  StrCmp $0 "" 0 dotnet_found
 
-  dotnet_not_found_user:
-    ; Method 3: Check registry for Microsoft.WindowsDesktop.App shared framework
-    SetRegView 64
-    ReadRegStr $0 HKLM "SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App" ""
-    StrCmp $0 "" 0 dotnet_found
+  ; Method 3: Check HKCU (user-level install)
+  ReadRegStr $0 HKCU "SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App" ""
+  StrCmp $0 "" 0 dotnet_found
 
-    ; Method 4: Check WOW6432Node
-    ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App" ""
-    StrCmp $0 "" 0 dotnet_found
+  ; Method 4: Check if dotnet.exe exists in standard locations
+  IfFileExists "C:\Program Files\dotnet\dotnet.exe" dotnet_found 0
+  IfFileExists "$PROFILE\.dotnet\dotnet.exe" dotnet_found 0
 
-    ; Method 5: Check HKCU (user-level install)
-    ReadRegStr $0 HKCU "SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App" ""
-    StrCmp $0 "" 0 dotnet_found
-
-    ; Not found - need to download and install .NET 8.0 Desktop Runtime
-    MessageBox MB_YESNO|MB_ICONQUESTION "Nuzlocke Overlay requiere .NET 8.0 Desktop Runtime para funcionar.$\r$\n$\r$\nSe descargara e instalara automaticamente (~60MB).$\r$\n$\r$\nContinuar?" IDYES download_dotnet IDNO dotnet_cancel
+  ; Not found - need to download and install .NET 8.0 Desktop Runtime
+  MessageBox MB_YESNO|MB_ICONQUESTION "Nuzlocke Overlay requiere .NET 8.0 Desktop Runtime para funcionar.$\r$\n$\r$\nSe descargara e instalara automaticamente (~60MB).$\r$\n$\r$\nContinuar?" IDYES download_dotnet IDNO dotnet_cancel
 
   download_dotnet:
     DetailPrint "Descargando .NET 8.0 Desktop Runtime..."
-    ; Try curl first (built into Windows 10+), fallback to NSISdl
     nsExec::ExecToStack 'cmd /c curl -L --connect-timeout 30 --max-time 600 -o "$TEMP\dotnet-runtime-8.0.exe" "https://download.microsoft.com/download/9f887fdb-93b3-4b8d-8c68-c68c37d991d8/248c8e1c-3dee-4902-b593-3aee3e9f64dc/windowsdesktop-runtime-8.0.30-win-x64.exe"'
     Pop $1
-    StrCmp $1 "0" check_download_size download_fallback
+    StrCmp $1 "0" check_download_ok download_fallback
 
-  check_download_size:
-    ; Verify file was actually downloaded (not empty)
-    IfFileExists "$TEMP\dotnet-runtime-8.0.exe" 0 download_fallback
-    ; Check file size is reasonable (>10MB = at least partially downloaded)
-    StrLen $2 "$TEMP\dotnet-runtime-8.0.exe"
-    ; File exists and curl succeeded - proceed to install
-    DetailPrint "Descarga completada."
-    Goto download_ok
+  check_download_ok:
+    IfFileExists "$TEMP\dotnet-runtime-8.0.exe" download_ok download_fallback
 
   download_fallback:
-    ; Fallback to NSISdl if curl failed
     DetailPrint "Intentando descarga alternativa..."
     NSISdl::download /TIMEOUT 300000 "https://download.microsoft.com/download/9f887fdb-93b3-4b8d-8c68-c68c37d991d8/248c8e1c-3dee-4902-b593-3aee3e9f64dc/windowsdesktop-runtime-8.0.30-win-x64.exe" "$TEMP\dotnet-runtime-8.0.exe"
     Pop $0

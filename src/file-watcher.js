@@ -22,6 +22,7 @@ class FileWatcher {
     this.placeholderConfigs = new Map();
     this.stoppedProjects = new Set();
     this.workingParsers = new Map();
+    this.watchConfigs = new Map();
   }
 
   updatePlaceholderConfig(projectId, config) {
@@ -42,24 +43,20 @@ class FileWatcher {
       return;
     }
 
-    // If savePath is a directory (e.g. Citra's 00000001 folder), find the actual save file inside
     let resolvedSavePath = savePath;
     const stats = fs.statSync(savePath);
     if (stats.isDirectory()) {
       Logger.info('Watcher', `savePath is a directory, looking for save file inside...`);
-      // Citra: look for 'main' file (3DS save format)
       const mainFile = path.join(savePath, 'main');
       if (fs.existsSync(mainFile)) {
         resolvedSavePath = mainFile;
         Logger.info('Watcher', `Found Citra save: ${resolvedSavePath}`);
       } else {
-        // Try common save file extensions
         const exts = ['.sav', '.dsv', '.sa1', '.sa2', '.sa3', '.ss1', '.ss2', '.ss3', '.ss4', '.ss5', '.bin'];
         for (const ext of exts) {
           const candidate = path.join(savePath, 'main' + ext);
           if (fs.existsSync(candidate)) { resolvedSavePath = candidate; break; }
         }
-        // If still directory, try first file inside
         if (resolvedSavePath === savePath) {
           const files = fs.readdirSync(savePath).filter(f => {
             try { return fs.statSync(path.join(savePath, f)).isFile(); } catch { return false; }
@@ -73,18 +70,22 @@ class FileWatcher {
     }
 
     Logger.info('Watcher', `Save file exists: ${resolvedSavePath} (${fs.statSync(resolvedSavePath).size} bytes)`);
-
-    // Log gameInfo details
     Logger.info('Watcher', `gameInfo: ${JSON.stringify(gameInfo)}`);
 
-    const watcher = chokidar.watch(resolvedSavePath, {
-      ignoreInitial: false,
+    const watchDir = path.dirname(resolvedSavePath);
+    const targetFile = path.basename(resolvedSavePath);
+
+    Logger.info('Watcher', `Watching directory: ${watchDir} (filtering for: ${targetFile})`);
+
+    const watcher = chokidar.watch(watchDir, {
+      ignoreInitial: true,
       usePolling: true,
-      interval: 500,
+      interval: 300,
+      awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 100 },
     });
 
     let generation = gameInfo ? gameInfo.generation || 0 : 0;
-    const DEBOUNCE_MS = 600;
+    const DEBOUNCE_MS = 350;
 
     Logger.info('Watcher', `Config: generation=${generation}, gameInfo=${JSON.stringify(gameInfo)}, PKHeX=${!!PkHexReader}`);
 
@@ -111,13 +112,25 @@ class FileWatcher {
       otName: pk.otName || '',
     }));
 
-    const parseAndBroadcast = async (gen) => {
-      if (gen !== generation) return;
+    const doParse = async () => {
+      if (this.stoppedProjects.has(projectId)) return;
       try {
+        if (!fs.existsSync(resolvedSavePath)) {
+          Logger.warn('Watcher', `Save file temporarily missing (emulator save in progress?), will retry...`);
+          setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 500);
+          return;
+        }
+
         let saveSize = 0;
         try { saveSize = fs.statSync(resolvedSavePath).size; } catch (e) {}
 
-        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${gen}, PKHeX=${!!PkHexReader}, resolvedPath=${resolvedSavePath}, size=${saveSize})`);
+        if (saveSize === 0) {
+          Logger.warn('Watcher', `Save file is 0 bytes (emulator mid-write?), will retry...`);
+          setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 500);
+          return;
+        }
+
+        Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${generation}, PKHeX=${!!PkHexReader}, resolvedPath=${resolvedSavePath}, size=${saveSize})`);
 
         let team = [];
         let pkhexError = null;
@@ -128,24 +141,38 @@ class FileWatcher {
         const storedParser = this.workingParsers.get(projectId);
 
         if (storedParser) {
-          // === RE-DETECTION: use the same parser that worked before ===
           Logger.info('Watcher', `Re-detection: using stored parser "${storedParser}" for project ${projectId}`);
 
           if (storedParser === 'pkhex') {
             if (!PkHexReader) {
-              Logger.warn('Watcher', 'Stored parser is pkhex but PkHexReader not available. Keeping last team.');
-              return;
+              Logger.warn('Watcher', 'Stored parser is pkhex but PkHexReader not available. Trying native fallback.');
+            } else {
+              try {
+                pkhexResult = await PkHexReader.parse(resolvedSavePath);
+                Logger.info('Watcher', `[PKHeX] Re-detection result: partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
+                Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
+                team = mapPkHeXTeam(pkhexResult.pokemon);
+              } catch (pkErr) {
+                pkhexError = pkErr.message;
+                Logger.error('Watcher', `[PKHeX] Re-detection FAILED: ${pkErr.message}. Trying native fallback.`);
+                Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
+              }
             }
-            try {
-              pkhexResult = await PkHexReader.parse(resolvedSavePath);
-              Logger.info('Watcher', `[PKHeX] Re-detection result: partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
-              Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
-              team = mapPkHeXTeam(pkhexResult.pokemon);
-            } catch (pkErr) {
-              pkhexError = pkErr.message;
-              Logger.error('Watcher', `[PKHeX] Re-detection FAILED: ${pkErr.message}. Keeping last team.`);
-              Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
-              return;
+
+            if (team.length === 0 && pkhexError) {
+              try {
+                const buffer = fs.readFileSync(resolvedSavePath);
+                const nativeTeam = SaveParser.parse(buffer, gameInfo);
+                if (nativeTeam.length > 0) {
+                  nativeTeamLength = nativeTeam.length;
+                  Logger.info('Watcher', `[Native] Fallback found ${nativeTeam.length} Pokemon`);
+                  Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
+                  team = nativeTeam;
+                  this.workingParsers.set(projectId, 'native');
+                }
+              } catch (nativeErr) {
+                Logger.error('Watcher', `[Native] Fallback also failed: ${nativeErr.message}`);
+              }
             }
           } else if (storedParser === 'native') {
             try {
@@ -163,7 +190,6 @@ class FileWatcher {
             }
           }
         } else {
-          // === FIRST DETECTION: try PKHeX first, then native fallback ===
           if (PkHexReader) {
             try {
               Logger.info('Watcher', `[PKHeX] First detection, calling parse on: ${resolvedSavePath}`);
@@ -201,7 +227,6 @@ class FileWatcher {
             }
           }
 
-          // Store which parser succeeded for future re-detections
           if (team.length > 0) {
             if (!pkhexError && pkhexResult) {
               this.workingParsers.set(projectId, 'pkhex');
@@ -262,7 +287,7 @@ class FileWatcher {
 
         Logger.info('Watcher', `Resolved team: ${resolvedTeam.map(p => `${p.speciesId}(${p.nickname || '?'})`).join(', ')}`);
 
-        if (gen !== generation) return;
+        if (this.stoppedProjects.has(projectId)) return;
 
         this.projectData.set(projectId, resolvedTeam);
 
@@ -283,23 +308,58 @@ class FileWatcher {
       }
     };
 
-    const debouncedParse = () => {
-      const curGen = generation;
+    const debouncedParse = (reason) => {
+      if (this.stoppedProjects.has(projectId)) return;
+      Logger.debug('Watcher', `debouncedParse triggered: ${reason} for ${projectId}`);
       if (this.debounceTimers.has(projectId)) {
         clearTimeout(this.debounceTimers.get(projectId));
       }
       this.debounceTimers.set(projectId, setTimeout(() => {
         this.debounceTimers.delete(projectId);
-        parseAndBroadcast(curGen);
+        doParse();
       }, DEBOUNCE_MS));
     };
 
-    watcher.on('change', () => { Logger.debug('Watcher', `change event for ${projectId}`); debouncedParse(); });
-    watcher.on('add', () => { Logger.debug('Watcher', `add event for ${projectId}`); debouncedParse(); });
+    const onFileEvent = (eventType, filePath) => {
+      const changedFile = path.basename(filePath);
+      if (changedFile !== targetFile) return;
+      Logger.info('Watcher', `${eventType} event for target file: ${filePath}`);
+      debouncedParse(eventType);
+    };
+
+    watcher.on('change', (fp) => onFileEvent('change', fp));
+    watcher.on('add', (fp) => onFileEvent('add', fp));
+    watcher.on('unlink', (fp) => onFileEvent('unlink', fp));
+    watcher.on('addDir', (fp) => {
+      if (fp === watchDir) return;
+      const changedFile = path.basename(fp);
+      if (changedFile === targetFile) debouncedParse('addDir');
+    });
+    watcher.on('unlinkDir', (fp) => {
+      const changedFile = path.basename(fp);
+      if (changedFile === targetFile) debouncedParse('unlinkDir');
+    });
+
+    watcher.on('error', (err) => {
+      Logger.error('Watcher', `Chokidar error for project ${projectId}: ${err.message}`);
+      setTimeout(() => {
+        if (this.stoppedProjects.has(projectId)) return;
+        Logger.warn('Watcher', `Attempting to restart watcher for project ${projectId}...`);
+        const cfg = this.watchConfigs.get(projectId);
+        if (cfg) {
+          this.watchers.delete(projectId);
+          try { this.startWatching(projectId, cfg.savePath, cfg.gameInfo, cfg.spriteStyle, cfg.spriteStylePath, cfg.spritesRoot, cfg.sseClients, cfg.onTeamChange); } catch (e) {
+            Logger.error('Watcher', `Failed to restart watcher: ${e.message}`);
+          }
+        }
+      }, 3000);
+    });
+
     this.watchers.set(projectId, watcher);
+    this.watchConfigs.set(projectId, { savePath, gameInfo, spriteStyle, spriteStylePath, spritesRoot, sseClients, onTeamChange });
 
     Logger.info('Watcher', `Scheduling initial parse for project ${projectId} (2s delay)...`);
-    setTimeout(() => parseAndBroadcast(generation), 2000);
+    setTimeout(() => doParse(), 2000);
   }
 
   stopWatching(projectId) {
@@ -313,6 +373,7 @@ class FileWatcher {
       Logger.info('Watcher', `Stopping watcher for project ${projectId}`);
       watcher.close();
       this.watchers.delete(projectId);
+      this.watchConfigs.delete(projectId);
       this.projectData.delete(projectId);
       this.placeholderConfigs.delete(projectId);
     }
