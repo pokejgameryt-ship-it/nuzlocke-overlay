@@ -355,13 +355,18 @@ function startOverlayServer() {
 
 function startWatching(project) {
   if (!project || !project.savePath) return;
+
+  const gameEntry = GAMES.find(g => g.id === (project.game?.version || project.game?.game));
+  const gameInfo = gameEntry ? { ...gameEntry } : project.game;
+  Logger.info('Main', `startWatching gameInfo: version=${gameInfo.version}, gen=${gameInfo.generation}, encrypted=${gameInfo.encrypted}`);
+
   fileWatcher.updatePlaceholderConfig(project.id, {
     usePlaceholder: project.usePlaceholder || false
   });
   fileWatcher.startWatching(
     project.id,
     project.savePath,
-    project.game,
+    gameInfo,
     project.spriteStyle,
     project.spriteStylePath,
     SPRITES_ROOT,
