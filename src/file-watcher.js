@@ -81,11 +81,10 @@ class FileWatcher {
       ignoreInitial: true,
       usePolling: true,
       interval: 300,
-      awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 100 },
     });
 
     let generation = gameInfo ? gameInfo.generation || 0 : 0;
-    const DEBOUNCE_MS = 350;
+    const DEBOUNCE_MS = 500;
 
     Logger.info('Watcher', `Config: generation=${generation}, gameInfo=${JSON.stringify(gameInfo)}, PKHeX=${!!PkHexReader}`);
 
@@ -112,12 +111,29 @@ class FileWatcher {
       otName: pk.otName || '',
     }));
 
+    const waitForFileStable = () => {
+      return new Promise((resolve) => {
+        let size1 = -1;
+        try { size1 = fs.statSync(resolvedSavePath).size; } catch (e) { resolve(); return; }
+        setTimeout(() => {
+          let size2 = -1;
+          try { size2 = fs.statSync(resolvedSavePath).size; } catch (e) { resolve(); return; }
+          if (size1 !== size2) {
+            Logger.warn('Watcher', `File still changing (${size1} -> ${size2}), waiting more...`);
+            setTimeout(() => { resolve(); }, 800);
+          } else {
+            resolve();
+          }
+        }, 600);
+      });
+    };
+
     const doParse = async () => {
       if (this.stoppedProjects.has(projectId)) return;
       try {
         if (!fs.existsSync(resolvedSavePath)) {
           Logger.warn('Watcher', `Save file temporarily missing (emulator save in progress?), will retry...`);
-          setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 500);
+          setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 1000);
           return;
         }
 
@@ -126,7 +142,18 @@ class FileWatcher {
 
         if (saveSize === 0) {
           Logger.warn('Watcher', `Save file is 0 bytes (emulator mid-write?), will retry...`);
-          setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 500);
+          setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 1000);
+          return;
+        }
+
+        await waitForFileStable();
+
+        if (this.stoppedProjects.has(projectId)) return;
+
+        try { saveSize = fs.statSync(resolvedSavePath).size; } catch (e) {}
+        if (saveSize === 0) {
+          Logger.warn('Watcher', `Save file still 0 bytes after stability check, will retry...`);
+          setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 1000);
           return;
         }
 
