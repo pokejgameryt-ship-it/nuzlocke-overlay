@@ -354,10 +354,15 @@ function startOverlayServer() {
 }
 
 function startWatching(project) {
-  if (!project || !project.savePath) return;
+  dbgWrite(`startWatching: project=${project?.id} savePath=${project?.savePath || '(none)'} game=${JSON.stringify(project?.game)}`);
+  if (!project || !project.savePath) {
+    dbgWrite(`startWatching: ABORTED - no project or no savePath`);
+    return;
+  }
 
   const gameEntry = GAMES.find(g => g.id === (project.game?.version || project.game?.game));
   const gameInfo = gameEntry ? { ...gameEntry, version: gameEntry.id } : project.game;
+  dbgWrite(`startWatching: gameEntry=${gameEntry ? gameEntry.id : '(none)'} gameInfo.encrypted=${gameInfo?.encrypted}`);
   Logger.info('Main', `startWatching gameInfo: version=${gameInfo.version}, gen=${gameInfo.generation}, encrypted=${gameInfo.encrypted}`);
 
   fileWatcher.updatePlaceholderConfig(project.id, {
@@ -372,9 +377,12 @@ function startWatching(project) {
     SPRITES_ROOT,
     sseClients,
     (projectId, team, error) => {
+      dbgWrite(`onTeamChange: project=${projectId} teamLen=${team?.length || 0} error=${error || 'none'}`);
       if (mainWindow && !mainWindow.isDestroyed()) {
         const prefixed = error ? team : team.map(p => p.spriteUrl ? { ...p, spriteUrl: `http://127.0.0.1:${overlayPort}${p.spriteUrl}` } : p);
         mainWindow.webContents.send('team-updated', projectId, prefixed, error);
+      } else {
+        dbgWrite(`onTeamChange: SKIPPED send - mainWindow=${!!mainWindow}`);
       }
     }
   );
@@ -451,13 +459,18 @@ ipcMain.handle('create-project', (event, data) => {
   return project;
 });
 ipcMain.handle('update-project', (event, id, data) => {
-  dbgWrite(`update-project: id=${id} inputMode=${data.inputMode} usePlaceholder=${data.usePlaceholder}`);
-  console.log('[MAIN] update-project:', id, 'inputMode:', data.inputMode);
+  dbgWrite(`update-project: id=${id} inputMode=${data.inputMode} savePath=${data.savePath || '(none)'} gameVer=${data.game?.version || '(none)'} usePlaceholder=${data.usePlaceholder}`);
+  console.log('[MAIN] update-project:', id, 'inputMode:', data.inputMode, 'savePath:', data.savePath || '(none)', 'game:', data.game?.version || '(none)');
   const updated = projectManager.update(id, data);
   if (updated) {
     fileWatcher.stopWatching(id);
-    if (updated.inputMode !== 'manual' && updated.savePath) startWatching(updated);
-    else fileWatcher.updatePlaceholderConfig(id, { usePlaceholder: updated.usePlaceholder || false });
+    if (updated.inputMode !== 'manual' && updated.savePath) {
+      dbgWrite(`update-project: calling startWatching for ${id} savePath=${updated.savePath} game=${JSON.stringify(updated.game)}`);
+      startWatching(updated);
+    } else {
+      dbgWrite(`update-project: NOT starting watcher inputMode=${updated.inputMode} savePath=${updated.savePath || '(empty)'}`);
+      fileWatcher.updatePlaceholderConfig(id, { usePlaceholder: updated.usePlaceholder || false });
+    }
     const clients = sseClients.get(id) || new Set();
     for (const client of clients) {
       client.write(`event: config-updated\ndata: ${JSON.stringify(updated)}\n\n`);

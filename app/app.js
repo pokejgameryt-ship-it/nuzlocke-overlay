@@ -303,7 +303,7 @@
     renderCanvasSlots(project.slots, project.nicknameSlots);
     pushHistory();
     loadPresets();
-    loadPlaceholderSprites(project.spriteStylePath);
+    if (typeof loadPlaceholderSprites === 'function') loadPlaceholderSprites(project.spriteStylePath);
   }
 
   async function refreshTeam() {
@@ -1786,6 +1786,7 @@
           populateGameSelect(project.game);
         }
         await saveProject();
+        setTimeout(() => refreshTeam(), 3000);
       }
     });
 
@@ -1809,6 +1810,7 @@
         if (game) { project.game = { generation: game.generation, saveType: game.saveType, version: game.id }; }
       }
       await saveProject();
+      setTimeout(() => refreshTeam(), 3000);
     });
 
     $('#styleSelect').addEventListener('change', async (e) => {
