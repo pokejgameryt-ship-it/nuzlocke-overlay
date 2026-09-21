@@ -111,25 +111,27 @@ class FileWatcher {
       otName: pk.otName || '',
     }));
 
-    const waitForFileStable = () => {
-      return new Promise((resolve) => {
-        let size1 = -1;
-        try { size1 = fs.statSync(resolvedSavePath).size; } catch (e) { resolve(); return; }
-        setTimeout(() => {
-          let size2 = -1;
-          try { size2 = fs.statSync(resolvedSavePath).size; } catch (e) { resolve(); return; }
-          if (size1 !== size2) {
-            Logger.warn('Watcher', `File still changing (${size1} -> ${size2}), waiting more...`);
-            setTimeout(() => { resolve(); }, 800);
-          } else {
-            resolve();
-          }
-        }, 600);
-      });
+    const snapshotSaveFile = () => {
+      const tmpDir = path.join(process.env.TEMP || process.env.TMP || '', 'nuzlocke-saves');
+      try { if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true }); } catch (e) {}
+      const tmpPath = path.join(tmpDir, `${projectId}-${Date.now()}.sav`);
+      try {
+        fs.copyFileSync(resolvedSavePath, tmpPath);
+        const tmpSize = fs.statSync(tmpPath).size;
+        return { tmpPath, tmpSize };
+      } catch (e) {
+        Logger.error('Watcher', `Failed to snapshot save file: ${e.message}`);
+        return null;
+      }
+    };
+
+    const cleanupSnapshot = (tmpPath) => {
+      try { if (tmpPath && fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (e) {}
     };
 
     const doParse = async () => {
       if (this.stoppedProjects.has(projectId)) return;
+      let tmpPath = null;
       try {
         if (!fs.existsSync(resolvedSavePath)) {
           Logger.warn('Watcher', `Save file temporarily missing (emulator save in progress?), will retry...`);
@@ -146,16 +148,15 @@ class FileWatcher {
           return;
         }
 
-        await waitForFileStable();
-
-        if (this.stoppedProjects.has(projectId)) return;
-
-        try { saveSize = fs.statSync(resolvedSavePath).size; } catch (e) {}
-        if (saveSize === 0) {
-          Logger.warn('Watcher', `Save file still 0 bytes after stability check, will retry...`);
+        const snapshot = snapshotSaveFile();
+        if (!snapshot) {
+          Logger.warn('Watcher', 'Snapshot failed, will retry...');
           setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 1000);
           return;
         }
+        tmpPath = snapshot.tmpPath;
+        saveSize = snapshot.tmpSize;
+        Logger.info('Watcher', `Snapshot created: ${tmpPath} (${saveSize} bytes)`);
 
         Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${generation}, PKHeX=${!!PkHexReader}, resolvedPath=${resolvedSavePath}, size=${saveSize})`);
 
@@ -175,21 +176,23 @@ class FileWatcher {
           if (storedParser === 'pkhex') {
             if (!PkHexReader) {
               Logger.warn('Watcher', 'Stored parser is pkhex but PkHexReader not available. Keeping last team.');
+              cleanupSnapshot(tmpPath);
               return;
             }
             try {
-              pkhexResult = await PkHexReader.parse(resolvedSavePath);
+              pkhexResult = await PkHexReader.parse(tmpPath);
               Logger.info('Watcher', `[PKHeX] Re-detection result: partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
               Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
               team = mapPkHeXTeam(pkhexResult.pokemon);
             } catch (pkErr) {
               Logger.error('Watcher', `[PKHeX] Re-detection FAILED: ${pkErr.message}. Keeping last team.`);
               Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, null, pkErr.message);
+              cleanupSnapshot(tmpPath);
               return;
             }
           } else if (storedParser === 'native') {
             try {
-              const buffer = fs.readFileSync(resolvedSavePath);
+              const buffer = fs.readFileSync(tmpPath);
               const nativeTeam = SaveParser.parse(buffer, gameInfo);
               nativeTeamLength = nativeTeam.length;
               Logger.info('Watcher', `[Native] Re-detection found ${nativeTeam.length} Pokemon`);
@@ -198,6 +201,7 @@ class FileWatcher {
             } catch (nativeErr) {
               Logger.error('Watcher', `[Native] Re-detection FAILED: ${nativeErr.message}. Keeping last team.`);
               Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
+              cleanupSnapshot(tmpPath);
               return;
             }
           }
@@ -207,7 +211,7 @@ class FileWatcher {
             // Fangames: PKHeX won't know them, go straight to native parser
             Logger.info('Watcher', `Fangame detected (${gameInfo.id}), using native parser directly`);
             try {
-              const buffer = fs.readFileSync(resolvedSavePath);
+              const buffer = fs.readFileSync(tmpPath);
               const nativeTeam = SaveParser.parse(buffer, gameInfo);
               nativeTeamLength = nativeTeam.length;
               if (nativeTeam.length > 0) {
@@ -227,8 +231,8 @@ class FileWatcher {
             // Official games: PKHeX first
             if (PkHexReader) {
               try {
-                Logger.info('Watcher', `[PKHeX] First detection, calling parse on: ${resolvedSavePath}`);
-                pkhexResult = await PkHexReader.parse(resolvedSavePath);
+                Logger.info('Watcher', `[PKHeX] First detection, calling parse on: ${tmpPath}`);
+                pkhexResult = await PkHexReader.parse(tmpPath);
                 Logger.info('Watcher', `[PKHeX] Result: game=${pkhexResult.game}, gen=${pkhexResult.generation}, partyCount=${pkhexResult.partyCount}, pokemon=${pkhexResult.pokemon.length}`);
                 Logger.logPkHexResult(resolvedSavePath, saveSize, gameInfo, pkhexResult, null);
                 team = mapPkHeXTeam(pkhexResult.pokemon);
@@ -245,7 +249,7 @@ class FileWatcher {
             if (team.length === 0 && pkhexError) {
               Logger.info('Watcher', `PKHeX failed (${pkhexError}), trying native parser as fallback`);
               try {
-                const buffer = fs.readFileSync(resolvedSavePath);
+                const buffer = fs.readFileSync(tmpPath);
                 const nativeTeam = SaveParser.parse(buffer, gameInfo);
                 nativeTeamLength = nativeTeam.length;
                 if (nativeTeam.length > 0) {
@@ -343,6 +347,8 @@ class FileWatcher {
       } catch (err) {
         Logger.error('Watcher', `Error parsing save: ${err.message}`);
         Logger.error('Watcher', err.stack);
+      } finally {
+        cleanupSnapshot(tmpPath);
       }
     };
 
