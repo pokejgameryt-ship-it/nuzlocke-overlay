@@ -639,12 +639,15 @@ class SaveParser {
       let data48;
       let computedCS;
       let csOk;
+      let isCfru = false;
 
       if (isUnencrypted) {
-        // CFRU/fangame: data is only shuffled, no XOR encryption
+        // CFRU/fangame (Radical Red etc): data is neither XOR-encrypted NOR shuffled.
+        // Species sits directly at Growth block offset 0x00 in raw order.
         data48 = rawData;
         computedCS = 0;
         csOk = true;
+        isCfru = true;
       } else {
         // Standard Gen3: XOR decrypt with PID^OTID seed
         const seed = (pid ^ otId) >>> 0;
@@ -660,16 +663,22 @@ class SaveParser {
         csOk = storedCS === computedCS;
       }
 
-      // Unshuffle 4 x12-byte blocks (Growth, Attacks, EVs/Misc, Misc/Condition)
-      const sv = pid % 24;
-      const bp = SaveParser.GEN3_BLOCK_POSITIONS;
-      const unshuffled = Buffer.alloc(48);
-      for (let blk = 0; blk < 4; blk++) {
-        const srcBlock = bp[sv * 4 + blk];
-        const srcOff = srcBlock * 12;
-        const dstOff = blk * 12;
-        for (let k = 0; k < 12; k++) {
-          unshuffled[dstOff + k] = data48[srcOff + k];
+      let unshuffled;
+      if (isCfru) {
+        // No shuffle — data already in Growth/Attacks/EVs/Misc order
+        unshuffled = data48;
+      } else {
+        // Unshuffle 4 x12-byte blocks (Growth, Attacks, EVs/Misc, Misc/Condition)
+        const sv = pid % 24;
+        const bp = SaveParser.GEN3_BLOCK_POSITIONS;
+        unshuffled = Buffer.alloc(48);
+        for (let blk = 0; blk < 4; blk++) {
+          const srcBlock = bp[sv * 4 + blk];
+          const srcOff = srcBlock * 12;
+          const dstOff = blk * 12;
+          for (let k = 0; k < 12; k++) {
+            unshuffled[dstOff + k] = data48[srcOff + k];
+          }
         }
       }
 
@@ -681,7 +690,7 @@ class SaveParser {
       const curHp = buffer.readUInt16LE(pokemonFileOfs + 0x56);
       const maxHp = buffer.readUInt16LE(pokemonFileOfs + 0x58);
 
-      return { pid, otId, sv, speciesId, rawLevel, level, curHp, maxHp, storedCS, computedCS, csOk, isUnencrypted };
+      return { pid, otId, sv: isCfru ? -1 : (pid % 24), speciesId, rawLevel, level, curHp, maxHp, storedCS, computedCS, csOk, isUnencrypted: isCfru || isUnencrypted, isCfru };
     }
 
     // --- Shared: read nickname/OT and build result ---
