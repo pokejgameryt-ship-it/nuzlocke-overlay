@@ -684,7 +684,15 @@ class SaveParser {
 
       // Growth substructure is block 0 (bytes 0x00-0x0B)
       // Species is uint16 LE at offset 0x00
-      const speciesId = unshuffled.readUInt16LE(0x00);
+      let speciesId = unshuffled.readUInt16LE(0x00);
+      // CFRU/fangames (Radical Red etc) use a custom species table — map to national dex IDs
+      if (isCfru && speciesId > 0) {
+        try {
+          const { rrToNational } = require('./rr-species-map');
+          const mapped = rrToNational(speciesId);
+          if (mapped > 0) speciesId = mapped;
+        } catch (_) { /* map missing — keep raw ID */ }
+      }
       const rawLevel = buffer[pokemonFileOfs + 0x54] || 0;
       const level = Math.max(1, Math.min(100, rawLevel));
       const curHp = buffer.readUInt16LE(pokemonFileOfs + 0x56);
@@ -2068,23 +2076,27 @@ class SaveParser {
   }
 
   static readGen3String(buffer, offset, length) {
-    const EXTENDED = '\u00A1\u00BF\u00C0\u00C1\u00C2\u00C3\u00C4\u00C5\u00C6\u00C7\u00C8\u00C9\u00CA\u00CB\u00CC\u00CD\u00CE\u00CF\u00D0\u00D1\u00D2\u00D3\u00D4\u00D5\u00D6\u00D8\u00D9\u00DA\u00DB\u00DC\u00DD\u00DE\u00DF\u00E0\u00E1\u00E2\u00E3\u00E4\u00E5\u00E6\u00E7\u00E8\u00E9\u00EA\u00EB\u00EC\u00ED\u00EE\u00EF\u00F0\u00F1\u00F2\u00F3\u00F4\u00F5\u00F6\u00F8\u00F9\u00FA\u00FB\u00FC\u00FD\u00FE\u00FF';
     let str = '';
     for (let i = 0; i < length; i++) {
-      const c = buffer[offset + i];
-      if (c === 0xFF || c === 0x00) break;
-      if (c >= 0x01 && c <= 0x1A) str += String.fromCharCode(0x41 + (c - 1));
-      else if (c >= 0x1B && c <= 0x34) str += String.fromCharCode(0x61 + (c - 0x1B));
-      else if (c >= 0x35 && c <= 0x3E) str += String.fromCharCode(0x30 + (c - 0x35));
-      else if (c === 0x3F) str += ' ';
-      else if (c >= 0xA1 && c <= 0xFE) {
-        const idx = c - 0xA1;
-        str += idx < EXTENDED.length ? EXTENDED[idx] : '?';
-      }
-      else if (c >= 0x20 && c <= 0x7E) str += String.fromCharCode(c);
-      else str += '?';
+      const ch = buffer[offset + i];
+      if (ch === 0xFF || ch === 0x00) break;
+      if (ch >= 0xBB && ch <= 0xD4) str += String.fromCharCode(0x41 + (ch - 0xBB));
+      else if (ch >= 0xD5 && ch <= 0xEE) str += String.fromCharCode(0x61 + (ch - 0xD5));
+      else if (ch >= 0xA1 && ch <= 0xAA) str += String.fromCharCode(0x30 + (ch - 0xA1));
+      else if (ch === 0xAB) str += '!';
+      else if (ch === 0xAC) str += '?';
+      else if (ch === 0xAD) str += '.';
+      else if (ch === 0xAE) str += '-';
+      else if (ch === 0xB8) str += ',';
+      else if (ch === 0xBA) str += '/';
+      else if (ch === 0xB4) str += String.fromCharCode(39);
+      else if (ch === 0x3F) str += ' ';
+      else if (ch >= 0x01 && ch <= 0x1A) str += String.fromCharCode(0x41 + (ch - 1));
+      else if (ch >= 0x1B && ch <= 0x34) str += String.fromCharCode(0x61 + (ch - 0x1B));
+      else if (ch >= 0x35 && ch <= 0x3E) str += String.fromCharCode(0x30 + (ch - 0x35));
+      else if (ch >= 0x20 && ch <= 0x7E) str += String.fromCharCode(ch);
     }
-    return str.trim();
+    return str.replace(/\s+$/, '');
   }
 
   static readNdsString(buffer, offset, length) {
