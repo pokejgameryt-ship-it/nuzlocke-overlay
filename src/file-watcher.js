@@ -489,6 +489,11 @@ if (isFangame) {
     for (const client of clients) {
       client.write(`data: ${eventData}\n\n`);
     }
+
+    if (cfg.onTeamChange && !this.stoppedProjects.has(projectId)) {
+      Logger.info('Watcher', `Style change: notifying renderer for ${projectId}`);
+      cfg.onTeamChange(projectId, reresolved, null);
+    }
   }
 }
 

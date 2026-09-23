@@ -310,6 +310,8 @@
     if (!currentId) { currentTeam = []; updateTeamStatus(); return; }
     currentTeam = await window.api.getTeam(currentId);
     updateTeamStatus();
+    const project = projects.find(p => p.id === currentId);
+    if (project) renderCanvasSlots(project.slots, project.nicknameSlots);
   }
 
   function updateTeamStatus() {
