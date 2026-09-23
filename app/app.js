@@ -1824,6 +1824,8 @@
       if (project.inputMode === 'manual') {
         await sendManualTeam();
         renderManualTeamGrid();
+      } else {
+        setTimeout(() => refreshTeam(), 300);
       }
     });
 

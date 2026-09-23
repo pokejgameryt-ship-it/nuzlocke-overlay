@@ -450,6 +450,46 @@ if (isFangame) {
     Logger.debug('Watcher', `getCachedTeam(${projectId}): ${team.length} Pokemon`);
     return team;
   }
+
+  updateStyle(projectId, spriteStyle, spriteStylePath, spritesRoot) {
+    const cfg = this.watchConfigs.get(projectId);
+    if (!cfg) return;
+    cfg.spriteStyle = spriteStyle;
+    cfg.spriteStylePath = spriteStylePath;
+    if (spritesRoot) cfg.spritesRoot = spritesRoot;
+    Logger.info('Watcher', `updateStyle for ${projectId}: style=${spriteStyle} path=${spriteStylePath}`);
+
+    const cached = this.projectData.get(projectId);
+    if (!cached || cached.length === 0) return;
+
+    const absStylePath = path.resolve(cfg.spritesRoot || spritesRoot || '', spriteStylePath || '');
+    const reresolved = cached.map(p => {
+      if (!p) return p;
+      if (p.isPlaceholder || p.speciesId === 0) {
+        const phUrl = resolveSprite(absStylePath, 0, {
+          spritesRoot: cfg.spritesRoot || spritesRoot,
+          styleId: spriteStyle
+        });
+        return { ...p, spriteUrl: phUrl || p.spriteUrl };
+      }
+      const spriteUrl = resolveSprite(absStylePath, p.speciesId, {
+        form: p.form,
+        shiny: p.isShiny,
+        spritesRoot: cfg.spritesRoot || spritesRoot,
+        styleId: spriteStyle
+      });
+      return { ...p, spriteUrl: spriteUrl || p.spriteUrl };
+    });
+
+    this.projectData.set(projectId, reresolved);
+
+    const clients = cfg.sseClients?.get(projectId) || new Set();
+    const eventData = JSON.stringify({ team: reresolved });
+    Logger.info('Watcher', `Style change: sending SSE to ${clients.size} clients for ${projectId}`);
+    for (const client of clients) {
+      client.write(`data: ${eventData}\n\n`);
+    }
+  }
 }
 
 module.exports = FileWatcher;

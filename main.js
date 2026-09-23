@@ -459,7 +459,7 @@ ipcMain.handle('create-project', (event, data) => {
   return project;
 });
 ipcMain.handle('update-project', (event, id, data) => {
-  dbgWrite(`update-project: id=${id} inputMode=${data.inputMode} savePath=${data.savePath || '(none)'} gameVer=${data.game?.version || '(none)'} usePlaceholder=${data.usePlaceholder}`);
+  dbgWrite(`update-project: id=${id} inputMode=${data.inputMode} savePath=${data.savePath || '(none)'} gameVer=${data.game?.version || '(none)'} usePlaceholder=${data.usePlaceholder} spriteStyle=${data.spriteStyle || '(none)'}`);
   const oldProject = projectManager.get(id);
   const updated = projectManager.update(id, data);
   if (updated) {
@@ -467,6 +467,10 @@ ipcMain.handle('update-project', (event, id, data) => {
       || oldProject.savePath !== updated.savePath
       || (oldProject.game && oldProject.game.version) !== (updated.game && updated.game.version)
       || oldProject.inputMode !== updated.inputMode;
+
+    const styleChanged = oldProject
+      && (oldProject.spriteStyle !== updated.spriteStyle
+        || oldProject.spriteStylePath !== updated.spriteStylePath);
 
     if (watcherConfigChanged) {
       fileWatcher.stopWatching(id);
@@ -480,6 +484,10 @@ ipcMain.handle('update-project', (event, id, data) => {
     } else {
       dbgWrite(`update-project: config UNCHANGED, skipping watcher restart for ${id}`);
       fileWatcher.updatePlaceholderConfig(id, { usePlaceholder: updated.usePlaceholder || false });
+      if (styleChanged && updated.inputMode !== 'manual') {
+        dbgWrite(`update-project: style CHANGED, re-resolving sprites for ${id}`);
+        fileWatcher.updateStyle(id, updated.spriteStyle, updated.spriteStylePath, SPRITES_ROOT);
+      }
     }
     const clients = sseClients.get(id) || new Set();
     for (const client of clients) {
