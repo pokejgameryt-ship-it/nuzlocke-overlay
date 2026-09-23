@@ -19,6 +19,7 @@ class FileWatcher {
     this.watchers = new Map();
     this.projectData = new Map();
     this.debounceTimers = new Map();
+    this.retryCounts = new Map();
     this.placeholderConfigs = new Map();
     this.stoppedProjects = new Set();
     this.workingParsers = new Map();
@@ -34,9 +35,17 @@ class FileWatcher {
     Logger.info('Watcher', `  savePath: ${savePath}`);
     Logger.info('Watcher', `  PKHeX available: ${!!PkHexReader}`);
 
+    const prevCfg = this.watchConfigs.get(projectId);
     this.stopWatching(projectId);
     this.stoppedProjects.delete(projectId);
-    this.workingParsers.delete(projectId);
+
+    const configChanged = !prevCfg
+      || prevCfg.savePath !== savePath
+      || (prevCfg.gameInfo && prevCfg.gameInfo.version) !== (gameInfo && gameInfo.version)
+      || (prevCfg.gameInfo && prevCfg.gameInfo.id) !== (gameInfo && gameInfo.id);
+    if (configChanged) {
+      this.workingParsers.delete(projectId);
+    }
 
     if (!savePath || !fs.existsSync(savePath)) {
       Logger.error('Watcher', `Save file NOT found: ${savePath}`);
@@ -80,11 +89,11 @@ class FileWatcher {
     const watcher = chokidar.watch(watchDir, {
       ignoreInitial: true,
       usePolling: true,
-      interval: 300,
+      interval: 1000,  // Increased from 300ms to 1000ms to reduce CPU usage
     });
 
     let generation = gameInfo ? gameInfo.generation || 0 : 0;
-    const DEBOUNCE_MS = 500;
+    const DEBOUNCE_MS = 1000;
 
     Logger.info('Watcher', `Config: generation=${generation}, gameInfo=${JSON.stringify(gameInfo)}, PKHeX=${!!PkHexReader}`);
 
@@ -157,6 +166,7 @@ class FileWatcher {
         tmpPath = snapshot.tmpPath;
         saveSize = snapshot.tmpSize;
         Logger.info('Watcher', `Snapshot created: ${tmpPath} (${saveSize} bytes)`);
+        Logger.info('Watcher', `File size check: original=${saveSize} (before copy), snapshot=${saveSize} (after copy)`);
 
         Logger.info('Watcher', `Parsing save for project ${projectId} (gen=${generation}, PKHeX=${!!PkHexReader}, resolvedPath=${resolvedSavePath}, size=${saveSize})`);
 
@@ -207,26 +217,26 @@ class FileWatcher {
           }
         } else {
           // === FIRST DETECTION ===
-          if (isFangame) {
-            // Fangames: PKHeX won't know them, go straight to native parser
-            Logger.info('Watcher', `Fangame detected (${gameInfo.id}), using native parser directly`);
-            try {
-              const buffer = fs.readFileSync(tmpPath);
-              const nativeTeam = SaveParser.parse(buffer, gameInfo);
-              nativeTeamLength = nativeTeam.length;
-              if (nativeTeam.length > 0) {
-                Logger.info('Watcher', `[Native] Found ${nativeTeam.length} Pokemon`);
-                Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
-                team = nativeTeam;
-              } else {
-                Logger.warn('Watcher', '[Native] Returned empty team');
-                Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, null);
-              }
-            } catch (nativeErr) {
-              nativeError = nativeErr.message;
-              Logger.error('Watcher', `[Native] Failed for fangame: ${nativeErr.message}`);
-              Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
-            }
+if (isFangame) {
+             // Fangames: PKHeX won't know them, go straight to native parser
+             Logger.info('Watcher', `Fangame detected (${gameInfo.id}), using native parser directly`);
+             try {
+                 const buffer = fs.readFileSync(tmpPath);
+                 const nativeTeam = SaveParser.parse(buffer, gameInfo);
+                 nativeTeamLength = nativeTeam.length;
+                 if (nativeTeam.length > 0) {
+                   Logger.info('Watcher', `[Native] Found ${nativeTeam.length} Pokemon for ${gameInfo.id}`);
+                   Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, nativeTeam.length, null);
+                   team = nativeTeam;
+                 } else {
+                   Logger.warn('Watcher', '[Native] Returned empty team for fangame');
+                   Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, null);
+                 }
+             } catch (nativeErr) {
+               nativeError = nativeErr.message;
+               Logger.error('Watcher', `[Native] Failed for fangame (${gameInfo.id}): ${nativeErr.message}`);
+               Logger.logNativeParserResult(resolvedSavePath, saveSize, gameInfo, 0, nativeErr.message);
+             }
           } else {
             // Official games: PKHeX first
             if (PkHexReader) {
@@ -291,6 +301,17 @@ class FileWatcher {
 
         if (team.length === 0) {
           Logger.warn('Watcher', `NO POKEMON FOUND in save file`);
+          const retries = this.retryCounts.get(projectId) || 0;
+          if (retries < 2) {
+            this.retryCounts.set(projectId, retries + 1);
+            Logger.warn('Watcher', `Empty team, retry ${retries + 1}/2 in 2s...`);
+            setTimeout(() => { if (!this.stoppedProjects.has(projectId)) doParse(); }, 2000);
+            cleanupSnapshot(tmpPath);
+            return;
+          }
+          this.retryCounts.delete(projectId);
+        } else {
+          this.retryCounts.delete(projectId);
         }
 
         const absStylePath = path.resolve(spritesRoot, spriteStylePath);
@@ -408,6 +429,7 @@ class FileWatcher {
 
   stopWatching(projectId) {
     this.stoppedProjects.add(projectId);
+    this.retryCounts.delete(projectId);
     if (this.debounceTimers.has(projectId)) {
       clearTimeout(this.debounceTimers.get(projectId));
       this.debounceTimers.delete(projectId);

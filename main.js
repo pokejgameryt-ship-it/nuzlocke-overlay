@@ -460,15 +460,25 @@ ipcMain.handle('create-project', (event, data) => {
 });
 ipcMain.handle('update-project', (event, id, data) => {
   dbgWrite(`update-project: id=${id} inputMode=${data.inputMode} savePath=${data.savePath || '(none)'} gameVer=${data.game?.version || '(none)'} usePlaceholder=${data.usePlaceholder}`);
-  console.log('[MAIN] update-project:', id, 'inputMode:', data.inputMode, 'savePath:', data.savePath || '(none)', 'game:', data.game?.version || '(none)');
+  const oldProject = projectManager.get(id);
   const updated = projectManager.update(id, data);
   if (updated) {
-    fileWatcher.stopWatching(id);
-    if (updated.inputMode !== 'manual' && updated.savePath) {
-      dbgWrite(`update-project: calling startWatching for ${id} savePath=${updated.savePath} game=${JSON.stringify(updated.game)}`);
-      startWatching(updated);
+    const watcherConfigChanged = !oldProject
+      || oldProject.savePath !== updated.savePath
+      || (oldProject.game && oldProject.game.version) !== (updated.game && updated.game.version)
+      || oldProject.inputMode !== updated.inputMode;
+
+    if (watcherConfigChanged) {
+      fileWatcher.stopWatching(id);
+      if (updated.inputMode !== 'manual' && updated.savePath) {
+        dbgWrite(`update-project: config CHANGED, restarting watcher for ${id}`);
+        startWatching(updated);
+      } else {
+        dbgWrite(`update-project: NOT starting watcher inputMode=${updated.inputMode}`);
+        fileWatcher.updatePlaceholderConfig(id, { usePlaceholder: updated.usePlaceholder || false });
+      }
     } else {
-      dbgWrite(`update-project: NOT starting watcher inputMode=${updated.inputMode} savePath=${updated.savePath || '(empty)'}`);
+      dbgWrite(`update-project: config UNCHANGED, skipping watcher restart for ${id}`);
       fileWatcher.updatePlaceholderConfig(id, { usePlaceholder: updated.usePlaceholder || false });
     }
     const clients = sseClients.get(id) || new Set();
